@@ -13,8 +13,8 @@ public class PlateVisualizer extends JPanel {
         this.plate = plate;
         this.mode = mode;
         this.algorithm = algorithm;
-        // Panelgröße (Panel innerhalb des J-Frame-Fensters) initialisieren
-        setPreferredSize(new Dimension(plate.width + 50, plate.height + 50));
+        // Panelgröße (Panel innerhalb des J-Frame-Fensters) initialisieren - mit extra Platz für Text
+        setPreferredSize(new Dimension(plate.width + 50, plate.height + 100));
     }
 
     // Bemalt das Panel
@@ -73,16 +73,15 @@ public class PlateVisualizer extends JPanel {
                 g2d.drawString("F" + i, rect.x + 5, rect.y + 15);
                 g2d.drawString(rect.width + "x" + rect.height, rect.x + 5, rect.y + 30);
             }
-
-        } else if ("3".equals(mode) && algorithm instanceof MaxRectBFMerge) {
+        } else if ("3".equals(mode) && algorithm instanceof MaxRectBFDynamic) {
             // Strichlinie für die Umrandung definieren
             g2d.setStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{6}, 0));
             g2d.setFont(new Font("Arial", Font.PLAIN, 11));
             // Holt die Liste der freien Rechtecke aus dem übergebenen Objekt algorithm
-            List<MaxRectBFMerge.FreeRectangle> freeRects = ((MaxRectBFMerge) algorithm).freeRects;
+            List<MaxRectBFDynamic.FreeRectangle> freeRects = ((MaxRectBFDynamic) algorithm).freeRects;
             for (int i = 0; i < freeRects.size(); i++) {
-                MaxRectBFMerge.FreeRectangle rect = freeRects.get(i);
-                // Füllung3
+                MaxRectBFDynamic.FreeRectangle rect = freeRects.get(i);
+                // Füllung
                 g2d.setColor(new Color(255, 0, 0, 50)); // hellrot
                 g2d.fillRect(rect.x, rect.y, rect.width, rect.height);
                 // Umrandung
@@ -100,6 +99,37 @@ public class PlateVisualizer extends JPanel {
 
         // Reset Stroke (für eventuelle spätere Zeichnungen)
         g2d.setStroke(new BasicStroke(1f));
+
+        // === Statistiken am unteren Rand ===
+        int usedArea = 0;
+        int placedJobsCount = 0;
+        for (int i = 0; i < plate.jobs.size(); i++) {
+            Job job = plate.jobs.get(i);
+            if (job.placedOn != null) {
+                usedArea += job.width * job.height;
+                placedJobsCount++;
+            }
+        }
+        double coverageRate = calculateCoverageRate(plate);
+        g2d.setColor(Color.BLACK);
+        g2d.setFont(new Font("Arial", Font.BOLD, 16));
+        int textY = plate.height + 40;
+        g2d.drawString("Platzierte Jobs: " + placedJobsCount, 10, textY);
+        g2d.drawString(String.format("Deckungsrate: %.2f%%", coverageRate), 10, textY + 20);
+        g2d.drawString("Belegte Fläche: " + usedArea + " mm²", 10, textY + 40);
+    }
+
+    // Statische Methode zur Berechnung der Deckungsrate
+    public static double calculateCoverageRate(Plate plate) {
+        int totalPlateArea = plate.width * plate.height;
+        int usedArea = 0;
+        for (int i = 0; i < plate.jobs.size(); i++) {
+            Job job = plate.jobs.get(i);
+            if (job.placedOn != null) {
+                usedArea += job.width * job.height;
+            }
+        }
+        return (double) usedArea / totalPlateArea * 100;
     }
 
 
@@ -107,13 +137,16 @@ public class PlateVisualizer extends JPanel {
     // J-Frame ist eine Klasse innerhalb des Frameworks, die das Fenster erzeugt.
     public static void showPlate(Plate plate, String mode, Object algorithm) {
         // GUI-Thread starten
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("Plate Visualizer - " + plate.name);  // Initialisiert das Fenster
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);  // Beendet das Programm (auch die main), wenn das Fenster geschlossen wird
-            frame.getContentPane().add(new PlateVisualizer(plate, mode, algorithm));  // Füge das Panel in das J-Frame-Fenster ein
-            frame.pack();  // Fenster auf optimale Größe bringen. Entspricht setPreferredSize(new Dimension(plate.width + 50, plate.height + 50));
-            frame.setLocationRelativeTo(null);  // Fenster zentrieren
-            frame.setVisible(true);  // Hier ruft Swing automatisch die Methode paintComponent(Graphics g) auf
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                JFrame frame = new JFrame("Plate Visualizer - " + plate.name);  // Initialisiert das Fenster
+                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);  // Beendet das Programm (auch die main), wenn das Fenster geschlossen wird
+                frame.getContentPane().add(new PlateVisualizer(plate, mode, algorithm));  // Füge das Panel in das J-Frame-Fenster ein
+                frame.pack();  // Fenster auf optimale Größe bringen. Entspricht setPreferredSize(new Dimension(plate.width + 50, plate.height + 50));
+                frame.setLocationRelativeTo(null);  // Fenster zentrieren
+                frame.setVisible(true);  // Hier ruft Swing automatisch die Methode paintComponent(Graphics g) auf
+            }
         });
     }
 }
