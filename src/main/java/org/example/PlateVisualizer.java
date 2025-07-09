@@ -50,6 +50,9 @@ public class PlateVisualizer extends JPanel {
             g2d.drawString(job.width + "x" + job.height, job.x + 5, job.y + 30);
             if (job.rotated) g2d.drawString("(gedreht)", job.x + 5, job.y + 45);
             g2d.drawString("Order: " + job.placementOrder, job.x + 5, job.y + 60);
+            if (job.splittingMethod != null) {
+                g2d.drawString("Split: " + job.splittingMethod, job.x + 5, job.y + 75);
+            }
         }
 
         // === Freie Rechtecke ===

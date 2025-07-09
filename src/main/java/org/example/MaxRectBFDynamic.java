@@ -70,9 +70,14 @@ public class MaxRectBFDynamic {
                 }
                 
                 // Erstelle das ursprüngliche Rechteck vom letzten Job wieder
-                FreeRectangle originalRect = new FreeRectangle(lastJob.x, lastJob.y, 
+                FreeRectangle originalRect = new FreeRectangle(
+                    lastJob.x, 
+                    lastJob.y, 
                     lastJob.width + lastAddedRects.get(0).width, 
-                    lastJob.height + lastAddedRects.get(1).height);
+                    lastJob.height + lastAddedRects.get(1).height
+                );
+                System.out.printf("   Rekonstruiertes Originalrechteck: Start(%d, %d), Breite=%dmm, Höhe=%dmm%n",
+                    originalRect.x, originalRect.y, originalRect.width, originalRect.height);
                 
                 // Verwende FullHeight-Splitting für den letzten Job
                 System.out.println("-> Verwende FullHeight-Splitting für den letzten Job");
@@ -106,6 +111,7 @@ public class MaxRectBFDynamic {
                 job.y = result.bestRect.y;
                 job.placedOn = plate;
                 job.placementOrder = placementCounter++;
+                job.splittingMethod = "FullHeight";
                 plate.jobs.add(job);
 
                 System.out.println("-> Platziert in (" + job.x + ", " + job.y + ") auf " + plate.name + " mit FullHeight");
@@ -130,6 +136,7 @@ public class MaxRectBFDynamic {
             job.y = result.bestRect.y;
             job.placedOn = plate;
             job.placementOrder = placementCounter++;
+            job.splittingMethod = "FullWidth";
             plate.jobs.add(job);
 
             System.out.println("-> Platziert in (" + job.x + ", " + job.y + ") auf " + plate.name);

@@ -7,6 +7,7 @@ public class Job {
     Plate placedOn = null;
     boolean rotated;
     int placementOrder = -1;
+    String splittingMethod = null;  // "FullWidth", "FullHeight" oder null
 
 
     public Job(int id, int width, int height) {
@@ -19,9 +20,10 @@ public class Job {
     @Override
     public String toString() {
         if (placedOn != null) {
+            String splittingInfo = splittingMethod != null ? ", Splitting: " + splittingMethod : "";
             return "Job " + id + ": " + width + "mm x " + height + "mm -> " +
                     "Platte: " + placedOn.name +
-                    ", Position: (" + x + ", " + y + ")";
+                    ", Position: (" + x + ", " + y + ")" + splittingInfo;
         } else {
             return "Job " + id + ": " + width + "mm x " + height + "mm -> nicht platziert";
         }
