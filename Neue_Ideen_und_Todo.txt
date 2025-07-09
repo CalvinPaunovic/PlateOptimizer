@@ -1,0 +1,12 @@
+Ideen:
+- Jobs nach Kantenlänge sortieren statt nach Fläche -> Beide Varianten ausführen lassen
+- n-Wege: Jedes Mal, wenn von FullWidth zu FullHeight gewechselt wird, einen eigenen Pfad dafür erstellen. Am Ende alle vergleichen.
+
+-> Parallelisierung oder Threads lohnt sich nicht. Einfach hintereinander jeden Algorithmus durchführen.
+
+
+Todo:
+- Benchmarks ausgeben lassen, und nach Deckungsrate und Anzahl Schnitte vergeleichen
+- Anzahl Schnitte berechnen
+- Jeden Job etwas größer machen, da die Schnitte ein wenig Platz brauchen
+- Zwischenschritte ohne Verzögerung anzeigen lassen

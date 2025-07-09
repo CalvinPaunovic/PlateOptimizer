@@ -1,6 +1,0 @@
-- Jobs nach Kantenlänge sortieren statt nach Fläche
- -> Beide Varianten ausführen lassen
-
-
-- n-Wege: Jedes Mal, wenn von FullWidth zu FullHeight gewechselt wird, einen eigenen Pfad dafür erstellen. Am Ende alle vergleichen.
-
