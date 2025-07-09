@@ -10,3 +10,6 @@ Todo:
 - Anzahl Schnitte berechnen
 - Jeden Job etwas größer machen, da die Schnitte ein wenig Platz brauchen
 - Zwischenschritte ohne Verzögerung anzeigen lassen
+- Viel mehr Datenmengen erstellen lassen mit Extrema
+
+- Beste Verteilungskombination bei verschiedenen Plattenformaten
