@@ -1,5 +1,8 @@
 Ideen:
-- Jobs nach Kantenlänge sortieren statt nach Fläche -> Beide Varianten ausführen lassen
+- Jobs nach Kantenlänge sortieren statt nach Fläche -> Benchmark
+- Default FullHeight und Default FullWidth -> Benchmark
+- Bei Methodenänderungen FullHeight <-> FullWidth bleibe dann bei dieser Methode -> Benchmark
+
 - n-Wege: Jedes Mal, wenn von FullWidth zu FullHeight gewechselt wird, einen eigenen Pfad dafür erstellen. Am Ende alle vergleichen.
 
 -> Parallelisierung oder Threads lohnt sich nicht. Einfach hintereinander jeden Algorithmus durchführen.
