@@ -49,11 +49,11 @@ public class MaxRectBF {
         } else {
             methodName = "FullWidth";
         }
-        System.out.println("\n\n============== Job " + job.id + " (" + job.width + "x" + job.height + ") - " + methodName + " ==============");
+        if (Main.DEBUG_MaxRectBF) System.out.println("\n\n============== Job " + job.id + " (" + job.width + "x" + job.height + ") - " + methodName + " ==============");
         // Durchsucht alle verfügbaren freien Rechtecke
         for (int i = 0; i < freeRects.size(); i++) {
             FreeRectangle rect = freeRects.get(i);
-            System.out.println("  Prüfe FreeRect " + i + ": Startkoordinaten (x=" + rect.x + ", y=" + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
+            if (Main.DEBUG_MaxRectBF) System.out.println("  Prüfe FreeRect " + i + ": Startkoordinaten (x=" + rect.x + ", y=" + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
             // Originalposition testen
             testAndUpdateBestFit(job.width, job.height, rect, false, result);
             // Gedrehte Position testen
@@ -62,15 +62,15 @@ public class MaxRectBF {
         }
         // Wenn kein passender freier Bereich gefunden wurde: Job passt nicht
         if (result.bestRect == null) {
-            System.out.println("-> Kein passendes Rechteck gefunden für Job " + job.id);
+            if (Main.DEBUG_MaxRectBF) System.out.println("-> Kein passendes Rechteck gefunden für Job " + job.id);
             return false;
         }
         // Aktuellen Job speichern
         if (result.useRotated) {
-            System.out.println("-> Job wird GEDREHT platziert! (" + job.width + "x" + job.height + " → " + result.bestWidth + "x" + result.bestHeight + ")");
+            if (Main.DEBUG_MaxRectBF) System.out.println("-> Job wird GEDREHT platziert! (" + job.width + "x" + job.height + " → " + result.bestWidth + "x" + result.bestHeight + ")");
             job.rotated = true;
         } else {
-            System.out.println("-> Job wird in Originalausrichtung platziert.");
+            if (Main.DEBUG_MaxRectBF) System.out.println("-> Job wird in Originalausrichtung platziert.");
         }
         job.width = result.bestWidth;
         job.height = result.bestHeight;
@@ -80,7 +80,7 @@ public class MaxRectBF {
         job.placementOrder = placementCounter++;
         plate.jobs.add(job);
 
-        System.out.println("-> Platziert in (" + job.x + ", " + job.y + ") auf " + plate.name);
+        if (Main.DEBUG_MaxRectBF) System.out.println("-> Platziert in (" + job.x + ", " + job.y + ") auf " + plate.name);
 
         // Wähle die Splitting-Methode basierend auf useFullHeight
         if (useFullHeight) {
@@ -115,10 +115,10 @@ public class MaxRectBF {
             int leftoverHoriz = rect.width - testWidth;
             int leftoverVert = rect.height - testHeight;
             int shortSideFit = Math.min(leftoverHoriz, leftoverVert);
-            System.out.println("    -> Passt in " + ausrichtung + "!");
-            System.out.println("       Berechnung leftoverHoriz: " + rect.width + " - " + testWidth + " = " + leftoverHoriz);
-            System.out.println("       Berechnung leftoverVert: " + rect.height + " - " + testHeight + " = " + leftoverVert);
-            System.out.println("       shortSideFit = " + shortSideFit + ", aktueller bestScore = " + result.bestScore);
+            if (Main.DEBUG_MaxRectBF) System.out.println("    -> Passt in " + ausrichtung + "!");
+            if (Main.DEBUG_MaxRectBF) System.out.println("       Berechnung leftoverHoriz: " + rect.width + " - " + testWidth + " = " + leftoverHoriz);
+            if (Main.DEBUG_MaxRectBF) System.out.println("       Berechnung leftoverVert: " + rect.height + " - " + testHeight + " = " + leftoverVert);
+            if (Main.DEBUG_MaxRectBF) System.out.println("       shortSideFit = " + shortSideFit + ", aktueller bestScore = " + result.bestScore);
             // Kriterium für "Best Fit": Das Rechteck, worin der Job den kleinsten Abstand entweder vertikal ODER horizontal zum nächsten freien Rechteck oder zum Rand hat.
             // Weitere Möglichkeit für "Best Fit": durchschnittlicher Abstand vertikal UND horizontal zum jeweiligen nächsten freien Rechteck oder zum Rand.
             if (shortSideFit < result.bestScore) {
@@ -127,7 +127,7 @@ public class MaxRectBF {
                 result.useRotated = rotated;
                 result.bestWidth = testWidth;
                 result.bestHeight = testHeight;
-                System.out.println("       -> Neuer Best-Fit (" + ausrichtung + ")!");
+                if (Main.DEBUG_MaxRectBF) System.out.println("       -> Neuer Best-Fit (" + ausrichtung + ")!");
             }
         } else {
             String ausrichtungsText;
@@ -136,17 +136,17 @@ public class MaxRectBF {
             } else {
                 ausrichtungsText = "Original";
             }
-            System.out.println("    -> Passt NICHT in " + ausrichtungsText + " Ausrichtung.");
+            if (Main.DEBUG_MaxRectBF) System.out.println("    -> Passt NICHT in " + ausrichtungsText + " Ausrichtung.");
         }
     }
 
     // Freie Rechtecke mit vollständiger Breitenausdehnung nach rechts erzeugen
     private void splitFreeRectFullWidth(FreeRectangle rect, Job job) {
-        System.out.println("\n--- splitFreeRect aufgerufen ---");
-        System.out.println("Belegtes Rechteck: Start(" + rect.x + ", " + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
-        System.out.println("Jobgröße: Breite=" + job.width + "mm, Höhe=" + job.height + "mm");
+        if (Main.DEBUG_MaxRectBF) System.out.println("\n--- splitFreeRect aufgerufen ---");
+        if (Main.DEBUG_MaxRectBF) System.out.println("Belegtes Rechteck: Start(" + rect.x + ", " + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
+        if (Main.DEBUG_MaxRectBF) System.out.println("Jobgröße: Breite=" + job.width + "mm, Höhe=" + job.height + "mm");
         freeRects.remove(rect);
-        System.out.println("Entferne belegtes Rechteck aus freien Bereichen.");
+        if (Main.DEBUG_MaxRectBF) System.out.println("Entferne belegtes Rechteck aus freien Bereichen.");
         // Neuer freier Bereich rechts neben dem Job
         if (job.width < rect.width) {
             // Leere Rechtecke werden sich nicht überschneiden, weil die ersten zwei gesplitteten Rechtecke (vom ersten Job) sich
@@ -155,46 +155,46 @@ public class MaxRectBF {
             // in dem der Job platziert wurde (rect.width - job.width)
             FreeRectangle newRectRight = new FreeRectangle(rect.x + job.width, rect.y, rect.width - job.width, job.height);
             freeRects.add(newRectRight);
-            System.out.println("Füge freien Bereich rechts hinzu: Start(" + newRectRight.x + ", " + newRectRight.y + "), Breite=" + newRectRight.width + "mm, Höhe=" + newRectRight.height + "mm");
+            if (Main.DEBUG_MaxRectBF) System.out.println("Füge freien Bereich rechts hinzu: Start(" + newRectRight.x + ", " + newRectRight.y + "), Breite=" + newRectRight.width + "mm, Höhe=" + newRectRight.height + "mm");
         }
         // Neuer freier Bereich unterhalb des Jobs
         if (job.height < rect.height) {
             FreeRectangle newRectBelow = new FreeRectangle(rect.x, rect.y + job.height, rect.width, rect.height - job.height);
             freeRects.add(newRectBelow);
-            System.out.println("Füge freien Bereich unten hinzu: Start(" + newRectBelow.x + ", " + newRectBelow.y + "), Breite=" + newRectBelow.width + "mm, Höhe=" + newRectBelow.height + "mm");
+            if (Main.DEBUG_MaxRectBF) System.out.println("Füge freien Bereich unten hinzu: Start(" + newRectBelow.x + ", " + newRectBelow.y + "), Breite=" + newRectBelow.width + "mm, Höhe=" + newRectBelow.height + "mm");
         }
-        System.out.println("\nAktuelle freie Rechtecke:");
+        if (Main.DEBUG_MaxRectBF) System.out.println("\nAktuelle freie Rechtecke:");
         for (int i = 0; i < freeRects.size(); i++) {
             FreeRectangle r = freeRects.get(i);
-            System.out.println("  FreeRect " + i + ": Start(" + r.x + ", " + r.y + "), Breite=" + r.width + "mm, Höhe=" + r.height + "mm");
+            if (Main.DEBUG_MaxRectBF) System.out.println("  FreeRect " + i + ": Start(" + r.x + ", " + r.y + "), Breite=" + r.width + "mm, Höhe=" + r.height + "mm");
         }
     }
 
     // Freie Rechtecke mit vollständiger Höhenausdehnung nach rechts erzeugen
     private void splitFreeRectFullHeight(FreeRectangle rect, Job job) {
-        System.out.println("\n--- splitFreeRectFullHeight aufgerufen ---");
-        System.out.println("Belegtes Rechteck: Start(" + rect.x + ", " + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
-        System.out.println("Jobgröße: Breite=" + job.width + "mm, Höhe=" + job.height + "mm");
+        if (Main.DEBUG_MaxRectBF) System.out.println("\n--- splitFreeRectFullHeight aufgerufen ---");
+        if (Main.DEBUG_MaxRectBF) System.out.println("Belegtes Rechteck: Start(" + rect.x + ", " + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
+        if (Main.DEBUG_MaxRectBF) System.out.println("Jobgröße: Breite=" + job.width + "mm, Höhe=" + job.height + "mm");
         freeRects.remove(rect);
-        System.out.println("Entferne belegtes Rechteck aus freien Bereichen.");
+        if (Main.DEBUG_MaxRectBF) System.out.println("Entferne belegtes Rechteck aus freien Bereichen.");
         // Neuer freier Bereich rechts neben dem Job mit vollständiger Höhe
         if (job.width < rect.width) {
             // Unterschied ist der letzte Parameter: Höhe des neuen freien Rechtecks ist gleich der Höhe des vorherigen freien Rechtecks (rect.height) 
             // Also einfach umgekehrt zu splitFreeRectFullWidth, dort war die Breite des neuen freien Rechtecks gleich der Breite des vorherigen freien Rechtecks
             FreeRectangle newRectRight = new FreeRectangle(rect.x + job.width, rect.y, rect.width - job.width, rect.height);  
             freeRects.add(newRectRight);
-            System.out.println("Füge freien Bereich rechts hinzu (volle Höhe): Start(" + newRectRight.x + ", " + newRectRight.y + "), Breite=" + newRectRight.width + "mm, Höhe=" + newRectRight.height + "mm");
+            if (Main.DEBUG_MaxRectBF) System.out.println("Füge freien Bereich rechts hinzu (volle Höhe): Start(" + newRectRight.x + ", " + newRectRight.y + "), Breite=" + newRectRight.width + "mm, Höhe=" + newRectRight.height + "mm");
         }
         // Neuer freier Bereich unterhalb des Jobs
         if (job.height < rect.height) {
             FreeRectangle newRectBelow = new FreeRectangle(rect.x, rect.y + job.height, job.width, rect.height - job.height);
             freeRects.add(newRectBelow);
-            System.out.println("Füge freien Bereich unten hinzu (nur unter Job): Start(" + newRectBelow.x + ", " + newRectBelow.y + "), Breite=" + newRectBelow.width + "mm, Höhe=" + newRectBelow.height + "mm");
+            if (Main.DEBUG_MaxRectBF) System.out.println("Füge freien Bereich unten hinzu (nur unter Job): Start(" + newRectBelow.x + ", " + newRectBelow.y + "), Breite=" + newRectBelow.width + "mm, Höhe=" + newRectBelow.height + "mm");
         }
-        System.out.println("\nAktuelle freie Rechtecke:");
+        if (Main.DEBUG_MaxRectBF) System.out.println("\nAktuelle freie Rechtecke:");
         for (int i = 0; i < freeRects.size(); i++) {
             FreeRectangle r = freeRects.get(i);
-            System.out.println("  FreeRect " + i + ": Start(" + r.x + ", " + r.y + "), Breite=" + r.width + "mm, Höhe=" + r.height + "mm");
+            if (Main.DEBUG_MaxRectBF) System.out.println("  FreeRect " + i + ": Start(" + r.x + ", " + r.y + "), Breite=" + r.width + "mm, Höhe=" + r.height + "mm");
         }
     }
 }

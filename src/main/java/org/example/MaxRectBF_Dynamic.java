@@ -3,13 +3,13 @@ package org.example;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MaxRectBFDynamic {
+public class MaxRectBF_Dynamic {
     Plate plate;
     List<FreeRectangle> freeRects;
     int placementCounter;  // Für Variable placementOrder in Job-Klasse
     List<FreeRectangle> lastAddedRects;  // Verfolgt die letzten beiden hinzugefügten Rechtecke
 
-    public MaxRectBFDynamic(Plate plate) {
+    public MaxRectBF_Dynamic(Plate plate) {
         this.plate = plate;
         freeRects = new ArrayList<>();
         freeRects.add(new FreeRectangle(0, 0, plate.width, plate.height));
@@ -39,11 +39,11 @@ public class MaxRectBFDynamic {
     // Jeden Job durchgehen, platzieren und visualisieren
     public boolean placeJob(Job job) {
         BestFitResult result = new BestFitResult();
-        System.out.println("\n\n============== Job " + job.id + " (" + job.width + "x" + job.height + ") - FullWidth Dynamic ==============");
+        if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("\n\n============== Job " + job.id + " (" + job.width + "x" + job.height + ") - FullWidth Dynamic ==============");
         // Durchsucht alle verfügbaren freien Rechtecke
         for (int i = 0; i < freeRects.size(); i++) {
             FreeRectangle rect = freeRects.get(i);
-            System.out.println("  Prüfe FreeRect " + i + ": Startkoordinaten (x=" + rect.x + ", y=" + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
+            if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("  Prüfe FreeRect " + i + ": Startkoordinaten (x=" + rect.x + ", y=" + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
             // Originalposition testen
             testAndUpdateBestFit(job.width, job.height, rect, false, result);
             // Gedrehte Position testen
@@ -52,11 +52,11 @@ public class MaxRectBFDynamic {
 
         // Wenn kein passender freier Bereich gefunden wurde: Job passt nicht
         if (result.bestRect == null) {
-            System.out.println("-> Kein passendes Rechteck gefunden für Job " + job.id + " mit FullWidth");
+            if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("-> Kein passendes Rechteck gefunden für Job " + job.id + " mit FullWidth");
             
             // Lösche die letzten beiden hinzugefügten freien Rechtecke und erstelle neue mit FullHeight
             if (lastAddedRects.size() >= 2) {
-                System.out.println("-> Lösche die letzten beiden hinzugefügten freien Rechtecke:");
+                if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("-> Lösche die letzten beiden hinzugefügten freien Rechtecke:");
                 
                 // Bestimme den letzten platzierten Job
                 Job lastJob = plate.jobs.get(plate.jobs.size() - 1);
@@ -64,7 +64,7 @@ public class MaxRectBFDynamic {
                 // Entferne die beiden letzten Rechtecke
                 for (int i = lastAddedRects.size() - 1; i >= 0; i--) {
                     FreeRectangle rectToRemove = lastAddedRects.get(i);
-                    System.out.printf("   Entferne FreeRect: Start(%d, %d), Breite=%dmm, Höhe=%dmm%n", 
+                    if (Main.DEBUG_MaxRectBF_Dynamic) System.out.printf("   Entferne FreeRect: Start(%d, %d), Breite=%dmm, Höhe=%dmm%n", 
                         rectToRemove.x, rectToRemove.y, rectToRemove.width, rectToRemove.height);
                     freeRects.remove(rectToRemove);
                 }
@@ -76,34 +76,34 @@ public class MaxRectBFDynamic {
                     lastJob.width + lastAddedRects.get(0).width, 
                     lastJob.height + lastAddedRects.get(1).height
                 );
-                System.out.printf("   Rekonstruiertes Originalrechteck: Start(%d, %d), Breite=%dmm, Höhe=%dmm%n",
+                if (Main.DEBUG_MaxRectBF_Dynamic) System.out.printf("   Rekonstruiertes Originalrechteck: Start(%d, %d), Breite=%dmm, Höhe=%dmm%n",
                     originalRect.x, originalRect.y, originalRect.width, originalRect.height);
                 
                 // Verwende FullHeight-Splitting für den letzten Job
-                System.out.println("-> Verwende FullHeight-Splitting für den letzten Job");
+                if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("-> Verwende FullHeight-Splitting für den letzten Job");
                 splitFreeRectFullHeight(originalRect, lastJob);
                 
                 // Versuche Job erneut zu platzieren
-                System.out.println("-> Versuche Job " + job.id + " erneut mit FullHeight-Rechtecken");
+                if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("-> Versuche Job " + job.id + " erneut mit FullHeight-Rechtecken");
                 result = new BestFitResult();
                 for (int i = 0; i < freeRects.size(); i++) {
                     FreeRectangle rect = freeRects.get(i);
-                    System.out.println("  Prüfe FreeRect " + i + " für FullHeight: Startkoordinaten (x=" + rect.x + ", y=" + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
+                    if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("  Prüfe FreeRect " + i + " für FullHeight: Startkoordinaten (x=" + rect.x + ", y=" + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
                     testAndUpdateBestFit(job.width, job.height, rect, false, result);
                     if (Main.rotateJobs) testAndUpdateBestFit(job.height, job.width, rect, true, result);
                 }
                 
                 if (result.bestRect == null) {
-                    System.out.println("-> Job " + job.id + " kann auch mit FullHeight nicht platziert werden.");
+                    if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("-> Job " + job.id + " kann auch mit FullHeight nicht platziert werden.");
                     return false;
                 }
                 
                 // Platziere Job und verwende FullHeight-Splitting
                 if (result.useRotated) {
-                    System.out.println("-> Job wird GEDREHT platziert! (" + job.width + "x" + job.height + " → " + result.bestWidth + "x" + result.bestHeight + ")");
+                    if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("-> Job wird GEDREHT platziert! (" + job.width + "x" + job.height + " → " + result.bestWidth + "x" + result.bestHeight + ")");
                     job.rotated = true;
                 } else {
-                    System.out.println("-> Job wird in Originalausrichtung platziert.");
+                    if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("-> Job wird in Originalausrichtung platziert.");
                 }
                 job.width = result.bestWidth;
                 job.height = result.bestHeight;
@@ -114,21 +114,21 @@ public class MaxRectBFDynamic {
                 job.splittingMethod = "FullHeight";
                 plate.jobs.add(job);
 
-                System.out.println("-> Platziert in (" + job.x + ", " + job.y + ") auf " + plate.name + " mit FullHeight");
+                if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("-> Platziert in (" + job.x + ", " + job.y + ") auf " + plate.name + " mit FullHeight");
                 splitFreeRectFullHeight(result.bestRect, job);
                 
             } else {
-                System.out.println("-> Nicht genügend freie Rechtecke zum Löschen vorhanden.");
+                if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("-> Nicht genügend freie Rechtecke zum Löschen vorhanden.");
                 return false;
             }
             
         } else {
             // Job wurde erfolgreich mit FullWidth platziert
             if (result.useRotated) {
-                System.out.println("-> Job wird GEDREHT platziert! (" + job.width + "x" + job.height + " → " + result.bestWidth + "x" + result.bestHeight + ")");
+                if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("-> Job wird GEDREHT platziert! (" + job.width + "x" + job.height + " → " + result.bestWidth + "x" + result.bestHeight + ")");
                 job.rotated = true;
             } else {
-                System.out.println("-> Job wird in Originalausrichtung platziert.");
+                if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("-> Job wird in Originalausrichtung platziert.");
             }
             job.width = result.bestWidth;
             job.height = result.bestHeight;
@@ -139,7 +139,7 @@ public class MaxRectBFDynamic {
             job.splittingMethod = "FullWidth";
             plate.jobs.add(job);
 
-            System.out.println("-> Platziert in (" + job.x + ", " + job.y + ") auf " + plate.name);
+            if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("-> Platziert in (" + job.x + ", " + job.y + ") auf " + plate.name);
             splitFreeRectFullWidth(result.bestRect, job);
         }
 
@@ -158,10 +158,10 @@ public class MaxRectBFDynamic {
             int leftoverHoriz = rect.width - testWidth;
             int leftoverVert = rect.height - testHeight;
             int shortSideFit = Math.min(leftoverHoriz, leftoverVert);
-            System.out.println("    -> Passt in " + ausrichtung + "!");
-            System.out.println("       Berechnung leftoverHoriz: " + rect.width + " - " + testWidth + " = " + leftoverHoriz);
-            System.out.println("       Berechnung leftoverVert: " + rect.height + " - " + testHeight + " = " + leftoverVert);
-            System.out.println("       shortSideFit = " + shortSideFit + ", aktueller bestScore = " + result.bestScore);
+            if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("    -> Passt in " + ausrichtung + "!");
+            if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("       Berechnung leftoverHoriz: " + rect.width + " - " + testWidth + " = " + leftoverHoriz);
+            if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("       Berechnung leftoverVert: " + rect.height + " - " + testHeight + " = " + leftoverVert);
+            if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("       shortSideFit = " + shortSideFit + ", aktueller bestScore = " + result.bestScore);
             // Kriterium für "Best Fit": Das Rechteck, worin der Job den kleinsten Abstand entweder vertikal ODER horizontal zum nächsten freien Rechteck oder zum Rand hat.
             // Weitere Möglichkeit für "Best Fit": durchschnittlicher Abstand vertikal UND horizontal zum jeweiligen nächsten freien Rechteck oder zum Rand.
             if (shortSideFit < result.bestScore) {
@@ -170,7 +170,7 @@ public class MaxRectBFDynamic {
                 result.useRotated = rotated;
                 result.bestWidth = testWidth;
                 result.bestHeight = testHeight;
-                System.out.println("       -> Neuer Best-Fit (" + ausrichtung + ")!");
+                if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("       -> Neuer Best-Fit (" + ausrichtung + ")!");
             }
         } else {
             String ausrichtungsText;
@@ -179,17 +179,17 @@ public class MaxRectBFDynamic {
             } else {
                 ausrichtungsText = "Original";
             }
-            System.out.println("    -> Passt NICHT in " + ausrichtungsText + " Ausrichtung.");
+            if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("    -> Passt NICHT in " + ausrichtungsText + " Ausrichtung.");
         }
     }
 
     // Freie Rechtecke mit vollständiger Breitenausdehnung nach rechts erzeugen
     private void splitFreeRectFullWidth(FreeRectangle rect, Job job) {
-        System.out.println("\n--- splitFreeRect aufgerufen ---");
-        System.out.println("Belegtes Rechteck: Start(" + rect.x + ", " + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
-        System.out.println("Jobgröße: Breite=" + job.width + "mm, Höhe=" + job.height + "mm");
+        if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("\n--- splitFreeRect aufgerufen ---");
+        if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("Belegtes Rechteck: Start(" + rect.x + ", " + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
+        if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("Jobgröße: Breite=" + job.width + "mm, Höhe=" + job.height + "mm");
         freeRects.remove(rect);
-        System.out.println("Entferne belegtes Rechteck aus freien Bereichen.");
+        if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("Entferne belegtes Rechteck aus freien Bereichen.");
         
         // Lösche vorherige Einträge, da wir nur die letzten zwei verfolgen wollen
         lastAddedRects.clear();
@@ -199,24 +199,24 @@ public class MaxRectBFDynamic {
             FreeRectangle newRectRight = new FreeRectangle(rect.x + job.width, rect.y, rect.width - job.width, job.height);
             freeRects.add(newRectRight);
             lastAddedRects.add(newRectRight);
-            System.out.println("Füge freien Bereich rechts hinzu: Start(" + newRectRight.x + ", " + newRectRight.y + "), Breite=" + newRectRight.width + "mm, Höhe=" + newRectRight.height + "mm");
+            if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("Füge freien Bereich rechts hinzu: Start(" + newRectRight.x + ", " + newRectRight.y + "), Breite=" + newRectRight.width + "mm, Höhe=" + newRectRight.height + "mm");
         }
         // Neuer freier Bereich unterhalb des Jobs
         if (job.height < rect.height) {
             FreeRectangle newRectBelow = new FreeRectangle(rect.x, rect.y + job.height, rect.width, rect.height - job.height);
             freeRects.add(newRectBelow);
             lastAddedRects.add(newRectBelow);
-            System.out.println("Füge freien Bereich unten hinzu: Start(" + newRectBelow.x + ", " + newRectBelow.y + "), Breite=" + newRectBelow.width + "mm, Höhe=" + newRectBelow.height + "mm");
+            if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("Füge freien Bereich unten hinzu: Start(" + newRectBelow.x + ", " + newRectBelow.y + "), Breite=" + newRectBelow.width + "mm, Höhe=" + newRectBelow.height + "mm");
         }
         
-        System.out.println("\nAktuelle freie Rechtecke:");
+        if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("\nAktuelle freie Rechtecke:");
         for (int i = 0; i < freeRects.size(); i++) {
             FreeRectangle r = freeRects.get(i);
-            System.out.println("  FreeRect " + i + ": Start(" + r.x + ", " + r.y + "), Breite=" + r.width + "mm, Höhe=" + r.height + "mm");
+            if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("  FreeRect " + i + ": Start(" + r.x + ", " + r.y + "), Breite=" + r.width + "mm, Höhe=" + r.height + "mm");
         }
         
         // Visualisierung nach splitFreeRectFullWidth
-        if (Main.DEBUG) {
+        if (Main.DEBUG_MaxRectBF_Dynamic) {
             PlateVisualizer.showPlate(plate, "3", this);
             try {
                 Thread.sleep(2000);
@@ -228,11 +228,11 @@ public class MaxRectBFDynamic {
 
     // Freie Rechtecke mit vollständiger Höhenausdehnung nach rechts erzeugen
     private void splitFreeRectFullHeight(FreeRectangle rect, Job job) {
-        System.out.println("\n--- splitFreeRectFullHeight aufgerufen ---");
-        System.out.println("Belegtes Rechteck: Start(" + rect.x + ", " + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
-        System.out.println("Jobgröße: Breite=" + job.width + "mm, Höhe=" + job.height + "mm");
+        if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("\n--- splitFreeRectFullHeight aufgerufen ---");
+        if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("Belegtes Rechteck: Start(" + rect.x + ", " + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
+        if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("Jobgröße: Breite=" + job.width + "mm, Höhe=" + job.height + "mm");
         freeRects.remove(rect);
-        System.out.println("Entferne belegtes Rechteck aus freien Bereichen.");
+        if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("Entferne belegtes Rechteck aus freien Bereichen.");
         
         // Lösche vorherige Einträge, da wir nur die letzten zwei verfolgen wollen
         lastAddedRects.clear();
@@ -242,24 +242,24 @@ public class MaxRectBFDynamic {
             FreeRectangle newRectRight = new FreeRectangle(rect.x + job.width, rect.y, rect.width - job.width, rect.height);  
             freeRects.add(newRectRight);
             lastAddedRects.add(newRectRight);
-            System.out.println("Füge freien Bereich rechts hinzu (volle Höhe): Start(" + newRectRight.x + ", " + newRectRight.y + "), Breite=" + newRectRight.width + "mm, Höhe=" + newRectRight.height + "mm");
+            if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("Füge freien Bereich rechts hinzu (volle Höhe): Start(" + newRectRight.x + ", " + newRectRight.y + "), Breite=" + newRectRight.width + "mm, Höhe=" + newRectRight.height + "mm");
         }
         // Neuer freier Bereich unterhalb des Jobs
         if (job.height < rect.height) {
             FreeRectangle newRectBelow = new FreeRectangle(rect.x, rect.y + job.height, job.width, rect.height - job.height);
             freeRects.add(newRectBelow);
             lastAddedRects.add(newRectBelow);
-            System.out.println("Füge freien Bereich unten hinzu (nur unter Job): Start(" + newRectBelow.x + ", " + newRectBelow.y + "), Breite=" + newRectBelow.width + "mm, Höhe=" + newRectBelow.height + "mm");
+            if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("Füge freien Bereich unten hinzu (nur unter Job): Start(" + newRectBelow.x + ", " + newRectBelow.y + "), Breite=" + newRectBelow.width + "mm, Höhe=" + newRectBelow.height + "mm");
         }
         
-        System.out.println("\nAktuelle freie Rechtecke:");
+        if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("\nAktuelle freie Rechtecke:");
         for (int i = 0; i < freeRects.size(); i++) {
             FreeRectangle r = freeRects.get(i);
-            System.out.println("  FreeRect " + i + ": Start(" + r.x + ", " + r.y + "), Breite=" + r.width + "mm, Höhe=" + r.height + "mm");
+            if (Main.DEBUG_MaxRectBF_Dynamic) System.out.println("  FreeRect " + i + ": Start(" + r.x + ", " + r.y + "), Breite=" + r.width + "mm, Höhe=" + r.height + "mm");
         }
         
         // Visualisierung nach splitFreeRectFullHeight
-        if (Main.DEBUG) {
+        if (Main.DEBUG_MaxRectBF_Dynamic) {
             PlateVisualizer.showPlate(plate, "3", this);
             try {
                 Thread.sleep(2000);
