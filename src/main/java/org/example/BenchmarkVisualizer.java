@@ -9,13 +9,15 @@ import java.util.List;
 public class BenchmarkVisualizer extends JFrame {
     
     public static class BenchmarkResult {
-        final String algorithmName;
-        final Plate plate;
-        final Object algorithm;
-        final int placedJobs;
-        final double coverageRate;
-        final int totalJobs;
-        
+        public String algorithmName;
+        public Plate plate;
+        public Object algorithm;  // MaxRectBF, MaxRectBF_Dynamic, oder MaxRectBF_MultiPath
+        public int placedJobs;
+        public double coverageRate;
+        public int totalJobs;
+        public List<MaxRectBF_MultiPath.FreeRectangle> specificFreeRects; // Für MultiPath-Pfade
+
+        // Standardkonstruktor
         public BenchmarkResult(String algorithmName, Plate plate, Object algorithm, int placedJobs, double coverageRate, int totalJobs) {
             this.algorithmName = algorithmName;
             this.plate = plate;
@@ -23,6 +25,18 @@ public class BenchmarkVisualizer extends JFrame {
             this.placedJobs = placedJobs;
             this.coverageRate = coverageRate;
             this.totalJobs = totalJobs;
+            this.specificFreeRects = null;
+        }
+
+        // Erweiteter Konstruktor mit freien Rechtecken
+        public BenchmarkResult(String algorithmName, Plate plate, Object algorithm, int placedJobs, double coverageRate, int totalJobs, List<MaxRectBF_MultiPath.FreeRectangle> specificFreeRects) {
+            this.algorithmName = algorithmName;
+            this.plate = plate;
+            this.algorithm = algorithm;
+            this.placedJobs = placedJobs;
+            this.coverageRate = coverageRate;
+            this.totalJobs = totalJobs;
+            this.specificFreeRects = specificFreeRects;
         }
     }
     
@@ -58,7 +72,7 @@ public class BenchmarkVisualizer extends JFrame {
         
         pack();
         setLocationRelativeTo(null);
-        setMinimumSize(new Dimension(800, 500));
+        setMinimumSize(new Dimension(800, 600));
     }
     
     private JPanel createHeaderPanel() {
@@ -67,7 +81,7 @@ public class BenchmarkVisualizer extends JFrame {
         panel.setPreferredSize(new Dimension(0, 80));
         panel.setLayout(new BorderLayout());
         
-        JLabel titleLabel = new JLabel("🏆 BENCHMARK ERGEBNISSE", JLabel.CENTER);
+        JLabel titleLabel = new JLabel("BENCHMARK ERGEBNISSE", JLabel.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setForeground(Color.WHITE);
         
@@ -175,7 +189,8 @@ public class BenchmarkVisualizer extends JFrame {
         maxWidth = Math.max(maxWidth, headerWidth);
         
         // Prüfe alle Algorithmus-Namen in den Daten
-        for (BenchmarkResult result : results) {
+        for (int i = 0; i < results.size(); i++) {
+            BenchmarkResult result = results.get(i);
             int textWidth = fm.stringWidth(result.algorithmName);
             maxWidth = Math.max(maxWidth, textWidth);
         }
@@ -257,7 +272,8 @@ public class BenchmarkVisualizer extends JFrame {
     
     private double getAverageCoverageRate() {
         double sum = 0;
-        for (BenchmarkResult result : results) {
+        for (int i = 0; i < results.size(); i++) {
+            BenchmarkResult result = results.get(i);
             sum += result.coverageRate;
         }
         return sum / results.size();
@@ -284,13 +300,80 @@ public class BenchmarkVisualizer extends JFrame {
         String mode;
         if (result.algorithmName.contains("First Fit")) {
             mode = "1";
+            PlateVisualizer.showPlate(result.plate, mode, result.algorithm);
         } else if (result.algorithmName.contains("Dynamic")) {
             mode = "3";
+            PlateVisualizer.showPlate(result.plate, mode, result.algorithm);
+        } else if (result.algorithmName.contains("MultiPath")) {
+            mode = "4";
+            // Für MultiPath: Verwende die gleiche Visualisierung wie im Einzelmodus
+            if (result.specificFreeRects != null) {
+                // Extrahiere Pfad-Nummer und Strategie-Code für Titel
+                String titleFromName = "Pfad 1";
+                if (result.algorithmName.contains("Pfad ")) {
+                    int start = result.algorithmName.indexOf("Pfad ");
+                    // Nimm alles ab "Pfad" bis zum Ende (enthält bereits Strategie-Code falls vorhanden)
+                    titleFromName = result.algorithmName.substring(start);
+                    // Entferne den Algorithmus-Prefix falls vorhanden
+                    if (titleFromName.contains(" - ")) {
+                        titleFromName = titleFromName.substring(titleFromName.lastIndexOf(" - ") + 3);
+                    }
+                }
+                
+                // Verwende die gespeicherten freien Rechtecke
+                PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
+                    result.plate, 
+                    mode, 
+                    result.specificFreeRects, 
+                    titleFromName, 
+                    "Algorithmus: MultiPath (aus Benchmark)"
+                );                } else {
+                    // Fallback: Versuche den Pfad im Algorithmus zu finden
+                    if (result.algorithm instanceof MaxRectBF_MultiPath) {
+                        MaxRectBF_MultiPath multiPathAlgorithm = (MaxRectBF_MultiPath) result.algorithm;
+                        
+                        // Finde den entsprechenden Pfad basierend auf der Platte
+                        MaxRectBF_MultiPath.AlgorithmPath matchingPath = null;
+                        List<MaxRectBF_MultiPath.AlgorithmPath> allPaths = multiPathAlgorithm.getAllPaths();
+                        for (int i = 0; i < allPaths.size(); i++) {
+                            MaxRectBF_MultiPath.AlgorithmPath path = allPaths.get(i);
+                            if (path.isActive && path.plate == result.plate) {
+                                matchingPath = path;
+                                break;
+                            }
+                        }
+                        
+                        if (matchingPath != null) {
+                            // Extrahiere Pfad-Nummer für Titel
+                            String pathNumber = "1";
+                            if (matchingPath.pathDescription.contains("Pfad ")) {
+                                int start = matchingPath.pathDescription.indexOf("Pfad ") + 5;
+                                int end = matchingPath.pathDescription.indexOf(" ", start);
+                                if (end == -1) end = matchingPath.pathDescription.length();
+                                pathNumber = matchingPath.pathDescription.substring(start, end);
+                            }
+                            String simplifiedTitle = "Pfad " + pathNumber;
+                            
+                            // Verwende die spezifischen freien Rechtecke des Pfads
+                            PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
+                                matchingPath.plate, 
+                                mode, 
+                                matchingPath.freeRects, 
+                                simplifiedTitle, 
+                                "Algorithmus: MultiPath (aus Benchmark)"
+                            );
+                        } else {
+                            // Fallback falls kein Pfad gefunden wird
+                            PlateVisualizer.showPlate(result.plate, mode, result.algorithm);
+                        }
+                    } else {
+                        PlateVisualizer.showPlate(result.plate, mode, result.algorithm);
+                    }
+                }
         } else {
             mode = "2";
+            PlateVisualizer.showPlate(result.plate, mode, result.algorithm);
         }
-        
-        PlateVisualizer.showPlate(result.plate, mode, result.algorithm);
     }
     
     private void exportResults() {
@@ -321,8 +404,11 @@ public class BenchmarkVisualizer extends JFrame {
     }
     
     public static void showBenchmarkResults(List<BenchmarkResult> results) {
-        SwingUtilities.invokeLater(() -> {
-            new BenchmarkVisualizer(results).setVisible(true);
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new BenchmarkVisualizer(results).setVisible(true);
+            }
         });
     }
 }

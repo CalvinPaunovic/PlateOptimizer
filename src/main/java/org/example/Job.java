@@ -9,6 +9,13 @@ public class Job {
     int placementOrder = -1;
     String splittingMethod = null;  // "FullWidth", "FullHeight" oder null
 
+    // Ursprüngliche Dimensionen vor der Schnittbreite
+    int originalWidth = -1;
+    int originalHeight = -1;
+
+    // Anzahl der benötigten Schnitte für diesen Job
+    int numberOfCuts = 0;
+
 
     public Job(int id, int width, int height) {
         this.id = id;

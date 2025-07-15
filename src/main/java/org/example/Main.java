@@ -8,8 +8,11 @@ public class Main {
     public static final boolean DEBUG_MaxRectBF_Dynamic = false;
     public static final boolean DEBUG_MultiPath = true;
 
-    public static final boolean rotateJobs = false;  // Bislang nur für MaxRectBestFit-Algorithmus.
+    public static final boolean rotateJobs = true;  // Bislang nur für MaxRectBestFit-Algorithmus.
     public static final boolean sortJobs = true;  // Bislang nur für MaxRectBestFit-Algorithmus.
+    
+    // Schnittbreite in mm wird zu jeder Job-Dimension hinzugefügt
+    public static final int KERF_WIDTH = 3;  // 3mm Schnittbreite pro Seite
 
     public static void sortJobsBySizeDescending(List<Job> jobs) {
         jobs.sort(new Comparator<Job>() {
@@ -53,9 +56,9 @@ public class Main {
                 new Job(3, 205, 153),
                 new Job(4, 243, 188),
                 new Job(5, 243,188),
-                new Job(6,205,153),
+                new Job(6,205,153)
 
-                new Job(7, 305, 17)
+                //new Job(7, 305, 17)
         );
 
         String mode = getUserAlgorithmChoice();
@@ -70,8 +73,7 @@ public class Main {
             case "4":
                 runMaxRectBF_MultiPath(originalJobs);
                 break;
-            case "b":
-            case "B":
+            case "0":
                 runBenchmark(originalJobs);
                 break;
             default:
@@ -108,186 +110,98 @@ public class Main {
 
     private static void runMaxRectBF_MultiPath(List<Job> originalJobs) {
         System.out.println("\n=== MaxRectBF_MultiPath: Multi-Path Algorithmus ===\n");
+        
+        // === JOB-VORBEREITUNG ===
         List<Job> jobs = createJobCopies(originalJobs);
         if (sortJobs) sortJobsBySizeDescending(jobs);
         
+        // === ALGORITHMUS-INITIALISIERUNG ===
         Plate plate = new Plate("MaxRectBF Multi-Path", 963, 650);
         MaxRectBF_MultiPath algorithm = new MaxRectBF_MultiPath(plate);
-        
-        // Sammle alle Zwischenschritte während der Platzierung
-        List<List<MaxRectBF_MultiPath.AlgorithmPath>> stepsByJob = new ArrayList<>();
-        
-        // Speichere initialen Zustand (vor erstem Job)
-        List<MaxRectBF_MultiPath.AlgorithmPath> initialState = new ArrayList<>();
-        for (MaxRectBF_MultiPath.AlgorithmPath path : algorithm.getAllPaths()) {
-            if (path.isActive) {
-                // Erstelle Deep Copy des initialen Zustands
-                MaxRectBF_MultiPath.AlgorithmPath snapshot = new MaxRectBF_MultiPath.AlgorithmPath(path.plate, path.pathDescription + " (Start)");
-                snapshot.freeRects = new ArrayList<>(path.freeRects);
-                initialState.add(snapshot);
-            }
-        }
-        stepsByJob.add(initialState);
-        
-        for (Job job : jobs) {
+         
+        // === HAUPT-PLATZIERUNGS-SCHLEIFE ===
+        for (int i = 0; i < jobs.size(); i++) {
+            Job job = jobs.get(i);
             boolean placed = algorithm.placeJob(job);
             if (!placed) {
                 System.out.println("Job " + job.id + " konnte in keinem Pfad platziert werden.");
             }
             
-            // Erstelle Deep Copy des aktuellen Zustands aller Pfade nach diesem Job
-            List<MaxRectBF_MultiPath.AlgorithmPath> currentStepPaths = new ArrayList<>();
-            for (MaxRectBF_MultiPath.AlgorithmPath path : algorithm.getAllPaths()) {
-                if (path.isActive) {
-                    // Deep Copy der Plate mit allen Jobs
-                    MaxRectBF_MultiPath.AlgorithmPath snapshot = new MaxRectBF_MultiPath.AlgorithmPath(path.plate, path.pathDescription + " (nach Job " + job.id + ")");
-                    
-                    // Kopiere alle Jobs in die Snapshot-Plate
-                    snapshot.plate.jobs.clear(); // Lösche die aus dem Constructor
-                    for (Job originalJob : path.plate.jobs) {
-                        Job copiedJob = new Job(originalJob.id, originalJob.width, originalJob.height);
-                        copiedJob.x = originalJob.x;
-                        copiedJob.y = originalJob.y;
-                        copiedJob.rotated = originalJob.rotated;
-                        copiedJob.placedOn = snapshot.plate;
-                        copiedJob.placementOrder = originalJob.placementOrder;
-                        copiedJob.splittingMethod = originalJob.splittingMethod;
-                        snapshot.plate.jobs.add(copiedJob);
-                    }
-                    
-                    // Kopiere freie Rechtecke
-                    snapshot.freeRects = new ArrayList<>();
-                    for (MaxRectBF_MultiPath.FreeRectangle rect : path.freeRects) {
-                        snapshot.freeRects.add(new MaxRectBF_MultiPath.FreeRectangle(rect.x, rect.y, rect.width, rect.height));
-                    }
-                    
-                    currentStepPaths.add(snapshot);
+            // Zeige nur Zwischenschritte von Pfad 1 (FullWidth)
+            List<MaxRectBF_MultiPath.AlgorithmPath> allPathsCurrent = algorithm.getAllPaths();
+            MaxRectBF_MultiPath.AlgorithmPath path1 = null;
+            
+            // Finde Pfad 1 (FullWidth)
+            for (int j = 0; j < allPathsCurrent.size(); j++) {
+                MaxRectBF_MultiPath.AlgorithmPath path = allPathsCurrent.get(j);
+                if (path.isActive && path.pathDescription.contains("Pfad 1")) {
+                    path1 = path;
+                    break;
                 }
             }
-            stepsByJob.add(currentStepPaths);
+            
+            // Visualisiere Zwischenschritt nur für Pfad 1
+            if (path1 != null) {
+                String stepTitle = "Pfad 1 - Nach Job " + job.id + " (" + path1.plate.jobs.size() + " Jobs)";
+                String algorithmInfo = String.format("Zwischenschritt %d/%d | Jobs platziert: %d", 
+                    i + 1, jobs.size(), path1.plate.jobs.size());
+                
+                PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
+                    path1.plate, 
+                    "4", 
+                    path1.freeRects, 
+                    stepTitle, 
+                    algorithmInfo
+                );
+                
+                // Kurze Pause zwischen den Schritten
+                try {
+                    Thread.sleep(1500); // 1.5 Sekunden zwischen den Zwischenschritten
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
         }
         
-        // VISUALISIERUNG: Zeige nur die Endergebnisse aller Pfade
+        // === ENDERGEBNIS-AUSWERTUNG ===
         System.out.println("\n\n=== ENDERGEBNISSE ALLER PFADE ===");
         
         // Sammle alle Pfade mit finalen Statistiken
         List<MaxRectBF_MultiPath.AlgorithmPath> finalPaths = new ArrayList<>();
-        
-        for (MaxRectBF_MultiPath.AlgorithmPath path : algorithm.getAllPaths()) {
+        List<MaxRectBF_MultiPath.AlgorithmPath> allPaths = algorithm.getAllPaths();
+        for (int i = 0; i < allPaths.size(); i++) {
+            MaxRectBF_MultiPath.AlgorithmPath path = allPaths.get(i);
             if (path.isActive) {
-                // Berechne finale Statistiken erst hier
-                double coverage = PlateVisualizer.calculateCoverageRate(path.plate);
-                System.out.printf("\n🎯 %s - ENDERGEBNIS:\n", path.pathDescription);
-                System.out.printf("Jobs platziert: %d, Deckungsrate: %.2f%%%n", 
-                    path.plate.jobs.size(), coverage);
-                
-                finalPaths.add(path);
+            // Berechne finale Statistiken erst hier
+            double coverage = PlateVisualizer.calculateCoverageRate(path.plate);
+            System.out.printf("\n%s - ENDERGEBNIS:\n", path.pathDescription);
+            System.out.printf("Jobs platziert: %d, Deckungsrate: %.2f%%%n", 
+                path.plate.jobs.size(), coverage);
+            finalPaths.add(path);
             }
         }
         
         // Zeige Visualisierungen nacheinander mit Wartezeit
         for (int i = 0; i < finalPaths.size(); i++) {
             MaxRectBF_MultiPath.AlgorithmPath path = finalPaths.get(i);
-            
-            // Erstelle erweiterten Titel mit Job-Informationen
-            String extendedTitle = path.plate.name;
-            
-            if (path.pathDescription.contains("Pfad 1 (FullWidth)")) {
-                // Für Pfad 1: Zeige welche Jobs nicht gepasst haben
-                List<Integer> missingJobs = new ArrayList<>();
-                for (Job originalJob : originalJobs) {
-                    boolean found = false;
-                    for (Job placedJob : path.plate.jobs) {
-                        if (placedJob.id == originalJob.id) {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        missingJobs.add(originalJob.id);
-                    }
-                }
-                
-                if (!missingJobs.isEmpty()) {
-                    extendedTitle += " | Jobs " + missingJobs + " passten nicht in FullWidth → siehe andere Pfade";
-                }
-                
-            } else if (path.pathDescription.contains("FullHeight ab Job")) {
-                // Extrahiere die Job-Nummer aus der Beschreibung
-                String jobNumberStr = path.pathDescription.substring(
-                    path.pathDescription.indexOf("ab Job ") + 7);
-                // Extrahiere nur die Zahl (falls weitere Zeichen folgen)
-                int spaceIndex = jobNumberStr.indexOf(" ");
-                if (spaceIndex > 0) {
-                    jobNumberStr = jobNumberStr.substring(0, spaceIndex);
-                }
-                int bracketIndex = jobNumberStr.indexOf(")");
-                if (bracketIndex > 0) {
-                    jobNumberStr = jobNumberStr.substring(0, bracketIndex);
-                }
-                
-                extendedTitle += " | Job " + jobNumberStr + " passte nicht in FullWidth → Wechsel zu FullHeight";
-                
-                // Prüfe welche weiteren Jobs in diesem Pfad nicht platziert wurden
-                List<Integer> missingJobs = new ArrayList<>();
-                for (Job originalJob : originalJobs) {
-                    boolean found = false;
-                    for (Job placedJob : path.plate.jobs) {
-                        if (placedJob.id == originalJob.id) {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        missingJobs.add(originalJob.id);
-                    }
-                }
-                
-                if (!missingJobs.isEmpty()) {
-                    extendedTitle += " | Jobs " + missingJobs + " passten auch in FullHeight nicht";
-                }
-            } else if (path.pathDescription.contains("FullWidth ab Job")) {
-                // Für FullWidth-Pfade (die von FullHeight wechseln)
-                String jobNumberStr = path.pathDescription.substring(
-                    path.pathDescription.indexOf("ab Job ") + 7);
-                int spaceIndex = jobNumberStr.indexOf(" ");
-                if (spaceIndex > 0) {
-                    jobNumberStr = jobNumberStr.substring(0, spaceIndex);
-                }
-                int bracketIndex = jobNumberStr.indexOf(")");
-                if (bracketIndex > 0) {
-                    jobNumberStr = jobNumberStr.substring(0, bracketIndex);
-                }
-                
-                extendedTitle += " | Job " + jobNumberStr + " passte nicht in FullHeight → Wechsel zu FullWidth";
-                
-                // Prüfe welche weiteren Jobs in diesem Pfad nicht platziert wurden
-                List<Integer> missingJobs = new ArrayList<>();
-                for (Job originalJob : originalJobs) {
-                    boolean found = false;
-                    for (Job placedJob : path.plate.jobs) {
-                        if (placedJob.id == originalJob.id) {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        missingJobs.add(originalJob.id);
-                    }
-                }
-                
-                if (!missingJobs.isEmpty()) {
-                    extendedTitle += " | Jobs " + missingJobs + " passten auch in FullWidth nicht";
-                }
+            // Einfacher Titel mit Strategie-Code: nur Pfad-Nummer + Strategie
+            String pathNumber = "1";
+            if (path.pathDescription.contains("Pfad ")) {
+                int start = path.pathDescription.indexOf("Pfad ") + 5;
+                int end = path.pathDescription.indexOf(" ", start);
+                if (end == -1) end = path.pathDescription.length();
+                pathNumber = path.pathDescription.substring(start, end);
             }
-            
+            // Füge Strategie-Code hinzu
+            String strategyCode = algorithm.getStrategyCodeForPath(path);
+            String simplifiedTitle = "Pfad " + pathNumber;
+            if (!strategyCode.isEmpty()) {
+                simplifiedTitle += " (" + strategyCode + ")";
+            }
             System.out.printf("Zeige Visualisierung %d/%d: %s\n", i + 1, finalPaths.size(), path.pathDescription);
-            
             // Erstelle Algorithmus-Info für MultiPath
             String algorithmInfo = String.format("Algorithmus: MultiPath | Insgesamt %d Pfade erstellt", finalPaths.size());
-            
-            PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(path.plate, "4", path.freeRects, extendedTitle, algorithmInfo);
-            
+            PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(path.plate, "4", path.freeRects, simplifiedTitle, algorithmInfo);
             // Warte zwischen den Fenstern (außer beim letzten)
             if (i < finalPaths.size() - 1) {
                 try {
@@ -297,74 +211,6 @@ public class Main {
                 }
             }
         }
-        
-        /*
-        // ZWISCHENSCHRITTE-VISUALISIERUNG (auskommentiert)
-        System.out.println("\n\n=== PFADWEISE VISUALISIERUNG ALLER ZWISCHENSCHRITTE ===");
-        
-        // Erst alle Schritte von Pfad 1
-        System.out.println("\n🎯 PFAD 1 (FullWidth) - ALLE ZWISCHENSCHRITTE:");
-        for (int jobIndex = 0; jobIndex < stepsByJob.size(); jobIndex++) {
-            List<MaxRectBF_MultiPath.AlgorithmPath> pathsAtStep = stepsByJob.get(jobIndex);
-            
-            // Finde Pfad 1 in diesem Schritt
-            for (MaxRectBF_MultiPath.AlgorithmPath path : pathsAtStep) {
-                if (path.pathDescription.contains("Pfad 1")) {
-                    if (jobIndex == 0) {
-                        System.out.println("\n--- Initialer Zustand ---");
-                    } else {
-                        System.out.println("\n--- Nach Job " + jobs.get(jobIndex - 1).id + " ---");
-                    }
-                    System.out.printf("Jobs platziert: %d, Deckungsrate: %.2f%%%n", 
-                        path.plate.jobs.size(), PlateVisualizer.calculateCoverageRate(path.plate));
-                    
-                    PlateVisualizer.showPlateWithSpecificFreeRects(path.plate, "4", path.freeRects);
-                    
-                    try {
-                        Thread.sleep(1500); // 1.5 Sekunden zwischen den Schritten
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    break;
-                }
-            }
-        }
-        
-        // Dann alle Schritte von Pfad 2 (falls vorhanden)
-        boolean pfad2HeaderShown = false;
-        for (int jobIndex = 0; jobIndex < stepsByJob.size(); jobIndex++) {
-            List<MaxRectBF_MultiPath.AlgorithmPath> pathsAtStep = stepsByJob.get(jobIndex);
-            
-            // Suche nach Pfad 2
-            for (MaxRectBF_MultiPath.AlgorithmPath path : pathsAtStep) {
-                if (path.pathDescription.contains("Pfad 2")) {
-                    // Zeige Header nur beim ersten Mal
-                    if (!pfad2HeaderShown) {
-                        System.out.println("\n🎯 PFAD 2 (FullHeight) - ALLE ZWISCHENSCHRITTE:");
-                        pfad2HeaderShown = true;
-                    }
-                    
-                    if (jobIndex == 0) {
-                        System.out.println("\n--- Initialer Zustand ---");
-                    } else {
-                        System.out.println("\n--- Nach Job " + jobs.get(jobIndex - 1).id + " ---");
-                    }
-                    System.out.printf("Jobs platziert: %d, Deckungsrate: %.2f%%%n", 
-                        path.plate.jobs.size(), PlateVisualizer.calculateCoverageRate(path.plate));
-                    
-                    PlateVisualizer.showPlateWithSpecificFreeRects(path.plate, "4", path.freeRects);
-                    
-                    try {
-                        Thread.sleep(1500); // 1.5 Sekunden zwischen den Schritten
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    break;
-                }
-            }
-        }
-        */
-        
         // Zeige beste Lösung
         Plate bestPlate = algorithm.getBestPlate();
         double bestCoverage = PlateVisualizer.calculateCoverageRate(bestPlate);
@@ -381,20 +227,20 @@ public class Main {
         List<BenchmarkVisualizer.BenchmarkResult> results = new ArrayList<>();
         // Test First Fit Algorithm
         results.add(benchmarkFirstFit(originalJobs));
-        // Test MaxRectBF FullWidth mit Sortierung nach Fläche
-        results.add(benchmarkMaxRectBF(originalJobs, false, Main::sortJobsBySizeDescending, "MaxRectBF FullWidth (nach Fläche)"));
-        // Test MaxRectBF FullWidth mit Sortierung nach größter Kante
-        results.add(benchmarkMaxRectBF(originalJobs, false, Main::sortJobsByLargestEdgeDescending, "MaxRectBF FullWidth (nach Kante)"));
-        // Test MaxRectBF FullHeight mit Sortierung nach Fläche
-        results.add(benchmarkMaxRectBF(originalJobs, true, Main::sortJobsBySizeDescending, "MaxRectBF FullHeight (nach Fläche)"));
-        // Test MaxRectBF FullHeight mit Sortierung nach größter Kante
-        results.add(benchmarkMaxRectBF(originalJobs, true, Main::sortJobsByLargestEdgeDescending, "MaxRectBF FullHeight (nach Kante)"));
-        // Test MaxRectBF_Dynamic mit Sortierung nach Fläche
-        results.add(benchmarkMaxRectBF_Dynamic(originalJobs, Main::sortJobsBySizeDescending, "MaxRectBF Dynamic (nach Fläche)"));
-        // Test MaxRectBF_Dynamic mit Sortierung nach größter Kante
-        results.add(benchmarkMaxRectBF_Dynamic(originalJobs, Main::sortJobsByLargestEdgeDescending, "MaxRectBF Dynamic (nach Kante)"));
+        // Test MaxRectBF_MultiPath und zeige jeden Pfad separat
+        results.addAll(benchmarkMaxRectBF_MultiPath_AllPaths(originalJobs, Main::sortJobsBySizeDescending, "MultiPath (nach Fläche)"));
+        results.addAll(benchmarkMaxRectBF_MultiPath_AllPaths(originalJobs, Main::sortJobsByLargestEdgeDescending, "MultiPath (nach Kante)"));
+        
         // Ergebnisse sortieren nach Deckungsrate (absteigend)
-        results.sort((r1, r2) -> Double.compare(r2.coverageRate, r1.coverageRate));
+        for (int i = 0; i < results.size() - 1; i++) {
+            for (int j = 0; j < results.size() - 1 - i; j++) {
+                if (results.get(j).coverageRate < results.get(j + 1).coverageRate) {
+                    BenchmarkVisualizer.BenchmarkResult temp = results.get(j);
+                    results.set(j, results.get(j + 1));
+                    results.set(j + 1, temp);
+                }
+            }
+        }
         // Zeige GUI Benchmark Visualizer
         BenchmarkVisualizer.showBenchmarkResults(results);
     }
@@ -403,7 +249,13 @@ public class Main {
         List<Job> jobs = createJobCopies(originalJobs);
         if (sortJobs) sortJobsBySizeDescending(jobs);
         Plate plate = new Plate("First Fit", 963, 650);
-        placeJobsWithAlgorithm(jobs, plate::placeJobFFShelf);
+        for (int i = 0; i < jobs.size(); i++) {
+            Job job = jobs.get(i);
+            boolean placed = plate.placeJobFFShelf(job);
+            if (!placed) {
+                if (Main.DEBUG) System.out.println("Job " + job.id + " konnte nicht platziert werden.");
+            }
+        }
         int placedJobs = countPlacedJobs(jobs);
         double coverageRate = PlateVisualizer.calculateCoverageRate(plate);
         return new BenchmarkVisualizer.BenchmarkResult("First Fit", plate, null, placedJobs, coverageRate, originalJobs.size());
@@ -412,10 +264,20 @@ public class Main {
     private static BenchmarkVisualizer.BenchmarkResult benchmarkMaxRectBF(List<Job> originalJobs, boolean useFullHeight, 
         java.util.function.Consumer<List<Job>> sortingMethod, String algorithmName) {
         List<Job> jobs = createJobCopies(originalJobs);
-        if (sortJobs) sortingMethod.accept(jobs);
+        if (sortJobs) {
+            sortingMethod.accept(jobs);
+        }
         Plate plate = new Plate(algorithmName, 963, 650);
         MaxRectBF algorithm = new MaxRectBF(plate, useFullHeight);
-        placeJobsWithAlgorithm(jobs, algorithm::placeJob);
+        
+        // Lambda-freie Implementierung
+        for (int i = 0; i < jobs.size(); i++) {
+            Job job = jobs.get(i);
+            boolean placed = algorithm.placeJob(job);
+            if (!placed) {
+                if (Main.DEBUG) System.out.println("Job " + job.id + " konnte nicht platziert werden.");
+            }
+        }
         int placedJobs = countPlacedJobs(jobs);
         double coverageRate = PlateVisualizer.calculateCoverageRate(plate);
         return new BenchmarkVisualizer.BenchmarkResult(algorithmName, plate, algorithm, placedJobs, coverageRate, originalJobs.size());
@@ -424,47 +286,114 @@ public class Main {
     private static BenchmarkVisualizer.BenchmarkResult benchmarkMaxRectBF_Dynamic(List<Job> originalJobs, 
         java.util.function.Consumer<List<Job>> sortingMethod, String algorithmName) {
         List<Job> jobs = createJobCopies(originalJobs);
-        if (sortJobs) sortingMethod.accept(jobs);
+        if (sortJobs) {
+            sortingMethod.accept(jobs);
+        }
         Plate plate = new Plate(algorithmName, 963, 650);
         MaxRectBF_Dynamic algorithm = new MaxRectBF_Dynamic(plate);
-        placeJobsWithAlgorithm(jobs, algorithm::placeJob);
+        for (int i = 0; i < jobs.size(); i++) {
+            Job job = jobs.get(i);
+            boolean placed = algorithm.placeJob(job);
+            if (!placed) {
+                if (Main.DEBUG) System.out.println("Job " + job.id + " konnte nicht platziert werden.");
+            }
+        }
         int placedJobs = countPlacedJobs(jobs);
         double coverageRate = PlateVisualizer.calculateCoverageRate(plate);
         return new BenchmarkVisualizer.BenchmarkResult(algorithmName, plate, algorithm, placedJobs, coverageRate, originalJobs.size());
     }
     
+    private static List<BenchmarkVisualizer.BenchmarkResult> benchmarkMaxRectBF_MultiPath_AllPaths(List<Job> originalJobs, 
+        java.util.function.Consumer<List<Job>> sortingMethod, String algorithmBaseName) {
+        List<Job> jobs = createJobCopies(originalJobs);
+        if (sortJobs) {
+            sortingMethod.accept(jobs);
+        }
+        Plate plate = new Plate(algorithmBaseName, 963, 650);
+        MaxRectBF_MultiPath algorithm = new MaxRectBF_MultiPath(plate);
+        // Platziere Jobs mit MultiPath-Algorithmus (gleiche Logik wie im Einzelmodus)
+        for (int i = 0; i < jobs.size(); i++) {
+            Job job = jobs.get(i);
+            boolean placed = algorithm.placeJob(job);
+            if (!placed) {
+                if (Main.DEBUG) System.out.println("Job " + job.id + " konnte in keinem Pfad platziert werden.");
+            }
+        }
+        
+        // Verwende die gleiche Logik wie im Einzelmodus für finale Pfade
+        List<BenchmarkVisualizer.BenchmarkResult> pathResults = new ArrayList<>();
+        List<MaxRectBF_MultiPath.AlgorithmPath> allPaths = algorithm.getAllPaths();
+        // Sammle alle aktiven Pfade (gleiche Logik wie runMaxRectBF_MultiPath)
+        for (int i = 0; i < allPaths.size(); i++) {
+            MaxRectBF_MultiPath.AlgorithmPath path = allPaths.get(i);
+            if (path.isActive) {
+                int placedJobs = path.plate.jobs.size();
+                double coverageRate = PlateVisualizer.calculateCoverageRate(path.plate);
+                // Einfacher Titel mit Strategie-Code: nur Pfad-Nummer + Strategie
+                String pathNumber = "1";
+                if (path.pathDescription.contains("Pfad ")) {
+                    int start = path.pathDescription.indexOf("Pfad ") + 5;
+                    int end = path.pathDescription.indexOf(" ", start);
+                    if (end == -1) end = path.pathDescription.length();
+                    pathNumber = path.pathDescription.substring(start, end);
+                }
+                // Füge Strategie-Code hinzu
+                String strategyCode = algorithm.getStrategyCodeForPath(path);
+                String pathName = algorithmBaseName + " - Pfad " + pathNumber;
+                if (!strategyCode.isEmpty()) {
+                    pathName += " (" + strategyCode + ")";
+                }
+                // Verwende den erweiterten Konstruktor mit freien Rechtecken
+                pathResults.add(new BenchmarkVisualizer.BenchmarkResult(
+                    pathName, 
+                    path.plate, 
+                    algorithm, 
+                    placedJobs, 
+                    coverageRate, 
+                    originalJobs.size(),
+                    path.freeRects  // Füge die spezifischen freien Rechtecke hinzu
+                ));
+            }
+        }
+        
+        return pathResults;
+    }
+    
     private static int countPlacedJobs(List<Job> jobs) {
         int count = 0;
-        for (Job job : jobs) {
+        for (int i = 0; i < jobs.size(); i++) {
+            Job job = jobs.get(i);
             if (job.placedOn != null) {
                 count++;
             }
         }
         return count;
     }
-    
-    private static void placeJobsWithAlgorithm(List<Job> jobs, java.util.function.Function<Job, Boolean> placementFunction) {
-        for (int i = 0; i < jobs.size(); i++) {
-            Job job = jobs.get(i);
-            boolean placed = placementFunction.apply(job);
-            if (!placed) {
-                if (Main.DEBUG) System.out.println("Job " + job.id + " konnte nicht platziert werden.");
-            }
-        }
-    }
 
     private static List<Job> createJobCopies(List<Job> originalJobs) {
         List<Job> copies = new ArrayList<>();
+        if (DEBUG) System.out.println("Erstelle Jobs mit Schnittbreite von " + KERF_WIDTH + "mm:");
         for (int i = 0; i < originalJobs.size(); i++) {
             Job original = originalJobs.get(i);
-            copies.add(new Job(original.id, original.width, original.height));
+            // Füge Schnittbreite zu den Dimensionen hinzu
+            int widthWithKerf = original.width + KERF_WIDTH;
+            int heightWithKerf = original.height + KERF_WIDTH;
+            
+            Job copy = new Job(original.id, widthWithKerf, heightWithKerf);
+            // Speichere die ursprünglichen Dimensionen für die Anzeige
+            copy.originalWidth = original.width;
+            copy.originalHeight = original.height;
+            copies.add(copy);
+            if(DEBUG) System.out.printf("  Job %d: %dx%d -> %dx%d (mit Schnittbreite)\n", 
+                original.id, original.width, original.height, widthWithKerf, heightWithKerf);
         }
+        System.out.println();
         return copies;
     }
     
     private static String getUserAlgorithmChoice() {
         try (Scanner scanner = new Scanner(System.in)) {
-            System.out.print("Algorithmus wählen (1 = First Fit, 2 = MaxRectsBF, 3 = MaxRectsBF Dynamic, 4 = MaxRectsBF Multi-Path, b = Benchmark): ");
+            System.out.print("Algorithmus wählen (1 = First Fit, 2 = MaxRectsBF, 3 = MaxRectsBF Dynamic, 4 = MaxRectsBF Multi-Path, 0 = Benchmark): ");
             return scanner.nextLine().trim();
         }
     }

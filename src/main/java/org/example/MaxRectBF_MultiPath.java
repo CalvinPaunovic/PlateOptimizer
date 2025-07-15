@@ -4,63 +4,88 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MaxRectBF_MultiPath {
-    
-    // Pfad-Klasse für die verschiedenen Ausführungswege
+
     static class AlgorithmPath {
-        Plate plate;
-        List<FreeRectangle> freeRects;
-        int placementCounter;
-        List<FreeRectangle> lastAddedRects;
-        String pathDescription;
-        boolean isActive;
-        boolean useFullHeight; // Flag für die Splitting-Methode
+        Plate plate;                              // Die Platte mit allen platzierten Jobs in diesem Pfad
+        List<FreeRectangle> freeRects;           // Aktuelle freie Rechtecke auf der Platte
+        int placementCounter;                     // Zähler für die Reihenfolge der Job-Platzierung
+        List<FreeRectangle> lastAddedRects;      // Die letzten hinzugefügten freien Rechtecke (für Rollback bei Pfad-Splits)
+        String pathDescription;                   // Beschreibung des Pfads für Debugging/Logging
+        boolean isActive;                        // Ob dieser Pfad noch aktiv verfolgt wird
+        boolean useFullHeight;                   // Splitting-Strategie: true=FullHeight, false=FullWidth
+        List<Integer> failedJobs;                // Liste der Jobs, die in diesem Pfad nicht platziert werden konnten
+        String parentPath;                       // Name des Eltern-Pfads, von dem sich dieser Pfad abgespalten hat
         
+        /**
+         * Konstruktor für einen neuen AlgorithmPath basierend auf einer ursprünglichen Platte.
+         * 
+         * ZWECK: Initialisiert einen komplett neuen Pfad für die Optimierung
+         * - Erstellt eine leere Kopie der Originalplatte
+         * - Setzt den gesamten Plattenbereich als einen einzigen freien Bereich
+         * - Startet standardmäßig mit FullWidth-Splitting-Strategie
+         */
         public AlgorithmPath(Plate originalPlate, String description) {
             this.plate = new Plate(originalPlate.name + " - " + description, originalPlate.width, originalPlate.height);
             this.freeRects = new ArrayList<>();
-            this.freeRects.add(new FreeRectangle(0, 0, plate.width, plate.height));
+            this.freeRects.add(new FreeRectangle(0, 0, plate.width, plate.height));  // Gesamte Platte als freier Bereich
             this.lastAddedRects = new ArrayList<>();
             this.pathDescription = description;
             this.placementCounter = 0;
             this.isActive = true;
-            this.useFullHeight = false; // Startet mit FullWidth
+            this.useFullHeight = false; // Startet mit FullWidth-Strategie
+            this.failedJobs = new ArrayList<>(); // Initialisiere Liste für fehlgeschlagene Jobs
+            this.parentPath = null; // Initialer Pfad hat keinen Eltern-Pfad
         }
         
+        /**
+         * Copy-Konstruktor für einen AlgorithmPath basierend auf einem bestehenden Pfad.
+         * 
+         * ZWECK: Erstellt einen neuen Pfad durch Kopie eines bestehenden Pfads
+         * - Wird verwendet für Pfad-Aufteilungen (Branch-and-Bound-Konzept)
+         * - Ermöglicht das Testen alternativer Strategien ab einem bestimmten Punkt
+         * - Kopiert den aktuellen Zustand (Jobs, freie Rechtecke) und setzt neue Strategie
+         * 
+         * ANWENDUNG: Wenn ein Job in einem Pfad nicht platziert werden kann,
+         * wird ein neuer Pfad mit alternativer Splitting-Methode erstellt
+         */
         public AlgorithmPath(AlgorithmPath original, String newDescription) {
+            // Erstelle neue Platte mit gleichem Namen-Prefix aber neuer Beschreibung
             this.plate = new Plate(original.plate.name.split(" - ")[0] + " - " + newDescription, original.plate.width, original.plate.height);
             
-            // Kopiere alle Jobs
-            for (Job originalJob : original.plate.jobs) {
+            // Kopiere alle bereits platzierten Jobs aus dem Original-Pfad
+            for (int i = 0; i < original.plate.jobs.size(); i++) {
+                Job originalJob = original.plate.jobs.get(i);
                 Job copiedJob = new Job(originalJob.id, originalJob.width, originalJob.height);
                 copiedJob.x = originalJob.x;
                 copiedJob.y = originalJob.y;
                 copiedJob.rotated = originalJob.rotated;
-                copiedJob.placedOn = this.plate;
+                copiedJob.placedOn = this.plate;                    // Verknüpfung zur neuen Platte
                 copiedJob.placementOrder = originalJob.placementOrder;
                 copiedJob.splittingMethod = originalJob.splittingMethod;
                 this.plate.jobs.add(copiedJob);
             }
-            
-            // Kopiere freie Rechtecke
+            // Kopiere die aktuellen freien Rechtecke
             this.freeRects = new ArrayList<>();
-            for (FreeRectangle rect : original.freeRects) {
+            for (int i = 0; i < original.freeRects.size(); i++) {
+                FreeRectangle rect = original.freeRects.get(i);
                 this.freeRects.add(new FreeRectangle(rect.x, rect.y, rect.width, rect.height));
             }
-            
-            // Kopiere lastAddedRects
+            // Kopiere die zuletzt hinzugefügten Rechtecke (wichtig für Rollback-Operationen)
             this.lastAddedRects = new ArrayList<>();
-            for (FreeRectangle rect : original.lastAddedRects) {
+            for (int i = 0; i < original.lastAddedRects.size(); i++) {
+                FreeRectangle rect = original.lastAddedRects.get(i);
                 this.lastAddedRects.add(new FreeRectangle(rect.x, rect.y, rect.width, rect.height));
             }
-            
+            // Setze Pfad-spezifische Eigenschaften
             this.pathDescription = newDescription;
-            this.placementCounter = original.placementCounter;
-            this.isActive = true;
-            this.useFullHeight = original.useFullHeight; // Übernimmt die Splitting-Methode
+            this.placementCounter = original.placementCounter;      // Übernimmt aktuellen Zählerstand
+            this.isActive = true;                                   // Neuer Pfad ist automatisch aktiv
+            this.useFullHeight = original.useFullHeight;            // Übernimmt zunächst die gleiche Strategie
+            this.failedJobs = new ArrayList<>(original.failedJobs); // Kopiere fehlgeschlagene Jobs
+            this.parentPath = original.pathDescription;             // Setze Eltern-Pfad
         }
     }
     
-    // Parameter für freie Rechtecke
     static class FreeRectangle {
         int x, y, width, height;
         public FreeRectangle(int x, int y, int width, int height) {
@@ -71,7 +96,6 @@ public class MaxRectBF_MultiPath {
         }
     }
 
-    // Parameter für eine neue Jobplatzierung
     static class BestFitResult {
         public FreeRectangle bestRect;
         int bestScore = Integer.MAX_VALUE;
@@ -87,9 +111,14 @@ public class MaxRectBF_MultiPath {
         this.originalPlate = plate;
         this.paths = new ArrayList<>();
         
-        // Startet mit einem einzigen Pfad
-        AlgorithmPath initialPath = new AlgorithmPath(plate, "Pfad 1 (FullWidth)");
-        paths.add(initialPath);
+        // Erstelle zwei Standard-Pfade von Anfang an
+        AlgorithmPath fullWidthPath = new AlgorithmPath(plate, "Pfad 1 (FullWidth)");
+        fullWidthPath.useFullHeight = false; // FullWidth-Strategie
+        paths.add(fullWidthPath);
+        
+        AlgorithmPath fullHeightPath = new AlgorithmPath(plate, "Pfad 2 (FullHeight)");
+        fullHeightPath.useFullHeight = true; // FullHeight-Strategie
+        paths.add(fullHeightPath);
     }
 
     // Jeden Job durchgehen, alle aktiven Pfade verfolgen und bei Bedarf neue Pfade erstellen
@@ -105,78 +134,39 @@ public class MaxRectBF_MultiPath {
             // Job für diesen Pfad kopieren
             Job job = new Job(originalJob.id, originalJob.width, originalJob.height);
             
-            System.out.println("\n\n============== " + currentPath.pathDescription + " - Job " + job.id + " (" + job.width + "x" + job.height + ") ==============");
-            
             BestFitResult result = new BestFitResult();
             
             // Durchsucht alle verfügbaren freien Rechtecke für diesen Pfad
             for (int i = 0; i < currentPath.freeRects.size(); i++) {
                 FreeRectangle rect = currentPath.freeRects.get(i);
-                if (Main.DEBUG_MultiPath) System.out.println("  Prüfe FreeRect " + i + ": Startkoordinaten (x=" + rect.x + ", y=" + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
                 // Originalposition testen
                 testAndUpdateBestFit(job.width, job.height, rect, false, result);
                 // Gedrehte Position testen
                 if (Main.rotateJobs) testAndUpdateBestFit(job.height, job.width, rect, true, result);
             }
 
-            // Wenn kein passender freier Bereich gefunden wurde: Job passt nicht in FullWidth
+            // Wenn kein passender freier Bereich gefunden wurde: Job passt nicht
             if (result.bestRect == null) {
-                System.out.println("****************************************** ALGORITHMUS WECHSELT VON FULLWIDTH ZU FULLHEIGHT ******************************************");
-                System.out.println("*** JOB " + job.id + " TRIGGERT DEN WECHSEL ***");
-                System.out.println("*** AKTUELLER PFAD: " + currentPath.pathDescription + " (verwendet " + (currentPath.useFullHeight ? "FULLHEIGHT" : "FULLWIDTH") + " Splitting) ***");
+                // Job zur Liste der fehlgeschlagenen Jobs hinzufügen
+                currentPath.failedJobs.add(originalJob.id);
                 
                 // Prüfe ob ein Wechsel der Splitting-Methode möglich ist
                 if (currentPath.lastAddedRects.size() >= 2) {
                     String newMethod = currentPath.useFullHeight ? "FullWidth" : "FullHeight";
                     int newPathId = paths.size() + newPaths.size() + 1;
                     
-                    System.out.println("-> Erstelle Pfad-Aufteilung:");
-                    System.out.println("   AKTUELLER PFAD: " + currentPath.pathDescription + " verwendet " + (currentPath.useFullHeight ? "FULLHEIGHT" : "FULLWIDTH") + " Splitting");
-                    System.out.println("   NEUER PFAD: Pfad " + newPathId + " (" + newMethod + " ab Job " + job.id + ") wird erstellt mit " + newMethod.toUpperCase() + " Splitting");
-                    
-                    // AKTUELLER PFAD: Läuft weiter (Job passt nicht, aber Pfad bleibt aktiv)
-                    System.out.println("   " + currentPath.pathDescription + " - Job " + job.id + " passt nicht, Pfad läuft aber weiter");
-                    
                     // NEUER PFAD: Mit entgegengesetzter Splitting-Methode
                     AlgorithmPath newMethodPath = new AlgorithmPath(currentPath, "Pfad " + newPathId + " (" + newMethod + " ab Job " + job.id + ")");
                     newMethodPath.useFullHeight = !currentPath.useFullHeight; // Setze entgegengesetzte Splitting-Methode
+                    
+                    // Entferne den fehlgeschlagenen Job aus dem neuen Pfad (da wir ihn neu versuchen)
+                    newMethodPath.failedJobs.remove(newMethodPath.failedJobs.size() - 1);
                     
                     // Bestimme den letzten platzierten Job
                     Job lastJob = newMethodPath.plate.jobs.get(newMethodPath.plate.jobs.size() - 1);
                     
                     // Speichere die beiden letzten Rechtecke bevor sie gelöscht werden
                     List<FreeRectangle> rectsToRemove = new ArrayList<>(newMethodPath.lastAddedRects);
-                    
-                    // Entferne die beiden letzten Rechtecke aus Pfad 2 - KOMPAKTE AUSGABE
-                    System.out.printf("   Zu entfernende FreeRects aus lastAddedRects: %d Stück%n", rectsToRemove.size());
-                    
-                    // Zeige vor dem Entfernen alle vorhandenen FreeRects
-                    System.out.println("   Vorhandene FreeRects vor Entfernung:");
-                    for (int i = 0; i < newMethodPath.freeRects.size(); i++) {
-                        FreeRectangle r = newMethodPath.freeRects.get(i);
-                        System.out.printf("     FreeRect %d: Start(%d, %d), Breite=%dmm, Höhe=%dmm%n", 
-                            i, r.x, r.y, r.width, r.height);
-                    }
-                    
-                    // Zeige alle zu entfernenden FreeRects in einer Liste
-                    System.out.println("   Entferne folgende FreeRects:");
-                    for (int rectIndex = 0; rectIndex < rectsToRemove.size(); rectIndex++) {
-                        FreeRectangle rectToRemove = rectsToRemove.get(rectIndex);
-                        
-                        // Finde die AKTUELLE ID (Index) des zu entfernenden FreeRects
-                        int rectId = -1;
-                        for (int i = 0; i < newMethodPath.freeRects.size(); i++) {
-                            FreeRectangle r = newMethodPath.freeRects.get(i);
-                            if (r.x == rectToRemove.x && r.y == rectToRemove.y && 
-                                r.width == rectToRemove.width && r.height == rectToRemove.height) {
-                                rectId = i;
-                                break;
-                            }
-                        }
-                        
-                        System.out.printf("     - FreeRect %d/%d (ID %d): Start(%d, %d), Breite=%dmm, Höhe=%dmm%n", 
-                            rectIndex + 1, rectsToRemove.size(), rectId, rectToRemove.x, rectToRemove.y, rectToRemove.width, rectToRemove.height);
-                    }
                     
                     // Entferne alle FreeRects auf einmal
                     for (FreeRectangle rectToRemove : rectsToRemove) {
@@ -185,21 +175,7 @@ public class MaxRectBF_MultiPath {
                             rect.width == rectToRemove.width && rect.height == rectToRemove.height);
                     }
                     
-                    // Zeige nach dem Entfernen alle verbleibenden FreeRects
-                    System.out.println("   Verbleibende FreeRects nach Entfernung:");
-                    if (newMethodPath.freeRects.isEmpty()) {
-                        System.out.println("     (keine FreeRects verbleibend)");
-                    } else {
-                        for (int i = 0; i < newMethodPath.freeRects.size(); i++) {
-                            FreeRectangle r = newMethodPath.freeRects.get(i);
-                            System.out.printf("     FreeRect %d: Start(%d, %d), Breite=%dmm, Höhe=%dmm%n", 
-                                i, r.x, r.y, r.width, r.height);
-                        }
-                    }
-                    System.out.println();
-                    
                     // Berechne das ursprüngliche Rechteck korrekt
-                    // Das ursprüngliche Rechteck war das, was durch FullWidth-Splitting aufgeteilt wurde
                     int originalWidth = lastJob.width;
                     int originalHeight = lastJob.height;
                     
@@ -215,11 +191,8 @@ public class MaxRectBF_MultiPath {
                     }
                     
                     FreeRectangle originalRect = new FreeRectangle(lastJob.x, lastJob.y, originalWidth, originalHeight);
-                    System.out.printf("   Rekonstruiertes Originalrechteck: Start(%d, %d), Breite=%dmm, Höhe=%dmm%n",
-                        originalRect.x, originalRect.y, originalRect.width, originalRect.height);
                     
                     // Verwende neue Splitting-Methode für den letzten Job im neuen Pfad
-                    System.out.println("   " + newMethodPath.pathDescription + " - Verwende " + newMethod + "-Splitting für den letzten Job");
                     if (newMethod.equals("FullHeight")) {
                         splitFreeRectFullHeight(originalRect, lastJob, newMethodPath);
                     } else {
@@ -236,20 +209,14 @@ public class MaxRectBF_MultiPath {
                     
                     if (newMethodResult.bestRect != null) {
                         // Job kann im neuen Pfad platziert werden
-                        // Speichere den Pfad für später
                         newPaths.add(newMethodPath);
-                        System.out.println("   " + newMethodPath.pathDescription + " - Job " + job.id + " wird später platziert");
                         anySuccess = true;
                     } else {
-                        System.out.println("   " + newMethodPath.pathDescription + " - Job " + job.id + " kann auch mit " + newMethod + " nicht platziert werden");
                         // Füge den Pfad trotzdem hinzu, aber markiere ihn als fehlgeschlagen
                         newMethodPath.isActive = true; // Lasse ihn aktiv für Visualisierung
+                        newMethodPath.failedJobs.add(originalJob.id); // Füge Job zur Failed-Liste hinzu
                         newPaths.add(newMethodPath);
                     }
-                    
-                } else {
-                    System.out.println("-> Nicht genügend freie Rechtecke zum Löschen vorhanden in " + currentPath.pathDescription);
-                    System.out.println("   " + currentPath.pathDescription + " - Job " + job.id + " passt nicht, aber Pfad läuft weiter");
                 }
                 
             } else {
@@ -257,43 +224,33 @@ public class MaxRectBF_MultiPath {
                 String splittingMethod = currentPath.useFullHeight ? "FullHeight" : "FullWidth";
                 placeJobInPath(job, result, currentPath, splittingMethod);
                 anySuccess = true;
-                System.out.println("   " + currentPath.pathDescription + " - Job " + job.id + " erfolgreich mit " + splittingMethod + " platziert");
             }
         }
         
         // DANN: Neue Pfade hinzufügen und deren Jobs platzieren
-        for (AlgorithmPath newPath : newPaths) {
+        for (int newPathIndex = 0; newPathIndex < newPaths.size(); newPathIndex++) {
+            AlgorithmPath newPath = newPaths.get(newPathIndex);
             // Job für den neuen Pfad kopieren
             Job job = new Job(originalJob.id, originalJob.width, originalJob.height);
             
-            System.out.println("\n\n============== " + newPath.pathDescription + " - Job " + job.id + " (" + job.width + "x" + job.height + ") ==============");
-            
-            // Job im FullHeight-Pfad platzieren
-            BestFitResult fullHeightResult = new BestFitResult();
+            // Job im neuen Pfad platzieren
+            BestFitResult newPathResult = new BestFitResult();
             for (int i = 0; i < newPath.freeRects.size(); i++) {
-                FreeRectangle rect = newPath.freeRects.get(i);
-                if (Main.DEBUG_MultiPath) System.out.println("  Prüfe FreeRect " + i + ": Startkoordinaten (x=" + rect.x + ", y=" + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
-                testAndUpdateBestFit(job.width, job.height, rect, false, fullHeightResult);
-                if (Main.rotateJobs) testAndUpdateBestFit(job.height, job.width, rect, true, fullHeightResult);
+            FreeRectangle rect = newPath.freeRects.get(i);
+            testAndUpdateBestFit(job.width, job.height, rect, false, newPathResult);
+            if (Main.rotateJobs) testAndUpdateBestFit(job.height, job.width, rect, true, newPathResult);
             }
             
-            if (fullHeightResult.bestRect != null) {
-                placeJobInPath(job, fullHeightResult, newPath, "FullHeight");
-                System.out.println("   " + newPath.pathDescription + " - Job " + job.id + " erfolgreich platziert");
+            if (newPathResult.bestRect != null) {
+            String splittingMethod = newPath.useFullHeight ? "FullHeight" : "FullWidth";
+            placeJobInPath(job, newPathResult, newPath, splittingMethod);
             }
         }
         
         paths.addAll(newPaths);
         
-        // Zeige alle aktiven Pfade
-        System.out.println("\n=== AKTIVE PFADE ===");
-        for (AlgorithmPath path : paths) {
-            if (path.isActive) {
-                double coverage = PlateVisualizer.calculateCoverageRate(path.plate);
-                System.out.printf("%s - %d Jobs platziert, %.2f%% Deckungsrate%n", 
-                    path.pathDescription, path.plate.jobs.size(), coverage);
-            }
-        }
+        // Kompakte Übersicht nach jedem Job
+        printJobSummary(originalJob);
         
         return anySuccess;
     }
@@ -301,10 +258,7 @@ public class MaxRectBF_MultiPath {
     // Hilfsmethode zum Platzieren eines Jobs in einem spezifischen Pfad
     private void placeJobInPath(Job job, BestFitResult result, AlgorithmPath path, String splittingMethod) {
         if (result.useRotated) {
-            System.out.println("-> Job wird GEDREHT platziert! (" + job.width + "x" + job.height + " → " + result.bestWidth + "x" + result.bestHeight + ")");
             job.rotated = true;
-        } else {
-            System.out.println("-> Job wird in Originalausrichtung platziert.");
         }
         job.width = result.bestWidth;
         job.height = result.bestHeight;
@@ -314,34 +268,135 @@ public class MaxRectBF_MultiPath {
         job.placementOrder = path.placementCounter++;
         job.splittingMethod = splittingMethod;
         path.plate.jobs.add(job);
-
-        System.out.println("-> Platziert in (" + job.x + ", " + job.y + ") auf " + path.plate.name);
         
         if ("FullWidth".equals(splittingMethod)) {
             splitFreeRectFullWidth(result.bestRect, job, path);
         } else {
             splitFreeRectFullHeight(result.bestRect, job, path);
         }
-        
-        // KEINE Visualisierung hier - wird in Main am Ende gemacht
+    }
+    
+    // Kompakte Zusammenfassung nach jedem Job
+    private void printJobSummary(Job originalJob) {
+        if (Main.DEBUG_MultiPath) {
+            System.out.println("\n" + "=".repeat(80));
+            System.out.println("UEBERSICHT NACH JOB " + originalJob.id + " (" + originalJob.width + "x" + originalJob.height + ")");
+            System.out.println("=".repeat(80));
+            
+            for (int pathIndex = 0; pathIndex < paths.size(); pathIndex++) {
+                AlgorithmPath path = paths.get(pathIndex);
+                if (path.isActive) {
+                    double coverage = PlateVisualizer.calculateCoverageRate(path.plate);
+                    
+                    System.out.printf("\n%s", path.pathDescription);
+                    
+                    // Zeige Eltern-Pfad falls vorhanden
+                    if (path.parentPath != null) {
+                        System.out.printf(" (abgespalten von: %s)", path.parentPath);
+                    }
+                    System.out.println();
+                    
+                    System.out.printf("   Deckungsrate: %.2f%% | Platzierte Jobs: %d\n", coverage, path.plate.jobs.size());
+                    
+                    if (path.plate.jobs.isEmpty() && path.failedJobs.isEmpty()) {
+                        System.out.println("   Keine Jobs verarbeitet");
+                    } else {
+                        System.out.print("   Jobs: ");
+                        
+                        // Sammle alle Job-IDs und erstelle Lookup-Listen
+                        java.util.List<Integer> allJobIds = new java.util.ArrayList<>();
+                        java.util.List<Job> placedJobsList = new java.util.ArrayList<>();
+                        
+                        // Sammle platzierte Jobs
+                        for (int i = 0; i < path.plate.jobs.size(); i++) {
+                            Job job = path.plate.jobs.get(i);
+                            if (!allJobIds.contains(job.id)) {
+                                allJobIds.add(job.id);
+                                placedJobsList.add(job);
+                            }
+                        }
+                        
+                        // Sammle fehlgeschlagene Jobs
+                        for (int i = 0; i < path.failedJobs.size(); i++) {
+                            Integer failedJobId = path.failedJobs.get(i);
+                            if (!allJobIds.contains(failedJobId)) {
+                                allJobIds.add(failedJobId);
+                            }
+                        }
+                        
+                        // Sortiere Job-IDs
+                        for (int i = 0; i < allJobIds.size() - 1; i++) {
+                            for (int j = 0; j < allJobIds.size() - 1 - i; j++) {
+                                if (allJobIds.get(j) > allJobIds.get(j + 1)) {
+                                    Integer temp = allJobIds.get(j);
+                                    allJobIds.set(j, allJobIds.get(j + 1));
+                                    allJobIds.set(j + 1, temp);
+                                }
+                            }
+                        }
+                        
+                        // Sammle Strategie-Kürzel für Namens-Erweiterung
+                        java.util.List<String> strategyCodes = new java.util.ArrayList<>();
+                        
+                        // Zeige alle Jobs in der richtigen Reihenfolge an
+                        boolean first = true;
+                        for (int i = 0; i < allJobIds.size(); i++) {
+                            Integer jobId = allJobIds.get(i);
+                            if (!first) {
+                                System.out.print(" -> ");
+                            }
+                            first = false;
+                            
+                            // Suche nach platziertem Job
+                            boolean foundPlaced = false;
+                            for (int j = 0; j < placedJobsList.size(); j++) {
+                                Job job = placedJobsList.get(j);
+                                if (job.id == jobId.intValue()) {
+                                    String rotationInfo = "";
+                                    if (job.rotated) {
+                                        rotationInfo = "(gedreht)";
+                                    }
+                                    System.out.printf("Job%d[%s]%s", job.id, job.splittingMethod, rotationInfo);
+                                    
+                                    // Füge Strategie-Code hinzu
+                                    if ("FullWidth".equals(job.splittingMethod)) {
+                                        strategyCodes.add("W");
+                                    } else if ("FullHeight".equals(job.splittingMethod)) {
+                                        strategyCodes.add("H");
+                                    } else {
+                                        strategyCodes.add("?"); // Fallback
+                                    }
+                                    foundPlaced = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (!foundPlaced) {
+                                // Job wurde nicht platziert
+                                System.out.printf("Job%d[nicht platziert]", jobId);
+                                strategyCodes.add("N"); // N für "nicht platziert"
+                            }
+                        }
+                        
+                        // Zeige Strategie-Erweiterung
+                        if (!strategyCodes.isEmpty()) {
+                            System.out.print(" (" + String.join("->", strategyCodes) + ")");
+                        }
+                        
+                        System.out.println();
+                    }
+                }
+            }
+            System.out.println();
+        }
     }
 
     // Prüfen, ob Job in originaler oder gedrehter Position einen jeweils kürzeren Abstand vertikal oder horizontal hat
     private void testAndUpdateBestFit(int testWidth, int testHeight, FreeRectangle rect, boolean rotated, BestFitResult result) {
         if (testWidth <= rect.width && testHeight <= rect.height) {
-            String ausrichtung;
-            if (rotated) {
-                ausrichtung = "GEDREHTE Ausrichtung";
-            } else {
-                ausrichtung = "Originalausrichtung";
-            }
             int leftoverHoriz = rect.width - testWidth;
             int leftoverVert = rect.height - testHeight;
             int shortSideFit = Math.min(leftoverHoriz, leftoverVert);
-            if (Main.DEBUG_MultiPath) System.out.println("    -> Passt in " + ausrichtung + "!");
-            if (Main.DEBUG_MultiPath) System.out.println("       Berechnung leftoverHoriz: " + rect.width + " - " + testWidth + " = " + leftoverHoriz);
-            if (Main.DEBUG_MultiPath) System.out.println("       Berechnung leftoverVert: " + rect.height + " - " + testHeight + " = " + leftoverVert);
-            if (Main.DEBUG_MultiPath) System.out.println("       shortSideFit = " + shortSideFit + ", aktueller bestScore = " + result.bestScore);
             // Kriterium für "Best Fit": Das Rechteck, worin der Job den kleinsten Abstand entweder vertikal ODER horizontal zum nächsten freien Rechteck oder zum Rand hat.
             // Weitere Möglichkeit für "Best Fit": durchschnittlicher Abstand vertikal UND horizontal zum jeweiligen nächsten freien Rechteck oder zum Rand.
             if (shortSideFit < result.bestScore) {
@@ -350,26 +405,13 @@ public class MaxRectBF_MultiPath {
                 result.useRotated = rotated;
                 result.bestWidth = testWidth;
                 result.bestHeight = testHeight;
-                if (Main.DEBUG_MultiPath) System.out.println("       -> Neuer Best-Fit (" + ausrichtung + ")!");
             }
-        } else {
-            String ausrichtungsText;
-            if (rotated) {
-                ausrichtungsText = "GEDREHTER";
-            } else {
-                ausrichtungsText = "Original";
-            }
-            if (Main.DEBUG_MultiPath) System.out.println("    -> Passt NICHT in " + ausrichtungsText + " Ausrichtung.");
         }
     }
 
     // Freie Rechtecke mit vollständiger Breitenausdehnung nach rechts erzeugen
     private void splitFreeRectFullWidth(FreeRectangle rect, Job job, AlgorithmPath path) {
-        if (Main.DEBUG_MultiPath) System.out.println("\n--- splitFreeRectFullWidth aufgerufen für " + path.pathDescription + " ---");
-        if (Main.DEBUG_MultiPath) System.out.println("Belegtes Rechteck: Start(" + rect.x + ", " + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
-        if (Main.DEBUG_MultiPath) System.out.println("Jobgröße: Breite=" + job.width + "mm, Höhe=" + job.height + "mm");
         path.freeRects.remove(rect);
-        if (Main.DEBUG_MultiPath) System.out.println("Entferne belegtes Rechteck aus freien Bereichen.");
         
         // Lösche vorherige Einträge, da wir nur die letzten zwei verfolgen wollen
         path.lastAddedRects.clear();
@@ -379,32 +421,18 @@ public class MaxRectBF_MultiPath {
             FreeRectangle newRectRight = new FreeRectangle(rect.x + job.width, rect.y, rect.width - job.width, job.height);
             path.freeRects.add(newRectRight);
             path.lastAddedRects.add(newRectRight);
-            if (Main.DEBUG_MultiPath) System.out.println("Füge freien Bereich rechts hinzu: Start(" + newRectRight.x + ", " + newRectRight.y + "), Breite=" + newRectRight.width + "mm, Höhe=" + newRectRight.height + "mm");
         }
         // Neuer freier Bereich unterhalb des Jobs
         if (job.height < rect.height) {
             FreeRectangle newRectBelow = new FreeRectangle(rect.x, rect.y + job.height, rect.width, rect.height - job.height);
             path.freeRects.add(newRectBelow);
             path.lastAddedRects.add(newRectBelow);
-            if (Main.DEBUG_MultiPath)            if (Main.DEBUG_MultiPath) System.out.println("Füge freien Bereich unten hinzu: Start(" + newRectBelow.x + ", " + newRectBelow.y + "), Breite=" + newRectBelow.width + "mm, Höhe=" + newRectBelow.height + "mm");
-        }
-        
-        if (Main.DEBUG_MultiPath) {
-            System.out.println("\nAktuelle freie Rechtecke für " + path.pathDescription + ":");
-            for (int i = 0; i < path.freeRects.size(); i++) {
-                FreeRectangle r = path.freeRects.get(i);
-                System.out.println("  FreeRect " + i + ": Start(" + r.x + ", " + r.y + "), Breite=" + r.width + "mm, Höhe=" + r.height + "mm");
-            }
         }
     }
 
     // Freie Rechtecke mit vollständiger Höhenausdehnung nach rechts erzeugen
     private void splitFreeRectFullHeight(FreeRectangle rect, Job job, AlgorithmPath path) {
-        if (Main.DEBUG_MultiPath) System.out.println("\n--- splitFreeRectFullHeight aufgerufen für " + path.pathDescription + " ---");
-        if (Main.DEBUG_MultiPath) System.out.println("Belegtes Rechteck: Start(" + rect.x + ", " + rect.y + "), Breite=" + rect.width + "mm, Höhe=" + rect.height + "mm");
-        if (Main.DEBUG_MultiPath) System.out.println("Jobgröße: Breite=" + job.width + "mm, Höhe=" + job.height + "mm");
         path.freeRects.remove(rect);
-        if (Main.DEBUG_MultiPath) System.out.println("Entferne belegtes Rechteck aus freien Bereichen.");
         
         // Lösche vorherige Einträge, da wir nur die letzten zwei verfolgen wollen
         path.lastAddedRects.clear();
@@ -414,22 +442,12 @@ public class MaxRectBF_MultiPath {
             FreeRectangle newRectRight = new FreeRectangle(rect.x + job.width, rect.y, rect.width - job.width, rect.height);  
             path.freeRects.add(newRectRight);
             path.lastAddedRects.add(newRectRight);
-            if (Main.DEBUG_MultiPath) System.out.println("Füge freien Bereich rechts hinzu (volle Höhe): Start(" + newRectRight.x + ", " + newRectRight.y + "), Breite=" + newRectRight.width + "mm, Höhe=" + newRectRight.height + "mm");
         }
         // Neuer freier Bereich unterhalb des Jobs
         if (job.height < rect.height) {
             FreeRectangle newRectBelow = new FreeRectangle(rect.x, rect.y + job.height, job.width, rect.height - job.height);
             path.freeRects.add(newRectBelow);
             path.lastAddedRects.add(newRectBelow);
-            if (Main.DEBUG_MultiPath) System.out.println("Füge freien Bereich unten hinzu (nur unter Job): Start(" + newRectBelow.x + ", " + newRectBelow.y + "), Breite=" + newRectBelow.width + "mm, Höhe=" + newRectBelow.height + "mm");
-        }
-        
-        if (Main.DEBUG_MultiPath) {
-            System.out.println("\nAktuelle freie Rechtecke für " + path.pathDescription + ":");
-            for (int i = 0; i < path.freeRects.size(); i++) {
-                FreeRectangle r = path.freeRects.get(i);
-                System.out.println("  FreeRect " + i + ": Start(" + r.x + ", " + r.y + "), Breite=" + r.width + "mm, Höhe=" + r.height + "mm");
-            }
         }
     }
     
@@ -459,11 +477,84 @@ public class MaxRectBF_MultiPath {
             }
         }
         
-        return bestPath != null ? bestPath.plate : originalPlate;
+        if (bestPath != null) {
+            return bestPath.plate;
+        } else {
+            return originalPlate;
+        }
     }
     
     // Getter für alle Pfade (für finale Ausgabe)
     public List<AlgorithmPath> getAllPaths() {
         return paths;
     }
+    
+    // Hilfsmethode: Erstelle Strategie-Code für einen Pfad
+    public String getStrategyCodeForPath(AlgorithmPath path) {
+        // Sammle alle Job-IDs (platziert und fehlgeschlagen)
+        java.util.List<Integer> allJobIds = new java.util.ArrayList<>();
+        
+        // Füge platzierte Jobs hinzu
+        for (int i = 0; i < path.plate.jobs.size(); i++) {
+            Job job = path.plate.jobs.get(i);
+            if (!allJobIds.contains(job.id)) {
+                allJobIds.add(job.id);
+            }
+        }
+        
+        // Füge fehlgeschlagene Jobs hinzu
+        for (int i = 0; i < path.failedJobs.size(); i++) {
+            Integer failedJobId = path.failedJobs.get(i);
+            if (!allJobIds.contains(failedJobId)) {
+                allJobIds.add(failedJobId);
+            }
+        }
+        
+        // Sortiere Job-IDs
+        for (int i = 0; i < allJobIds.size() - 1; i++) {
+            for (int j = 0; j < allJobIds.size() - 1 - i; j++) {
+                if (allJobIds.get(j) > allJobIds.get(j + 1)) {
+                    Integer temp = allJobIds.get(j);
+                    allJobIds.set(j, allJobIds.get(j + 1));
+                    allJobIds.set(j + 1, temp);
+                }
+            }
+        }
+        
+        // Sammle Strategie-Kürzel
+        java.util.List<String> strategyCodes = new java.util.ArrayList<>();
+        
+        for (int i = 0; i < allJobIds.size(); i++) {
+            Integer jobId = allJobIds.get(i);
+            boolean found = false;
+            
+            // Suche nach platziertem Job
+            for (int j = 0; j < path.plate.jobs.size(); j++) {
+                Job job = path.plate.jobs.get(j);
+                if (job.id == jobId.intValue()) {
+                    if ("FullWidth".equals(job.splittingMethod)) {
+                        strategyCodes.add("W");
+                    } else if ("FullHeight".equals(job.splittingMethod)) {
+                        strategyCodes.add("H");
+                    } else {
+                        strategyCodes.add("?"); // Fallback
+                    }
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (!found) {
+                // Job wurde nicht platziert
+                strategyCodes.add("N"); // N für "nicht platziert"
+            }
+        }
+        
+        if (strategyCodes.size() == 0) {
+            return "";
+        } else {
+            return String.join("->", strategyCodes);
+        }
+    }
+    
 }
