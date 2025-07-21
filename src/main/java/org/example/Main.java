@@ -9,18 +9,24 @@ import org.example.Provider.JobListProvider;
 import org.example.Provider.PlateProvider;
 import org.example.Visualizer.BenchmarkVisualizer;
 import org.example.Visualizer.PlateVisualizer;
+import org.example.Algorithms.MultiPlateMultiPath;
 
 public class Main {
     public static final boolean DEBUG = false;
     public static final boolean DEBUG_MaxRectBF = false;
     public static final boolean DEBUG_MaxRectBF_Dynamic = false;
     public static final boolean DEBUG_MultiPath = false;
+    public static final boolean DEBUG_MultiPlateMultiPath = true;
+    public static final int DEBUG_MultiPlateMultiPath_PathIndex = 0;
 
     public static final boolean rotateJobs = true;  // Bislang nur für MaxRectBestFit-Algorithmus.
     public static final boolean sortJobs = true;  // Bislang nur für MaxRectBestFit-Algorithmus.
     
     // Schnittbreite in mm wird zu jeder Job-Dimension hinzugefügt
     public static final int KERF_WIDTH = 0;  // 3mm Schnittbreite pro Seite
+
+    // Globale Variable für MultiPlateMultiPath-Instanz (für Debug etc.)
+    public static MultiPlateMultiPath lastMultiPlateMultiPath = null;
 
     /**
      * Führt das gewählte Platzierungsverfahren mit der gegebenen Jobliste und Platteninfo aus.
@@ -49,37 +55,37 @@ public class Main {
      */
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        PlateProvider.NamedPlate plateInfo = getUserPlateChoiceWithScanner(scanner);
+        // Plattenauswahl: Standard, Groß oder zwei Standardplatten
+        List<PlateProvider.NamedPlate> plates;
+        System.out.println("Plattenmodus wählen:");
+        System.out.println("1 = Standardplatte");
+        System.out.println("2 = Großplatte");
+        System.out.println("3 = Zwei Standardplatten");
+        System.out.print("Bitte wählen: ");
+        String plateModeInput = scanner.nextLine().trim();
+        switch (plateModeInput) {
+            case "2":
+                plates = Arrays.asList(PlateProvider.getLargePlate());
+                break;
+            case "3":
+                plates = PlateProvider.getTwoStandardPlates();
+                break;
+            default:
+                plates = Arrays.asList(PlateProvider.getStandardPlate());
+                break;
+        }
+
         JobListProvider.NamedJobList selection = getUserJobListChoiceWithScanner(scanner);
         List<Job> originalJobs = selection.jobs;
         String jobListInfo = selection.name;
         currentJobListInfo = jobListInfo; // Setze aktuelle Joblisten-Info
         String mode = getUserAlgorithmChoice(scanner);
-        runWithJobsWithInfo(originalJobs, mode, jobListInfo, plateInfo);
+
+        runWithJobsWithInfo(originalJobs, mode, jobListInfo, plates);
+
         scanner.close();
     }
 
-    // Nutzer nach Plattenformat fragen
-    private static PlateProvider.NamedPlate getUserPlateChoiceWithScanner(Scanner scanner) {
-        PlateProvider.NamedPlate[] plates = new PlateProvider.NamedPlate[] {
-            PlateProvider.getStandardPlate(),
-            PlateProvider.getLargePlate()
-        };
-        System.out.println("Welches Plattenformat möchten Sie verwenden?");
-        for (int i = 0; i < plates.length; i++) {
-            System.out.printf("%d = %s (%.1f x %.1f mm)\n", i + 1, plates[i].name, plates[i].width, plates[i].height);
-        }
-        System.out.print("Bitte wählen: ");
-        String input = scanner.nextLine().trim();
-        int idx;
-        try {
-            idx = Integer.parseInt(input) - 1;
-        } catch (NumberFormatException e) {
-            idx = 0;
-        }
-        if (idx < 0 || idx >= plates.length) idx = 0;
-        return plates[idx];
-    }
 
     /**
      * Zeigt dem Nutzer eine Auswahl aller vordefinierten Joblisten und gibt die gewählte zurück.
@@ -99,7 +105,8 @@ public class Main {
             JobListProvider.getSingleJobTooLarge(),
             JobListProvider.getManyTinyJobs(),
             JobListProvider.getAlternatingSizesList(),
-            JobListProvider.getDecimalJobsList()
+            JobListProvider.getDecimalJobsList(),
+            JobListProvider.getExtendedStandardJobList() // <-- hinzugefügt
         };
         System.out.println("Welche Jobliste möchten Sie verwenden?");
         for (int i = 0; i < lists.length; i++) {
@@ -128,6 +135,22 @@ public class Main {
             default:
                 runWithJobs(originalJobs, mode, plateInfo);
                 break;
+        }
+    }
+
+    private static void runWithJobsWithInfo(List<Job> originalJobs, String mode, String jobListInfo, List<PlateProvider.NamedPlate> plates) {
+        if ("5".equals(mode)) {
+            // MultiPlateMultiPath-Algorithmus ausführen und Benchmark-Visualisierung anzeigen
+            lastMultiPlateMultiPath = new MultiPlateMultiPath(plates, originalJobs);
+            // Debug-Ausgabe für Pfad 1 auf Konsole
+            // lastMultiPlateMultiPath.debugPath1Steps();
+            org.example.Visualizer.MultiPlateMultiPathVisualizer.showBenchmarkResults(lastMultiPlateMultiPath, jobListInfo);
+        } else if (plates.size() > 1) {
+            System.out.println("Mehrere Platten erkannt (" + plates.size() + "). Multi-Plate-Algorithmus wird noch implementiert.");
+            // Beispiel: Übergib die Plattenliste an einen neuen Algorithmus
+            // MultiPath.processPlates(originalJobs, plates, mode);
+        } else {
+            runWithJobsWithInfo(originalJobs, mode, jobListInfo, plates.get(0));
         }
     }
 
@@ -197,7 +220,7 @@ public class Main {
      * Fragt den Nutzer nach dem gewünschten Algorithmus.
      */
     private static String getUserAlgorithmChoice(Scanner scanner) {
-        System.out.print("Algorithmus wählen (1 = First Fit, 2 = MaxRectsBF, 3 = MaxRectsBF Dynamic, 4 = MaxRectsBF Multi-Path, 0 = Benchmark): ");
+        System.out.print("Algorithmus wählen (1 = First Fit, 2 = MaxRectsBF, 3 = MaxRectsBF Dynamic, 4 = MaxRectsBF Multi-Path, 5 = MultiPlateMultiPath, 0 = Benchmark): ");
         return scanner.nextLine().trim();
     }
 }

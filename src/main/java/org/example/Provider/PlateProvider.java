@@ -1,5 +1,8 @@
 package org.example.Provider;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class PlateProvider {
 
     public static class NamedPlate {
@@ -23,13 +26,16 @@ public class PlateProvider {
         return new NamedPlate("Großplatte", 1200.0, 800.0);
     }
 
-    // Methode zur Auswahl der Platte anhand eines Namens
-    public static NamedPlate getPlateByName(String name) {
-        if ("Standardplatte".equalsIgnoreCase(name)) {
-            return getStandardPlate();
-        } else if ("Großplatte".equalsIgnoreCase(name) || "Grossplatte".equalsIgnoreCase(name)) {
-            return getLargePlate();
-        }
-        return null;
+    // Gibt eine Liste mit allen verfügbaren Platten zurück
+    public static List<NamedPlate> getPlateList() {
+        return Arrays.asList(getStandardPlate(), getLargePlate());
+    }
+
+    // Gibt explizit eine Liste mit zwei Standardplatten zurück
+    public static List<NamedPlate> getTwoStandardPlates() {
+        return Arrays.asList(
+            new NamedPlate("Standardplatte 1", 963.0, 650.0),
+            new NamedPlate("Standardplatte 2", 963.0, 650.0)
+        );
     }
 }

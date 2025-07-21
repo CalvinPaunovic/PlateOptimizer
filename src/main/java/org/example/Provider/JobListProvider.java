@@ -79,6 +79,28 @@ public class JobListProvider {
         ));
     }
 
+    // Erweiterte StandardJobList für zwei Platten
+    public static NamedJobList getExtendedStandardJobList() {
+        // Fläche pro Platte: 963*650=625950, zwei Platten: 1.251.900
+        // Jobs: Summe Flächen ca. 1.100.000
+        return new NamedJobList("Erweiterte Standardliste (für 2 Platten)", Arrays.asList(
+            new Job(0, 402, 480),
+            new Job(1, 305, 222),
+            new Job(2, 220, 573),
+            new Job(3, 205, 153),
+            new Job(4, 243, 188),
+            new Job(5, 243, 188),
+            new Job(6, 205, 153),
+            new Job(7, 402, 480),
+            new Job(8, 305, 222),
+            new Job(9, 220, 573),
+            new Job(10, 205, 153),
+            new Job(11, 243, 188),
+            new Job(12, 243, 188),
+            new Job(13, 205, 153)
+        ));
+    }
+
     public static NamedJobList getAllSameSizeList() {
         // Fläche Platte: 625950
         // Jobs: 100 * (100*100) = 100 * 10000 = 1,000,000

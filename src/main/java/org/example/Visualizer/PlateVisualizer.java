@@ -94,8 +94,8 @@ public class PlateVisualizer extends JPanel {
         } else if ("3".equals(mode) && algorithm instanceof MaxRectBF_Dynamic) {
             List<MaxRectBF_Dynamic.FreeRectangle> freeRects = ((MaxRectBF_Dynamic) algorithm).freeRects;
             drawFreeRectangles(g2d, freeRects);
-        } else if ("4".equals(mode) && (algorithm instanceof MaxRectBF_MultiPath || specificFreeRects != null)) {
-            // Verwende spezifische freie Rechtecke wenn verfügbar, sonst die vom Algorithmus
+        } else if (("4".equals(mode) || "5".equals(mode)) && (algorithm instanceof MaxRectBF_MultiPath || specificFreeRects != null)) {
+            // Für MultiPath und MultiPlateMultiPath: Mode 4 oder 5
             List<MaxRectBF_MultiPath.FreeRectangle> freeRects;
             if (specificFreeRects != null) {
                 freeRects = specificFreeRects;
