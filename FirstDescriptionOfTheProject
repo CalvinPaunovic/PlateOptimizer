@@ -1,0 +1,25 @@
+Moin,
+
+die Teile für den Raspberry 4 und Co. benötigen noch länger.
+Daher gibt es zwischenzeitlich eine echt schöne Aufgabe von Timo, die auch so in der Form aktuell benötigt wird.
+Sprich: Das wird dann auch in den kommenden Belichter eingesetzt.
+
+Wie folgt:
+
+Erstellung einer Software zur Optimierung der Platzierung von Belichtungsaufträgen auf die Magnesiumform
+
+Hintergrund: Die neue Krause Maschine "Matrixbelichter" zur Belichtung von AquaMag-Magnesiumplatten, benötigt eine Software, die die eingehenden Kundenaufträge auf die verfügbaren Plattengrößen platziert. Dem Bediener sollen Vorschläge unterbreitet werden, mit Angabe der Flächendeckung und Anzahl der benötigten Schnitte, aus denen ausgewählt werden kann. Die gewählte Variante soll dann exportiert und an die Maschine zur Belichtung übertragen werden.
+
+Beispiel: Siehe Anhang.
+
+Umsetzung: In Sprints. Programmiersprache frei wählbar, z.B. Java, Python, C#/.NET, Web-basiert (Electron, Tauri, ...), ...
+
+Sprint 1: Feste Vorgabe eines Plattenformats und Liste der Aufträge im Sourcecode, z.B. die Maße aus der PPT (später kommen noch konkrete Daten von einem Kunden). Software implementiert einen Algorithmus zur Optimierung der Flächendeckung (entweder aus dem Internet oder aus dem Buch von Thomas Richter) und gibt das Ergebnis als Text aus (z.B. in Form von Koordinaten: Oben-Links + Unten-Rechts oä.). Noch keine Schnittberechnung.
+Sprint 2: Grafische Darstellung des Ergebnisses.
+Sprint 3: Hinzunahme verschiedener Plattenformate (2-3). Optimierung auf möglichst geringe Anzahl an Platten.
+Sprint 4: Schnittberechnung und Darstellung.
+Sprint 5: Ersetzen der statischen Auftragsliste durch einen Eingangsordner im Dateisystem, der auf TIF-Dateien überwacht wird und deren Größe verwendet wird.
+Sprint 6:...
+
+Die Reihenfolge soll nur ein Beispiel sein; zunächst auf Sprint 1 konzentrieren.
+
