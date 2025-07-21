@@ -1,17 +1,18 @@
-package org.example;
+package org.example.DataClasses;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Plate {
 
-    String name;
-    int width, height;
-    int currentX = 0, currentY = 0;
-    int shelfHeight = 0;
-    List<Job> jobs = new ArrayList<>();
+    public String name;
+    public double width;
+    public double height;
+    double currentX = 0, currentY = 0;
+    double shelfHeight = 0;
+    public List<Job> jobs = new ArrayList<>();
 
-    public Plate(String name, int width, int height) {
+    public Plate(String name, double width, double height) {
         this.name = name;
         this.width = width;
         this.height = height;

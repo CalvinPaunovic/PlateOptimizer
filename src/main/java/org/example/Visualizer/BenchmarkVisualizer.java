@@ -1,8 +1,12 @@
-package org.example;
+package org.example.Visualizer;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
+
+import org.example.Algorithms.MaxRectBF_MultiPath;
+import org.example.DataClasses.Plate;
+
 import java.awt.*;
 import java.util.List;
 
@@ -43,14 +47,20 @@ public class BenchmarkVisualizer extends JFrame {
     private List<BenchmarkResult> results;
     private JTable table;
     private JLabel statisticsLabel;
+    private String jobListInfo = "";
     
     public BenchmarkVisualizer(List<BenchmarkResult> results) {
+        this(results, "");
+    }
+
+    public BenchmarkVisualizer(List<BenchmarkResult> results, String jobListInfo) {
         this.results = results;
+        this.jobListInfo = jobListInfo;
         initializeGUI();
     }
     
     private void initializeGUI() {
-        setTitle("Benchmark Ergebnisse - Algorithmus Vergleich");
+        setTitle("Benchmark Ergebnisse - " + (jobListInfo == null ? "" : jobListInfo));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
         
@@ -70,9 +80,9 @@ public class BenchmarkVisualizer extends JFrame {
         JPanel buttonPanel = createButtonPanel();
         add(buttonPanel, BorderLayout.EAST);
         
-        pack();
+        setSize(1000, 600); // Feste Fenstergröße
+        setMinimumSize(new Dimension(1000, 600));
         setLocationRelativeTo(null);
-        setMinimumSize(new Dimension(800, 600));
     }
     
     private JPanel createHeaderPanel() {
@@ -217,12 +227,14 @@ public class BenchmarkVisualizer extends JFrame {
             statisticsLabel.setText(String.format(
                 "<html><div style='padding: 10px;'>" +
                 "<b>📊 DETAILLIERTE STATISTIKEN:</b><br/>" +
+                "Plattenformat: %s (%.1f x %.1f mm)<br/>" + 
                 "🥇 Beste Deckungsrate: %.2f%% (%s)<br/>" +
                 "🥉 Schlechteste Deckungsrate: %.2f%% (%s)<br/>" +
                 "📈 Verbesserung: %.2f Prozentpunkte<br/>" +
                 "📋 Getestete Algorithmen: %d<br/>" +
                 "⚡ Durchschnittliche Deckungsrate: %.2f%%<br/>" +
                 "</div></html>",
+                best.plate.name, best.plate.width, best.plate.height,
                 best.coverageRate, best.algorithmName,
                 worst.coverageRate, worst.algorithmName,
                 improvement,
@@ -300,79 +312,105 @@ public class BenchmarkVisualizer extends JFrame {
         String mode;
         if (result.algorithmName.contains("First Fit")) {
             mode = "1";
-            PlateVisualizer.showPlate(result.plate, mode, result.algorithm);
+            PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
+                result.plate, mode, null, result.plate.name, null, jobListInfo);
         } else if (result.algorithmName.contains("Dynamic")) {
             mode = "3";
-            PlateVisualizer.showPlate(result.plate, mode, result.algorithm);
+            PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
+                result.plate, mode, null, result.plate.name, null, jobListInfo);
         } else if (result.algorithmName.contains("MultiPath")) {
             mode = "4";
-            // Für MultiPath: Verwende die gleiche Visualisierung wie im Einzelmodus
             if (result.specificFreeRects != null) {
-                // Extrahiere Pfad-Nummer und Strategie-Code für Titel
                 String titleFromName = "Pfad 1";
                 if (result.algorithmName.contains("Pfad ")) {
                     int start = result.algorithmName.indexOf("Pfad ");
-                    // Nimm alles ab "Pfad" bis zum Ende (enthält bereits Strategie-Code falls vorhanden)
                     titleFromName = result.algorithmName.substring(start);
-                    // Entferne den Algorithmus-Prefix falls vorhanden
                     if (titleFromName.contains(" - ")) {
                         titleFromName = titleFromName.substring(titleFromName.lastIndexOf(" - ") + 3);
                     }
                 }
-                
-                // Verwende die gespeicherten freien Rechtecke
                 PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
                     result.plate, 
                     mode, 
                     result.specificFreeRects, 
                     titleFromName, 
-                    "Algorithmus: MultiPath (aus Benchmark)"
-                );                } else {
-                    // Fallback: Versuche den Pfad im Algorithmus zu finden
-                    if (result.algorithm instanceof MaxRectBF_MultiPath) {
-                        MaxRectBF_MultiPath multiPathAlgorithm = (MaxRectBF_MultiPath) result.algorithm;
-                        
-                        // Finde den entsprechenden Pfad basierend auf der Platte
-                        MaxRectBF_MultiPath.AlgorithmPath matchingPath = null;
-                        List<MaxRectBF_MultiPath.AlgorithmPath> allPaths = multiPathAlgorithm.getAllPaths();
-                        for (int i = 0; i < allPaths.size(); i++) {
-                            MaxRectBF_MultiPath.AlgorithmPath path = allPaths.get(i);
-                            if (path.isActive && path.plate == result.plate) {
+                    "Algorithmus: MultiPath (aus Benchmark)",
+                    jobListInfo // <-- Joblisten-Info weitergeben
+                );
+            } else {
+                if (result.algorithm instanceof MaxRectBF_MultiPath) {
+                    MaxRectBF_MultiPath multiPathAlgorithm = (MaxRectBF_MultiPath) result.algorithm;
+                    Object matchingPath = null;
+                    List<?> allPaths = multiPathAlgorithm.getAllPaths();
+                    for (int i = 0; i < allPaths.size(); i++) {
+                        Object path = allPaths.get(i);
+                        try {
+                            java.lang.reflect.Field isActiveField = path.getClass().getDeclaredField("isActive");
+                            java.lang.reflect.Field plateField = path.getClass().getDeclaredField("plate");
+                            isActiveField.setAccessible(true);
+                            plateField.setAccessible(true);
+                            boolean isActive = isActiveField.getBoolean(path);
+                            Object plateObj = plateField.get(path);
+                            if (isActive && plateObj == result.plate) {
                                 matchingPath = path;
                                 break;
                             }
+                        } catch (Exception ex) {
+                            // Reflection failed, skip this path
                         }
-                        
-                        if (matchingPath != null) {
-                            // Extrahiere Pfad-Nummer für Titel
-                            String pathNumber = "1";
-                            if (matchingPath.pathDescription.contains("Pfad ")) {
-                                int start = matchingPath.pathDescription.indexOf("Pfad ") + 5;
-                                int end = matchingPath.pathDescription.indexOf(" ", start);
-                                if (end == -1) end = matchingPath.pathDescription.length();
-                                pathNumber = matchingPath.pathDescription.substring(start, end);
+                    }
+                    if (matchingPath != null) {
+                        String pathNumber = "1";
+                        try {
+                            java.lang.reflect.Field pathDescriptionField = matchingPath.getClass().getDeclaredField("pathDescription");
+                            pathDescriptionField.setAccessible(true);
+                            String pathDescription = (String) pathDescriptionField.get(matchingPath);
+                            if (pathDescription != null && pathDescription.contains("Pfad ")) {
+                                int start = pathDescription.indexOf("Pfad ") + 5;
+                                int end = pathDescription.indexOf(" ", start);
+                                if (end == -1) end = pathDescription.length();
+                                pathNumber = pathDescription.substring(start, end);
                             }
                             String simplifiedTitle = "Pfad " + pathNumber;
-                            
-                            // Verwende die spezifischen freien Rechtecke des Pfads
+                            java.lang.reflect.Field plateField = matchingPath.getClass().getDeclaredField("plate");
+                            java.lang.reflect.Field freeRectsField = matchingPath.getClass().getDeclaredField("freeRects");
+                            plateField.setAccessible(true);
+                            freeRectsField.setAccessible(true);
+                            Object plateObj = plateField.get(matchingPath);
+                            Object freeRectsObj = freeRectsField.get(matchingPath);
+                            List<MaxRectBF_MultiPath.FreeRectangle> freeRectsList = null;
+                            if (freeRectsObj instanceof List<?>) {
+                                freeRectsList = new java.util.ArrayList<>();
+                                for (Object obj : (List<?>) freeRectsObj) {
+                                    if (obj instanceof MaxRectBF_MultiPath.FreeRectangle) {
+                                        freeRectsList.add((MaxRectBF_MultiPath.FreeRectangle) obj);
+                                    }
+                                }
+                            }
                             PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
-                                matchingPath.plate, 
+                                (Plate) plateObj, 
                                 mode, 
-                                matchingPath.freeRects, 
+                                freeRectsList, 
                                 simplifiedTitle, 
-                                "Algorithmus: MultiPath (aus Benchmark)"
+                                "Algorithmus: MultiPath (aus Benchmark)",
+                                jobListInfo // <-- Joblisten-Info weitergeben
                             );
-                        } else {
-                            // Fallback falls kein Pfad gefunden wird
-                            PlateVisualizer.showPlate(result.plate, mode, result.algorithm);
+                        } catch (Exception ex) {
+                            PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
+                                result.plate, mode, null, result.plate.name, null, jobListInfo);
                         }
                     } else {
-                        PlateVisualizer.showPlate(result.plate, mode, result.algorithm);
+                        PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
+                            result.plate, mode, null, result.plate.name, null, jobListInfo);
                     }
+                    PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
+                        result.plate, mode, null, result.plate.name, null, jobListInfo);
                 }
+            }
         } else {
             mode = "2";
-            PlateVisualizer.showPlate(result.plate, mode, result.algorithm);
+            PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
+                result.plate, mode, null, result.plate.name, null, jobListInfo);
         }
     }
     
@@ -403,12 +441,19 @@ public class BenchmarkVisualizer extends JFrame {
         JOptionPane.showMessageDialog(this, "View aktualisiert!", "Aktualisierung", JOptionPane.INFORMATION_MESSAGE);
     }
     
-    public static void showBenchmarkResults(List<BenchmarkResult> results) {
+    public static void showBenchmarkResults(List<BenchmarkResult> results, String jobListInfo) {
+        // Kein Popup mehr, Info nur im Fenstertitel
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                new BenchmarkVisualizer(results).setVisible(true);
+                BenchmarkVisualizer visualizer = new BenchmarkVisualizer(results, jobListInfo);
+                visualizer.setVisible(true);
             }
         });
+    }
+
+    // Bestehende Methode für Rückwärtskompatibilität (ohne Info)
+    public static void showBenchmarkResults(List<BenchmarkResult> results) {
+        showBenchmarkResults(results, "Jobliste: unbekannt");
     }
 }

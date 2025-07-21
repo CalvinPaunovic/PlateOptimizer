@@ -1,17 +1,22 @@
-package org.example;
+package org.example.Algorithms;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import org.example.Main;
+import org.example.DataClasses.Job;
+import org.example.DataClasses.Plate;
+import org.example.Visualizer.PlateVisualizer;
+
 public class MaxRectBF_MultiPath {
 
-    static class AlgorithmPath {
-        Plate plate;                              // Die Platte mit allen platzierten Jobs in diesem Pfad
-        List<FreeRectangle> freeRects;           // Aktuelle freie Rechtecke auf der Platte
+    public static class AlgorithmPath {
+        public Plate plate;                              // Die Platte mit allen platzierten Jobs in diesem Pfad
+        public List<FreeRectangle> freeRects;           // Aktuelle freie Rechtecke auf der Platte
         int placementCounter;                     // Zähler für die Reihenfolge der Job-Platzierung
         List<FreeRectangle> lastAddedRects;      // Die letzten hinzugefügten freien Rechtecke (für Rollback bei Pfad-Splits)
-        String pathDescription;                   // Beschreibung des Pfads für Debugging/Logging
-        boolean isActive;                        // Ob dieser Pfad noch aktiv verfolgt wird
+        public String pathDescription;                   // Beschreibung des Pfads für Debugging/Logging
+        public boolean isActive;                        // Ob dieser Pfad noch aktiv verfolgt wird
         boolean useFullHeight;                   // Splitting-Strategie: true=FullHeight, false=FullWidth
         List<Integer> failedJobs;                // Liste der Jobs, die in diesem Pfad nicht platziert werden konnten
         String parentPath;                       // Name des Eltern-Pfads, von dem sich dieser Pfad abgespalten hat
@@ -86,9 +91,12 @@ public class MaxRectBF_MultiPath {
         }
     }
     
-    static class FreeRectangle {
-        int x, y, width, height;
-        public FreeRectangle(int x, int y, int width, int height) {
+    public static class FreeRectangle {
+        public double x;
+        public double y;
+        public double width;
+        public double height;
+        public FreeRectangle(double x, double y, double width, double height) {
             this.x = x;
             this.y = y;
             this.width = width;
@@ -98,10 +106,10 @@ public class MaxRectBF_MultiPath {
 
     static class BestFitResult {
         public FreeRectangle bestRect;
-        int bestScore = Integer.MAX_VALUE;
+        double bestScore = Double.MAX_VALUE;
         boolean useRotated = false;
-        int bestWidth = -1;
-        int bestHeight = -1;
+        double bestWidth = -1;
+        double bestHeight = -1;
     }
     
     List<AlgorithmPath> paths;
@@ -176,8 +184,8 @@ public class MaxRectBF_MultiPath {
                     }
                     
                     // Berechne das ursprüngliche Rechteck korrekt
-                    int originalWidth = lastJob.width;
-                    int originalHeight = lastJob.height;
+                    double originalWidth = lastJob.width;
+                    double originalHeight = lastJob.height;
                     
                     // Wenn es ein rechtes Rechteck gab, füge dessen Breite hinzu
                     for (FreeRectangle removed : rectsToRemove) {
@@ -392,13 +400,11 @@ public class MaxRectBF_MultiPath {
     }
 
     // Prüfen, ob Job in originaler oder gedrehter Position einen jeweils kürzeren Abstand vertikal oder horizontal hat
-    private void testAndUpdateBestFit(int testWidth, int testHeight, FreeRectangle rect, boolean rotated, BestFitResult result) {
+    private void testAndUpdateBestFit(double testWidth, double testHeight, FreeRectangle rect, boolean rotated, BestFitResult result) {
         if (testWidth <= rect.width && testHeight <= rect.height) {
-            int leftoverHoriz = rect.width - testWidth;
-            int leftoverVert = rect.height - testHeight;
-            int shortSideFit = Math.min(leftoverHoriz, leftoverVert);
-            // Kriterium für "Best Fit": Das Rechteck, worin der Job den kleinsten Abstand entweder vertikal ODER horizontal zum nächsten freien Rechteck oder zum Rand hat.
-            // Weitere Möglichkeit für "Best Fit": durchschnittlicher Abstand vertikal UND horizontal zum jeweiligen nächsten freien Rechteck oder zum Rand.
+            double leftoverHoriz = rect.width - testWidth;
+            double leftoverVert = rect.height - testHeight;
+            double shortSideFit = Math.min(leftoverHoriz, leftoverVert);
             if (shortSideFit < result.bestScore) {
                 result.bestScore = shortSideFit;
                 result.bestRect = rect;
@@ -412,17 +418,12 @@ public class MaxRectBF_MultiPath {
     // Freie Rechtecke mit vollständiger Breitenausdehnung nach rechts erzeugen
     private void splitFreeRectFullWidth(FreeRectangle rect, Job job, AlgorithmPath path) {
         path.freeRects.remove(rect);
-        
-        // Lösche vorherige Einträge, da wir nur die letzten zwei verfolgen wollen
         path.lastAddedRects.clear();
-        
-        // Neuer freier Bereich rechts neben dem Job
         if (job.width < rect.width) {
             FreeRectangle newRectRight = new FreeRectangle(rect.x + job.width, rect.y, rect.width - job.width, job.height);
             path.freeRects.add(newRectRight);
             path.lastAddedRects.add(newRectRight);
         }
-        // Neuer freier Bereich unterhalb des Jobs
         if (job.height < rect.height) {
             FreeRectangle newRectBelow = new FreeRectangle(rect.x, rect.y + job.height, rect.width, rect.height - job.height);
             path.freeRects.add(newRectBelow);
@@ -433,17 +434,12 @@ public class MaxRectBF_MultiPath {
     // Freie Rechtecke mit vollständiger Höhenausdehnung nach rechts erzeugen
     private void splitFreeRectFullHeight(FreeRectangle rect, Job job, AlgorithmPath path) {
         path.freeRects.remove(rect);
-        
-        // Lösche vorherige Einträge, da wir nur die letzten zwei verfolgen wollen
         path.lastAddedRects.clear();
-        
-        // Neuer freier Bereich rechts neben dem Job mit vollständiger Höhe
         if (job.width < rect.width) {
             FreeRectangle newRectRight = new FreeRectangle(rect.x + job.width, rect.y, rect.width - job.width, rect.height);  
             path.freeRects.add(newRectRight);
             path.lastAddedRects.add(newRectRight);
         }
-        // Neuer freier Bereich unterhalb des Jobs
         if (job.height < rect.height) {
             FreeRectangle newRectBelow = new FreeRectangle(rect.x, rect.y + job.height, job.width, rect.height - job.height);
             path.freeRects.add(newRectBelow);

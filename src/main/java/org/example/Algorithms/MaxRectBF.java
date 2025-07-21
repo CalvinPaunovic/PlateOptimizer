@@ -1,11 +1,16 @@
-package org.example;
+package org.example.Algorithms;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import org.example.Main;
+import org.example.DataClasses.Job;
+import org.example.DataClasses.Plate;
+import org.example.Visualizer.PlateVisualizer;
+
 public class MaxRectBF {
     Plate plate;
-    List<FreeRectangle> freeRects;
+    public List<FreeRectangle> freeRects;
     int placementCounter;  // Für Variable placementOrder in Job-Klasse
     private boolean useFullHeight;
 
@@ -21,9 +26,12 @@ public class MaxRectBF {
     }
 
     // Parameter für freie Rechtecke
-    static class FreeRectangle {
-        int x, y, width, height;
-        public FreeRectangle(int x, int y, int width, int height) {
+    public static class FreeRectangle {
+        public double x;
+        public double y;
+        public double width;
+        public double height;
+        public FreeRectangle(double x, double y, double width, double height) {
             this.x = x;
             this.y = y;
             this.width = width;
@@ -34,10 +42,10 @@ public class MaxRectBF {
     // Parameter für eine neue Jobplatzierung
     static class BestFitResult {
         public FreeRectangle bestRect;
-        int bestScore = Integer.MAX_VALUE;
+        double bestScore = Double.MAX_VALUE;
         boolean useRotated = false;
-        int bestWidth = -1;
-        int bestHeight = -1;
+        double bestWidth = -1;
+        double bestHeight = -1;
     }
 
     // Jeden Job durchgehen, platzieren und visualisieren
@@ -104,7 +112,7 @@ public class MaxRectBF {
     }
 
     // Prüfen, ob Job in originaler oder gedrehter Position einen jeweils kürzeren Abstand vertikal oder horizontal hat
-    private void testAndUpdateBestFit(int testWidth, int testHeight, FreeRectangle rect, boolean rotated, BestFitResult result) {
+    private void testAndUpdateBestFit(double testWidth, double testHeight, FreeRectangle rect, boolean rotated, BestFitResult result) {
         if (testWidth <= rect.width && testHeight <= rect.height) {
             String ausrichtung;
             if (rotated) {
@@ -112,15 +120,13 @@ public class MaxRectBF {
             } else {
                 ausrichtung = "Originalausrichtung";
             }
-            int leftoverHoriz = rect.width - testWidth;
-            int leftoverVert = rect.height - testHeight;
-            int shortSideFit = Math.min(leftoverHoriz, leftoverVert);
+            double leftoverHoriz = rect.width - testWidth;
+            double leftoverVert = rect.height - testHeight;
+            double shortSideFit = Math.min(leftoverHoriz, leftoverVert);
             if (Main.DEBUG_MaxRectBF) System.out.println("    -> Passt in " + ausrichtung + "!");
             if (Main.DEBUG_MaxRectBF) System.out.println("       Berechnung leftoverHoriz: " + rect.width + " - " + testWidth + " = " + leftoverHoriz);
             if (Main.DEBUG_MaxRectBF) System.out.println("       Berechnung leftoverVert: " + rect.height + " - " + testHeight + " = " + leftoverVert);
             if (Main.DEBUG_MaxRectBF) System.out.println("       shortSideFit = " + shortSideFit + ", aktueller bestScore = " + result.bestScore);
-            // Kriterium für "Best Fit": Das Rechteck, worin der Job den kleinsten Abstand entweder vertikal ODER horizontal zum nächsten freien Rechteck oder zum Rand hat.
-            // Weitere Möglichkeit für "Best Fit": durchschnittlicher Abstand vertikal UND horizontal zum jeweiligen nächsten freien Rechteck oder zum Rand.
             if (shortSideFit < result.bestScore) {
                 result.bestScore = shortSideFit;
                 result.bestRect = rect;
