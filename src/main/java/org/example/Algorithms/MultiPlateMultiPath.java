@@ -7,135 +7,95 @@ import org.example.DataClasses.Job;
 import org.example.DataClasses.Plate;
 import org.example.Provider.PlateProvider;
 
+/**
+ * MultiPlateMultiPath ist eine Klasse, die mehrere Platten (Plates) verwaltet
+ * und für jede Platte einen eigenen MaxRectBF_MultiPath-Algorithmus ausführt.
+ * Ziel ist es, eine gegebene Liste von Jobs möglichst effizient auf mehrere Platten zu verteilen.
+ * Dabei werden verschiedene Sortierstrategien und Platzierungswege (Paths) berücksichtigt.
+ */
 public class MultiPlateMultiPath {
 
+    // Liste der verwendeten Platten (jede Platte entspricht einer Materialplatte)
     private final List<Plate> plates;
+    // Für jede Platte wird ein eigener MultiPath-Algorithmus verwaltet
     private final List<MaxRectBF_MultiPath> multiPathAlgorithms;
 
-    public MultiPlateMultiPath(List<PlateProvider.NamedPlate> plateInfos, List<Job> jobs) {
+    /**
+     * Konstruktor: Initialisiert die MultiPlateMultiPath-Instanz.
+     * Die eigentliche Platzierungslogik erfolgt über placeJobsOnPlates().
+     */
+    public MultiPlateMultiPath() {
         this.plates = new ArrayList<>();
         this.multiPathAlgorithms = new ArrayList<>();
-
-        // Platte 1 vorbereiten
-        PlateProvider.NamedPlate info1 = plateInfos.get(0);
-        Plate plate1 = new Plate("Platte 1: " + info1.name, info1.width, info1.height);
-        plates.add(plate1);
-        MaxRectBF_MultiPath multiPathAlgo1 = new MaxRectBF_MultiPath(plate1);
-
-        // Liste für Jobs, die auf Platte 1 NICHT passen (egal in welchem Pfad, egal ob gedreht)
-        List<Job> notPlaced = new ArrayList<>();
-
-        for (Job job : jobs) {
-            boolean placed = multiPathAlgo1.placeJob(job);
-            if (!placed) {
-                notPlaced.add(job);
-            }
-        }
-        multiPathAlgorithms.add(multiPathAlgo1);
-
-        // Falls es eine zweite Platte gibt, versuche dort die übrigen Jobs
-        if (plateInfos.size() > 1 && !notPlaced.isEmpty()) {
-            PlateProvider.NamedPlate info2 = plateInfos.get(1);
-            Plate plate2 = new Plate("Platte 2: " + info2.name, info2.width, info2.height);
-            plates.add(plate2);
-            MaxRectBF_MultiPath multiPathAlgo2 = new MaxRectBF_MultiPath(plate2);
-
-            for (Job job : notPlaced) {
-                multiPathAlgo2.placeJob(job);
-            }
-            multiPathAlgorithms.add(multiPathAlgo2);
-        }
     }
 
-    // Visualisiert nur den ausgewählten Pfad jedes MultiPath-Algorithmus für jede Platte, mit 1 Sekunde Pause
-    public void visualizeSelectedPath(String mode, String jobListInfo, int pathIndex) {
-        for (int i = 0; i < multiPathAlgorithms.size(); i++) {
-            MaxRectBF_MultiPath algo = multiPathAlgorithms.get(i);
-            List<MaxRectBF_MultiPath.AlgorithmPath> paths = algo.getAllPaths();
-            if (paths.size() > pathIndex) {
-                MaxRectBF_MultiPath.AlgorithmPath path = paths.get(pathIndex);
-                String title = plates.get(i).name + " | Pfad: " + path.pathDescription;
-                org.example.Visualizer.PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
-                    path.plate, "5", path.freeRects, title, null, jobListInfo
-                );
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+    // Ausgelagerte Methode für die eigentliche Platzierungslogik
+    public void placeJobsOnPlates(List<PlateProvider.NamedPlate> plateInfos, List<Job> jobs, String jobListInfo) {
+        // Diese Methode wird nur einmal aufgerufen
+        // Sie übernimmt die komplette Verteilung der Jobs auf ALLE Platten.
+        // Die Schleife im Inneren sorgt dafür, dass nach Platte 1 automatisch die restlichen Jobs auf Platte 2 usw. verteilt werden.
+        // 1. notPlaced = alle Jobs
+        // 2. Schleife: Platte 1 bekommt alle Jobs, platziert so viele wie möglich, die übrigen werden in stillNotPlaced gesammelt
+        // 3. notPlaced = stillNotPlaced
+        // 4. Schleife: Platte 2 bekommt alle noch nicht platzierten Jobs, platziert so viele wie möglich, usw.
+        // 5. Das wiederholt sich für alle Platten in plateInfos
+
+        this.plates.clear();
+        this.multiPathAlgorithms.clear();
+
+        // Zu Beginn: alle Jobs sind noch nicht platziert
+        List<Job> notPlaced = new ArrayList<>(jobs);
+
+        int plateIdx = 0;
+        // Solange es noch nicht platzierte Jobs gibt und noch Platten verfügbar sind
+        while (!notPlaced.isEmpty() && plateIdx < plateInfos.size()) {
+            PlateProvider.NamedPlate info = plateInfos.get(plateIdx);
+            Plate plate = new Plate("Platte " + (plateIdx + 1) + ": " + info.name, info.width, info.height);
+            plates.add(plate);
+
+            MaxRectBF_MultiPath algo = new MaxRectBF_MultiPath(plate);
+            algo.debugEnabled = false;
+
+            List<Job> stillNotPlaced = new ArrayList<>();
+            for (int i = 0; i < notPlaced.size(); i++) {
+                Job job = notPlaced.get(i);
+                algo.placeJob(job);  // Hier wird der Job platziert
+                if (!isJobPlacedInAnyPath(algo, job.id)) {
+                    stillNotPlaced.add(job);
                 }
             }
-        }
-    }
+            multiPathAlgorithms.add(algo);
 
-    // Visualisiert alle Pfade jedes MultiPath-Algorithmus für jede Platte, mit 1 Sekunde Pause (bestehende Methode bleibt erhalten)
-    public void visualizeAllPaths(String mode, String jobListInfo) {
-        for (int i = 0; i < multiPathAlgorithms.size(); i++) {
-            MaxRectBF_MultiPath algo = multiPathAlgorithms.get(i);
-            List<MaxRectBF_MultiPath.AlgorithmPath> paths = algo.getAllPaths();
-            for (int j = 0; j < paths.size(); j++) {
-                MaxRectBF_MultiPath.AlgorithmPath path = paths.get(j);
-                // Zeige alle Pfade, nicht nur die Endpfade
-                String title = plates.get(i).name + " | Pfad: " + path.pathDescription;
-                org.example.Visualizer.PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
-                    path.plate, "5", path.freeRects, title, null, jobListInfo
-                );
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
+            // Nach Abschluss dieser Platte: EINMALIGE Debug-Ausgabe für alle Pfade
+            if (org.example.Main.DEBUG_MultiPath && jobListInfo != null && jobListInfo.toLowerCase().contains("fläche")) {
+                printPlateSummary(algo, plate);
             }
-        }
-    }
 
-    // Debug-Ausgabe: Zeigt alle Zwischenschritte für den ausgewählten Pfad (per Index) auf der Konsole an
-    public void debugPathSteps() {
-        debugPathSteps(org.example.Main.DEBUG_MultiPlateMultiPath_PathIndex);
-    }
-
-    public void debugPathSteps(int pathIndex) {
-        if (!org.example.Main.DEBUG_MultiPlateMultiPath) return;
-        for (int plateIdx = 0; plateIdx < multiPathAlgorithms.size(); plateIdx++) {
-            MaxRectBF_MultiPath algo = multiPathAlgorithms.get(plateIdx);
-            List<MaxRectBF_MultiPath.AlgorithmPath> paths = algo.getAllPaths();
-            if (paths.size() <= pathIndex) continue;
-            MaxRectBF_MultiPath.AlgorithmPath path = paths.get(pathIndex);
-
-            System.out.println("=== Debug: Zwischenschritte für Pfad " + (pathIndex + 1) + " (" + path.pathDescription + ") auf Platte " + (plateIdx + 1) + " ===");
-            if (path.plate.jobs.isEmpty()) {
-                System.out.println("Keine Jobs platziert.");
-            }
-            // Zeige nach jedem platzierten Job den Zustand der Platte und freien Rechtecke
-            for (int step = 0; step < path.plate.jobs.size(); step++) {
-                Job job = path.plate.jobs.get(step);
-                System.out.printf("--- Nach Platzierung von Job %d: (%.2f x %.2f) an Position (%.2f, %.2f)%s ---\n",
-                    job.id, job.width, job.height, job.x, job.y, job.rotated ? " [gedreht]" : "");
-                System.out.printf("  Split: %s, PlacementOrder: %d\n", job.splittingMethod, job.placementOrder);
-
-                // Zeige alle aktuell platzierten Jobs
-                System.out.print("  Aktuell platzierte Jobs: ");
-                for (int j = 0; j <= step; j++) {
-                    Job placed = path.plate.jobs.get(j);
-                    System.out.print(placed.id + (placed.rotated ? "(R)" : "") + " ");
+            // Konsolenausgabe: Zeige alle nicht platzierten Jobs nach dieser Platte
+            if (!stillNotPlaced.isEmpty()) {
+                System.out.print("Nicht platzierte Jobs nach Platte " + (plateIdx + 1) + ": ");
+                for (int i = 0; i < stillNotPlaced.size(); i++) {
+                    System.out.print(stillNotPlaced.get(i).id);
+                    if (i < stillNotPlaced.size() - 1) System.out.print(", ");
                 }
                 System.out.println();
-
-                // Zeige aktuelle freien Rechtecke (nach diesem Job)
-                System.out.println("  Freie Rechtecke:");
-                List<MaxRectBF_MultiPath.FreeRectangle> freeRects = path.freeRects;
-                if (freeRects.isEmpty()) {
-                    System.out.println("    Keine freien Rechtecke mehr.");
-                } else {
-                    for (int i = 0; i < freeRects.size(); i++) {
-                        MaxRectBF_MultiPath.FreeRectangle rect = freeRects.get(i);
-                        System.out.printf("    F%d: (%.2f, %.2f, %.2f, %.2f)\n", i, rect.x, rect.y, rect.width, rect.height);
-                    }
-                }
-                System.out.println();
+            } else {
+                System.out.println("Alle Jobs konnten auf Platte " + (plateIdx + 1) + " platziert werden.");
             }
-            System.out.println("===============================================");
+
+            notPlaced = stillNotPlaced; // stillNotPlaced wird innerhalb der Schleife aktualisiert, ggf. auf 0 gesetzt
+            plateIdx++;
         }
-        System.out.flush();
+
+        // Visualisiere alle Zwischenschritte für den gewünschten Pfadindex, erst Platte 1, dann Platte 2
+        int debugPathIndex = org.example.Main.DEBUG_MultiPlateMultiPath_PathIndex;
+        if (org.example.Main.DEBUG_MultiPlateMultiPath && jobListInfo != null && jobListInfo.toLowerCase().contains("fläche")) {
+            for (int i = 0; i < multiPathAlgorithms.size(); i++) {
+                // Aktiviere die Visualisierung explizit für jede Platte
+                multiPathAlgorithms.get(i).debugEnabled = true;
+                multiPathAlgorithms.get(i).visualizeAllStepsForPathIndex(debugPathIndex, jobListInfo, i + 1);
+            }
+        }
     }
 
     public List<Plate> getPlates() {
@@ -144,5 +104,51 @@ public class MultiPlateMultiPath {
 
     public List<MaxRectBF_MultiPath> getMultiPathAlgorithms() {
         return multiPathAlgorithms;
+    }
+
+    // Hilfsmethode prüfen, ob ein Job in irgendeinem Pfad platziert wurde
+    private boolean isJobPlacedInAnyPath(MaxRectBF_MultiPath algo, int jobId) {
+        for (MaxRectBF_MultiPath.AlgorithmPath path : algo.getAllPaths()) {
+            for (Job job : path.plate.jobs) {
+                if (job.id == jobId) return true;
+            }
+        }
+        return false;
+    }
+
+    // Hilfsmethode für einmalige Plattenübersicht
+    private void printPlateSummary(MaxRectBF_MultiPath algo, Plate plate) {
+        System.out.println("\n" + "=".repeat(80));
+        System.out.println("GESAMT-UEBERSICHT FÜR " + plate.name);
+        System.out.println("=".repeat(80));
+        int pfadNr = 1;
+        for (MaxRectBF_MultiPath.AlgorithmPath path : algo.getAllPaths()) {
+            double coverage = org.example.Visualizer.PlateVisualizer.calculateCoverageRate(path.plate);
+            System.out.printf("\nPfad %d (%s)\n", pfadNr++, path.pathDescription);
+            System.out.printf("   Deckungsrate: %.2f%% | Platzierte Jobs: %d\n", coverage, path.plate.jobs.size());
+            // ...optional: weitere Infos...
+        }
+        System.out.println();
+
+        // Abschlussausgabe für den Debug-Pfadindex (wie oben)
+        int debugPathIndex = org.example.Main.DEBUG_MultiPlateMultiPath_PathIndex;
+        List<MaxRectBF_MultiPath.AlgorithmPath> paths = algo.getAllPaths();
+        MaxRectBF_MultiPath.AlgorithmPath debugPath = null;
+        if (paths.size() > debugPathIndex) {
+            debugPath = paths.get(debugPathIndex);
+        }
+        if (debugPath != null && !debugPath.failedJobs.isEmpty()) {
+            System.out.println("\n" + "!!!".repeat(20));
+            System.out.println(">>> ABSCHLUSS PLATTE " + plate.name + " / Pfad " + (debugPathIndex) + " <<<");
+            System.out.print("Nicht platzierte Jobs: ");
+            for (int j = 0; j < debugPath.failedJobs.size(); j++) {
+                System.out.print(debugPath.failedJobs.get(j));
+                if (j < debugPath.failedJobs.size() - 1) System.out.print(", ");
+            }
+            System.out.println();
+            System.out.println("!!!".repeat(20) + "\n");
+        } else if (debugPath != null) {
+            System.out.println("\n" + ">>> ABSCHLUSS PLATTE " + plate.name + " / Pfad " + (debugPathIndex) + ": Alle Jobs konnten platziert werden. <<<\n");
+        }
     }
 }

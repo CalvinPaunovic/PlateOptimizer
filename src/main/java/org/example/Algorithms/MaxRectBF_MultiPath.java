@@ -13,9 +13,12 @@ public class MaxRectBF_MultiPath {
     public static class AlgorithmPath {
         public Plate plate;                              // Die Platte mit allen platzierten Jobs in diesem Pfad
         public List<FreeRectangle> freeRects;           // Aktuelle freie Rechtecke auf der Platte
+        public String pathDescription;                   // Beschreibung des Pfads für Debugging/Logging
+        public Integer parentPathIndex;                 // Index des Eltern-Pfads, von dem sich dieser Pfad abgespalten hat
+        // NEU: Liste der freien Rechtecke nach jedem Schritt
+        public List<List<FreeRectangle>> freeRectsPerStep = new ArrayList<>();
         int placementCounter;                     // Zähler für die Reihenfolge der Job-Platzierung
         List<FreeRectangle> lastAddedRects;      // Die letzten hinzugefügten freien Rechtecke (für Rollback bei Pfad-Splits)
-        public String pathDescription;                   // Beschreibung des Pfads für Debugging/Logging
         public boolean isActive;                        // Ob dieser Pfad noch aktiv verfolgt wird
         boolean useFullHeight;                   // Splitting-Strategie: true=FullHeight, false=FullWidth
         List<Integer> failedJobs;                // Liste der Jobs, die in diesem Pfad nicht platziert werden konnten
@@ -114,6 +117,7 @@ public class MaxRectBF_MultiPath {
     
     List<AlgorithmPath> paths;
     Plate originalPlate;
+    boolean debugEnabled = true; // Standardmäßig true, kann aber von außen gesetzt werden
 
     public MaxRectBF_MultiPath(Plate plate) {
         this.originalPlate = plate;
@@ -282,13 +286,20 @@ public class MaxRectBF_MultiPath {
         } else {
             splitFreeRectFullHeight(result.bestRect, job, path);
         }
+        
+        // NEU: Speichere eine Kopie der aktuellen freien Rechtecke nach dem Platzieren des Jobs
+        List<FreeRectangle> snapshot = new ArrayList<>();
+        for (FreeRectangle fr : path.freeRects) {
+            snapshot.add(new FreeRectangle(fr.x, fr.y, fr.width, fr.height));
+        }
+        path.freeRectsPerStep.add(snapshot);
     }
     
-    // Kompakte Zusammenfassung nach jedem Job
     private void printJobSummary(Job originalJob) {
-        if (Main.DEBUG_MultiPath) {
+        if (Main.DEBUG_MultiPath && debugEnabled) {
             System.out.println("\n" + "=".repeat(80));
-            System.out.println("UEBERSICHT NACH JOB " + originalJob.id + " (" + originalJob.width + "x" + originalJob.height + ")");
+            System.out.println("UEBERSICHT NACH JOB " + originalJob.id + " (" + originalJob.width + "x" + originalJob.height + ")"
+                + " auf Platte: " + originalPlate.name);
             System.out.println("=".repeat(80));
             
             for (int pathIndex = 0; pathIndex < paths.size(); pathIndex++) {
@@ -553,4 +564,43 @@ public class MaxRectBF_MultiPath {
         }
     }
     
+    /**
+     * Visualisiert alle Zwischenschritte des gegebenen Pfades für diese Platte.
+     */
+    public void visualizeAllStepsForPathIndex(int pathIndex, String jobListInfo, int plateNumber) {
+        List<AlgorithmPath> paths = getAllPaths();
+        if (paths.size() <= pathIndex) return;
+        AlgorithmPath path = paths.get(pathIndex);
+
+        for (int step = 0; step < path.plate.jobs.size(); step++) {
+            Plate plateStep = new Plate(path.plate.name, path.plate.width, path.plate.height);
+            for (int j = 0; j <= step; j++) {
+                plateStep.jobs.add(path.plate.jobs.get(j));
+            }
+            try {
+                List<FreeRectangle> freeRectsForStep =
+                    path.freeRectsPerStep != null && path.freeRectsPerStep.size() > step
+                        ? path.freeRectsPerStep.get(step)
+                        : path.freeRects;
+                PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
+                    plateStep,
+                    "5",
+                    freeRectsForStep,
+                    "Zwischenschritt " + (step + 1) + " auf Platte " + (plateNumber > 0 ? plateNumber : 1),
+                    null,
+                    jobListInfo
+                );
+                // Konsolenausgabe für jeden Zwischenschritt
+                System.out.printf("Platte %d, Pfad %d, Schritt %d: Jobs auf Platte: ", (plateNumber > 0 ? plateNumber : 1), pathIndex, step + 1);
+                for (int k = 0; k <= step; k++) {
+                    System.out.print("Job" + path.plate.jobs.get(k).id);
+                    if (k < step) System.out.print(", ");
+                }
+                System.out.println();
+                Thread.sleep(1000);
+            } catch (Exception ex) {
+                System.out.println("Fehler bei der Visualisierung: " + ex.getMessage());
+            }
+        }
+    }
 }

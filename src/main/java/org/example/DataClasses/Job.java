@@ -25,6 +25,15 @@ public class Job {
         this.height = height;
     }
 
+    // Fügt einen passenden Konstruktor hinzu, der alle Felder setzt (für Visualizer-Klon)
+    public Job(int id, double x, double y, double width, double height) {
+        this.id = id;
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
+
     // Für die Endergebnisausgabe
     @Override
     public String toString() {

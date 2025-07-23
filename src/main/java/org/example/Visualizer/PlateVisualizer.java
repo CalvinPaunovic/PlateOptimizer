@@ -5,9 +5,8 @@ import java.awt.*;
 import java.util.List;
 
 import org.example.Main;
-import org.example.Algorithms.MaxRectBF;
-import org.example.Algorithms.MaxRectBF_Dynamic;
 import org.example.Algorithms.MaxRectBF_MultiPath;
+import org.example.Algorithms.MultiPlateMultiPath;
 import org.example.DataClasses.Job;
 import org.example.DataClasses.Plate;
 
@@ -29,11 +28,24 @@ public class PlateVisualizer extends JPanel {
         this.mode = mode;
         this.algorithm = algorithm;
         this.jobListInfo = jobListInfo;
-        int extraHeight;
+        int extraHeight = 240;
         if ("4".equals(mode)) {
             extraHeight = 280;
-        } else {
-            extraHeight = 240;
+        }
+        setPreferredSize(new Dimension((int)Math.round(plate.width) + 100, (int)Math.round(plate.height) + extraHeight + 80));
+    }
+
+    // Neuer Konstruktor für spezifische freie Rechtecke
+    public PlateVisualizer(Plate plate, String mode, Object algorithm, List<MaxRectBF_MultiPath.FreeRectangle> specificFreeRects, String jobListInfo, String customAlgorithmInfo) {
+        this.plate = plate;
+        this.mode = mode;
+        this.algorithm = algorithm;
+        this.specificFreeRects = specificFreeRects;
+        this.customAlgorithmInfo = customAlgorithmInfo;
+        this.jobListInfo = jobListInfo;
+        int extraHeight = 240;
+        if ("4".equals(mode)) {
+            extraHeight = 280;
         }
         setPreferredSize(new Dimension((int)Math.round(plate.width) + 100, (int)Math.round(plate.height) + extraHeight + 80));
     }
@@ -88,14 +100,8 @@ public class PlateVisualizer extends JPanel {
         }
 
         // === Freie Rechtecke ===
-        if ("2".equals(mode) && algorithm instanceof MaxRectBF) {
-            List<MaxRectBF.FreeRectangle> freeRects = ((MaxRectBF) algorithm).freeRects;
-            drawFreeRectangles(g2d, freeRects);
-        } else if ("3".equals(mode) && algorithm instanceof MaxRectBF_Dynamic) {
-            List<MaxRectBF_Dynamic.FreeRectangle> freeRects = ((MaxRectBF_Dynamic) algorithm).freeRects;
-            drawFreeRectangles(g2d, freeRects);
-        } else if (("4".equals(mode) || "5".equals(mode)) && (algorithm instanceof MaxRectBF_MultiPath || specificFreeRects != null)) {
-            // Für MultiPath und MultiPlateMultiPath: Mode 4 oder 5
+        // Nur MultiPath/MultiPlateMultiPath unterstützen
+        if (("4".equals(mode) || "5".equals(mode)) && (algorithm instanceof MaxRectBF_MultiPath || specificFreeRects != null)) {
             List<MaxRectBF_MultiPath.FreeRectangle> freeRects;
             if (specificFreeRects != null) {
                 freeRects = specificFreeRects;
@@ -145,7 +151,7 @@ public class PlateVisualizer extends JPanel {
         }
 
         // Spezielle Informationen für MultiPath-Algorithmus
-        if ("4".equals(mode) && customAlgorithmInfo != null) {
+        if (("4".equals(mode) || "5".equals(mode)) && customAlgorithmInfo != null) {
             g2d.drawString(customAlgorithmInfo, 10, textY + 125);
         }
     }
@@ -159,13 +165,8 @@ public class PlateVisualizer extends JPanel {
             Object rectObj = freeRects.get(i);
             double x, y, width, height;
 
-            if (rectObj instanceof MaxRectBF.FreeRectangle) {
-                MaxRectBF.FreeRectangle rect = (MaxRectBF.FreeRectangle) rectObj;
-                x = rect.x; y = rect.y; width = rect.width; height = rect.height;
-            } else if (rectObj instanceof MaxRectBF_Dynamic.FreeRectangle) {
-                MaxRectBF_Dynamic.FreeRectangle rect = (MaxRectBF_Dynamic.FreeRectangle) rectObj;
-                x = rect.x; y = rect.y; width = rect.width; height = rect.height;
-            } else if (rectObj instanceof MaxRectBF_MultiPath.FreeRectangle) {
+            // Nur noch MaxRectBF_MultiPath.FreeRectangle unterstützen
+            if (rectObj instanceof MaxRectBF_MultiPath.FreeRectangle) {
                 MaxRectBF_MultiPath.FreeRectangle rect = (MaxRectBF_MultiPath.FreeRectangle) rectObj;
                 x = rect.x; y = rect.y; width = rect.width; height = rect.height;
             } else {
@@ -207,6 +208,7 @@ public class PlateVisualizer extends JPanel {
     }
 
     // Hauptmethode für alle Visualizer-Varianten
+    // Wird jetzt auch für Zwischenschritt-Visualisierung aus MultiPlateMultiPath.visualizeSelectedPath genutzt
     public static void showPlateWithSpecificFreeRectsAndTitleAndInfo(
             Plate plate, String mode, List<MaxRectBF_MultiPath.FreeRectangle> specificFreeRects,
             String customTitle, String algorithmInfo, String jobListInfo) {
@@ -214,31 +216,21 @@ public class PlateVisualizer extends JPanel {
             @Override
             public void run() {
                 JFrame frame = new JFrame("Plate Visualizer - " + customTitle);
-                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-                // Erstelle PlateVisualizer - für showPlate() brauchen wir einen gültigen Algorithmus
                 Object algorithmToUse = null;
+                // Nur MultiPath/MultiPlateMultiPath unterstützen
                 if (specificFreeRects == null) {
-                    // Für normale showPlate-Aufrufe - verwende Dummy-Algorithmus für Visualisierung
-                    if ("2".equals(mode)) {
-                        algorithmToUse = new MaxRectBF(plate, false);
-                    } else if ("3".equals(mode)) {
-                        algorithmToUse = new MaxRectBF_Dynamic(plate);
-                    } else if ("4".equals(mode)) {
+                    if ("4".equals(mode)) {
                         algorithmToUse = new MaxRectBF_MultiPath(plate);
                     }
                 }
 
-                PlateVisualizer visualizer = new PlateVisualizer(plate, mode, algorithmToUse, jobListInfo);
-                visualizer.specificFreeRects = specificFreeRects;
-                visualizer.customAlgorithmInfo = algorithmInfo;
+                PlateVisualizer visualizer = new PlateVisualizer(plate, mode, algorithmToUse, specificFreeRects, jobListInfo, algorithmInfo);
 
-                // Stelle sicher, dass das Panel groß genug ist für alle Informationen
-                int extraHeight;
+                int extraHeight = 240;
                 if ("4".equals(mode) && algorithmInfo != null) {
                     extraHeight = 280;
-                } else {
-                    extraHeight = 240;
                 }
                 visualizer.setPreferredSize(new Dimension((int)Math.round(plate.width) + 100, (int)Math.round(plate.height) + extraHeight + 80));
 
@@ -248,5 +240,45 @@ public class PlateVisualizer extends JPanel {
                 frame.setVisible(true);
             }
         });
+    }
+
+    // --- NEU: MultiPlateMultiPath-Visualisierung (Fusion mit MultiPlateMultiPathVisualizer) ---
+
+    /**
+     * Visualisiert nur Pfad 1 jeder Platte und gibt die wichtigsten Kennzahlen auf der Konsole aus.
+     */
+    public static void showBenchmarkResults(MultiPlateMultiPath algo, String jobListInfo) {
+        List<Plate> plates = algo.getPlates();
+        int plateCount = plates.size();
+
+        int pathIndex = org.example.Main.DEBUG_MultiPlateMultiPath_PathIndex;
+
+        for (int i = 0; i < plateCount; i++) {
+            MaxRectBF_MultiPath multiPathAlgo = algo.getMultiPathAlgorithms().get(i);
+            List<MaxRectBF_MultiPath.AlgorithmPath> paths = multiPathAlgo.getAllPaths();
+
+            if (paths.size() > pathIndex) {
+                MaxRectBF_MultiPath.AlgorithmPath path = paths.get(pathIndex); // Visualisiere den ausgewählten Pfad jeder Platte
+                String strategyCode = multiPathAlgo.getStrategyCodeForPath(path);
+                String title;
+                // Strategiecode für jede Platte anzeigen, nicht nur für Platte 1
+                if (strategyCode != null && !strategyCode.isEmpty()) {
+                    title = plates.get(i).name + " | Pfad: " + path.pathDescription + " [" + strategyCode + "]";
+                } else {
+                    title = plates.get(i).name + " | Pfad: " + path.pathDescription;
+                }
+                showPlateWithSpecificFreeRectsAndTitleAndInfo(
+                    path.plate, "5", path.freeRects, title, null, jobListInfo
+                );
+                double coverage = calculateCoverageRate(path.plate);
+                System.out.printf("Platte %d, Pfad %s: Deckungsrate: %.2f%%, Platzierte Jobs: %d\n",
+                    (i + 1), path.pathDescription, coverage, path.plate.jobs.size());
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
     }
 }

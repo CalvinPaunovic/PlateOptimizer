@@ -68,6 +68,14 @@ public class JobListProvider {
         // Deckungsrate: 530728 / 625950 ≈ 84.79%
         // Kleinster Job Fläche: 31365 (Job 3 und 6), Größter Job Fläche: 192960 (Job 0)
         // Kleinste Kante: 153 (Job 3 und 6), Größte Kante: 573 (Job 2)
+        // Nach Fläche sortiert (absteigend):
+        // 0: 402*480 = 192960
+        // 2: 220*573 = 126060
+        // 1: 305*222 = 67610
+        // 4: 243*188 = 45684
+        // 5: 243*188 = 45684
+        // 3: 205*153 = 31365
+        // 6: 205*153 = 31365
         return new NamedJobList("Standardliste", Arrays.asList(
             new Job(0, 402, 480),
             new Job(1, 305, 222),

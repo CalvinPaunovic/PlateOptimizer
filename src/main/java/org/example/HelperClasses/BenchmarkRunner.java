@@ -1,8 +1,6 @@
 package org.example.HelperClasses;
 
 import org.example.Main;
-import org.example.Algorithms.MaxRectBF;
-import org.example.Algorithms.MaxRectBF_Dynamic;
 import org.example.Algorithms.MaxRectBF_MultiPath;
 import org.example.DataClasses.Job;
 import org.example.DataClasses.Plate;
@@ -14,55 +12,6 @@ import java.util.*;
 import java.util.function.Consumer;
 
 public class BenchmarkRunner {
-
-    /**
-     * Führt den First-Fit-Algorithmus auf einer Platte aus und gibt das Ergebnis zurück.
-     */
-    public static BenchmarkVisualizer.BenchmarkResult benchmarkFirstFit(List<Job> originalJobs, PlateProvider.NamedPlate plateInfo) {
-        List<Job> jobs = JobUtils.createJobCopies(originalJobs);
-        if (Main.sortJobs) JobUtils.sortJobsBySizeDescending(jobs);
-        Plate plate = new Plate("First Fit", plateInfo.width, plateInfo.height);
-        for (Job job : jobs) {
-            plate.placeJobFFShelf(job);
-        }
-        int placedJobs = countPlacedJobs(jobs);
-        double coverageRate = PlateVisualizer.calculateCoverageRate(plate);
-        return new BenchmarkVisualizer.BenchmarkResult("First Fit", plate, null, placedJobs, coverageRate, originalJobs.size());
-    }
-
-    /**
-     * Führt den MaxRectBF-Algorithmus (wahlweise FullHeight oder FullWidth) auf einer Platte aus.
-     */
-    public static BenchmarkVisualizer.BenchmarkResult benchmarkMaxRectBF(List<Job> originalJobs, boolean useFullHeight,
-        Consumer<List<Job>> sortingMethod, String algorithmName, PlateProvider.NamedPlate plateInfo) {
-        List<Job> jobs = JobUtils.createJobCopies(originalJobs);
-        if (Main.sortJobs) sortingMethod.accept(jobs);
-        Plate plate = new Plate(algorithmName, plateInfo.width, plateInfo.height);
-        MaxRectBF algorithm = new MaxRectBF(plate, useFullHeight);
-        for (Job job : jobs) {
-            algorithm.placeJob(job);
-        }
-        int placedJobs = countPlacedJobs(jobs);
-        double coverageRate = PlateVisualizer.calculateCoverageRate(plate);
-        return new BenchmarkVisualizer.BenchmarkResult(algorithmName, plate, algorithm, placedJobs, coverageRate, originalJobs.size());
-    }
-
-    /**
-     * Führt den MaxRectBF_Dynamic-Algorithmus auf einer Platte aus.
-     */
-    public static BenchmarkVisualizer.BenchmarkResult benchmarkMaxRectBF_Dynamic(List<Job> originalJobs,
-        Consumer<List<Job>> sortingMethod, String algorithmName, PlateProvider.NamedPlate plateInfo) {
-        List<Job> jobs = JobUtils.createJobCopies(originalJobs);
-        if (Main.sortJobs) sortingMethod.accept(jobs);
-        Plate plate = new Plate(algorithmName, plateInfo.width, plateInfo.height);
-        MaxRectBF_Dynamic algorithm = new MaxRectBF_Dynamic(plate);
-        for (Job job : jobs) {
-            algorithm.placeJob(job);
-        }
-        int placedJobs = countPlacedJobs(jobs);
-        double coverageRate = PlateVisualizer.calculateCoverageRate(plate);
-        return new BenchmarkVisualizer.BenchmarkResult(algorithmName, plate, algorithm, placedJobs, coverageRate, originalJobs.size());
-    }
 
     /**
      * Führt den MaxRectBF_MultiPath-Algorithmus aus und gibt für alle aktiven Pfade die Ergebnisse zurück.
@@ -251,5 +200,20 @@ public class BenchmarkRunner {
                 Thread.currentThread().interrupt();
             }
         }
+    }
+
+    /**
+     * Führt den MultiPlateMultiPath-Algorithmus aus und gibt für alle Pfade (über alle Platten) die Ergebnisse zurück.
+     */
+    public static List<org.example.Visualizer.MultiPlateMultiPathBenchmarkVisualizer.MultiPlatePathResult> runMultiPlateMultiPathAndCollectResults(
+        List<Job> originalJobs,
+        List<org.example.Provider.PlateProvider.NamedPlate> plateInfos
+    ) {
+        // Erzeuge Instanz ohne Platzierung im Konstruktor
+        org.example.Algorithms.MultiPlateMultiPath multiPlateAlgo = new org.example.Algorithms.MultiPlateMultiPath();
+        // Führe Platzierung explizit aus
+        multiPlateAlgo.placeJobsOnPlates(plateInfos, originalJobs, null);
+        int totalJobs = originalJobs.size();
+        return org.example.Visualizer.MultiPlateMultiPathBenchmarkVisualizer.collectResults(multiPlateAlgo, totalJobs);
     }
 }
