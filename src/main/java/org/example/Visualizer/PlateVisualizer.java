@@ -251,7 +251,7 @@ public class PlateVisualizer extends JPanel {
         List<Plate> plates = algo.getPlates();
         int plateCount = plates.size();
 
-        int pathIndex = org.example.Main.DEBUG_MultiPlateMultiPath_PathIndex;
+        int pathIndex = 1; // Fester Pfadindex für die Visualisierung
 
         for (int i = 0; i < plateCount; i++) {
             MaxRectBF_MultiPath multiPathAlgo = algo.getMultiPathAlgorithms().get(i);

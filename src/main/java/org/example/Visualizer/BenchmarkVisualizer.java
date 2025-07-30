@@ -87,11 +87,11 @@ public class BenchmarkVisualizer extends JFrame {
     
     private JPanel createHeaderPanel() {
         JPanel panel = new JPanel();
-        panel.setBackground(new Color(70, 130, 180));
+        panel.setBackground(new Color(54, 103, 53)); // RAL 6001
         panel.setPreferredSize(new Dimension(0, 80));
         panel.setLayout(new BorderLayout());
         
-        JLabel titleLabel = new JLabel("BENCHMARK ERGEBNISSE", JLabel.CENTER);
+        JLabel titleLabel = new JLabel("CudiPaq PlateOptimizer", JLabel.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setForeground(Color.WHITE);
         

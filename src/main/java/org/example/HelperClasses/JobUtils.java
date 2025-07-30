@@ -6,6 +6,8 @@ import org.example.Main;
 import org.example.DataClasses.Job;
 
 public class JobUtils {
+
+    
     public static void sortJobsBySizeDescending(List<Job> jobs) {
         jobs.sort((j1, j2) -> Double.compare(j2.width * j2.height, j1.width * j1.height));
         if (Main.DEBUG) {
