@@ -91,7 +91,7 @@ public class BenchmarkVisualizer extends JFrame {
         panel.setPreferredSize(new Dimension(0, 80));
         panel.setLayout(new BorderLayout());
         
-        JLabel titleLabel = new JLabel("CudiPaq PlateOptimizer", JLabel.CENTER);
+        JLabel titleLabel = new JLabel("CodiPaq PlateOptimizer", JLabel.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setForeground(Color.WHITE);
         
@@ -261,22 +261,10 @@ public class BenchmarkVisualizer extends JFrame {
         visualizeSelectedButton.setPreferredSize(new Dimension(180, 40));
         visualizeSelectedButton.addActionListener(e -> visualizeSelectedSolution());
         
-        JButton exportButton = new JButton("💾 Ergebnisse exportieren");
-        exportButton.setPreferredSize(new Dimension(180, 40));
-        exportButton.addActionListener(e -> exportResults());
-        
-        JButton refreshButton = new JButton("🔄 Aktualisieren");
-        refreshButton.setPreferredSize(new Dimension(180, 40));
-        refreshButton.addActionListener(e -> refreshView());
-        
         panel.add(Box.createVerticalStrut(10));
         panel.add(visualizeBestButton);
         panel.add(Box.createVerticalStrut(10));
         panel.add(visualizeSelectedButton);
-        panel.add(Box.createVerticalStrut(10));
-        panel.add(exportButton);
-        panel.add(Box.createVerticalStrut(10));
-        panel.add(refreshButton);
         panel.add(Box.createVerticalGlue());
         
         return panel;
@@ -309,6 +297,9 @@ public class BenchmarkVisualizer extends JFrame {
     }
     
     private void showPlateVisualization(BenchmarkResult result) {
+        // Print job coordinates before visualization
+        printJobCoordinates(result.plate);
+
         String mode;
         if (result.algorithmName.contains("First Fit")) {
             mode = "1";
@@ -414,31 +405,14 @@ public class BenchmarkVisualizer extends JFrame {
         }
     }
     
-    private void exportResults() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("BENCHMARK ERGEBNISSE\n");
-        sb.append("===================\n\n");
-        
-        for (int i = 0; i < results.size(); i++) {
-            BenchmarkResult result = results.get(i);
-            sb.append(String.format("%d. %s\n", i + 1, result.algorithmName));
-            sb.append(String.format("   Platzierte Jobs: %d/%d\n", result.placedJobs, result.totalJobs));
-            sb.append(String.format("   Deckungsrate: %.2f%%\n\n", result.coverageRate));
+    // Helper method to print job coordinates
+    private void printJobCoordinates(org.example.DataClasses.Plate plate) {
+        System.out.println("Job-Koordinaten auf Platte '" + plate.name + "':");
+        for (org.example.DataClasses.Job job : plate.jobs) {
+            System.out.printf("Job %d: x=%.2f, y=%.2f, w=%.2f, h=%.2f, rotated=%s\n",
+                job.id, job.x, job.y, job.width, job.height, job.rotated ? "ja" : "nein");
         }
-        
-        JTextArea textArea = new JTextArea(sb.toString());
-        textArea.setEditable(false);
-        textArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        
-        JScrollPane scrollPane = new JScrollPane(textArea);
-        scrollPane.setPreferredSize(new Dimension(500, 400));
-        
-        JOptionPane.showMessageDialog(this, scrollPane, "Benchmark Ergebnisse - Export", JOptionPane.INFORMATION_MESSAGE);
-    }
-    
-    private void refreshView() {
-        // Hier könnte man die Benchmarks erneut ausführen
-        JOptionPane.showMessageDialog(this, "View aktualisiert!", "Aktualisierung", JOptionPane.INFORMATION_MESSAGE);
+        System.out.println();
     }
     
     public static void showBenchmarkResults(List<BenchmarkResult> results, String jobListInfo) {

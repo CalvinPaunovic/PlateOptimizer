@@ -11,7 +11,7 @@ import org.example.Visualizer.PlateVisualizer;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class BenchmarkRunner {
+public class MaxRectBF_MultiPath_Controller {
 
     /**
      * Führt den MaxRectBF_MultiPath-Algorithmus aus und gibt für alle aktiven Pfade die Ergebnisse zurück.
@@ -21,8 +21,8 @@ public class BenchmarkRunner {
         List<Job> originalJobs,
         Consumer<List<Job>> sortingMethod,
         String algorithmBaseName,
-        PlateProvider.NamedPlate plateInfo // <-- hinzugefügt
-    ) {
+        PlateProvider.NamedPlate plateInfo 
+        ) {
         List<Job> jobs = JobUtils.createJobCopies(originalJobs);
         if (Main.sortJobs) sortingMethod.accept(jobs);
         Plate plate = new Plate(algorithmBaseName, plateInfo.width, plateInfo.height); // <-- benutze übergebenes Plattenformat
@@ -89,7 +89,7 @@ public class BenchmarkRunner {
      * Führt den MultiPath-Algorithmus mit Visualisierung nach jedem Schritt aus.
      * Gibt für jeden nicht platzierten Job eine Konsolenmeldung mit Pfadangabe aus.
      */
-    public static void benchmarkMaxRectBF_MultiPathWithVisualization(List<Job> originalJobs, PlateProvider.NamedPlate plateInfo, boolean sortJobs) {
+    public static void run_MaxRectBF_MultiPath(List<Job> originalJobs, PlateProvider.NamedPlate plateInfo, boolean sortJobs) {
         System.out.println("\n=== MaxRectBF_MultiPath: Multi-Path Algorithmus ===\n");
         List<Job> jobs = JobUtils.createJobCopies(originalJobs);
         if (sortJobs) JobUtils.sortJobsBySizeDescending(jobs);
@@ -202,18 +202,4 @@ public class BenchmarkRunner {
         }
     }
 
-    /**
-     * Führt den MultiPlateMultiPath-Algorithmus aus und gibt für alle Pfade (über alle Platten) die Ergebnisse zurück.
-     */
-    public static List<org.example.Visualizer.MultiPlateMultiPathBenchmarkVisualizer.MultiPlatePathResult> runMultiPlateMultiPathAndCollectResults(
-        List<Job> originalJobs,
-        List<org.example.Provider.PlateProvider.NamedPlate> plateInfos
-    ) {
-        // Erzeuge Instanz ohne Platzierung im Konstruktor
-        org.example.Algorithms.MultiPlateMultiPath multiPlateAlgo = new org.example.Algorithms.MultiPlateMultiPath();
-        // Führe Platzierung explizit aus
-        multiPlateAlgo.placeJobsOnPlates(plateInfos, originalJobs, null);
-        int totalJobs = originalJobs.size();
-        return org.example.Visualizer.MultiPlateMultiPathBenchmarkVisualizer.collectResults(multiPlateAlgo, totalJobs);
-    }
 }

@@ -61,8 +61,8 @@ public class MultiPlateMultiPath {
             }
             // Für die nächste Platte: nur die failedJobs des Visualize-Path-Index übernehmen
             List<Job> nextNotPlaced = new ArrayList<>();
-            if (algo.getAllPaths().size() > org.example.Main.VISUALIZE_PATH_INDEX) {
-                MaxRectBF_MultiPath.AlgorithmPath visualizePath = algo.getAllPaths().get(org.example.Main.VISUALIZE_PATH_INDEX);
+            if (algo.getAllPaths().size() > org.example.Main.Visualize_MultiPlateMultiPath_PathIndex) {
+                MaxRectBF_MultiPath.AlgorithmPath visualizePath = algo.getAllPaths().get(org.example.Main.Visualize_MultiPlateMultiPath_PathIndex);
                 for (Integer failedId : visualizePath.failedJobs) {
                     for (Job job : jobs) {
                         if (job.id == failedId) {
@@ -224,7 +224,7 @@ public class MultiPlateMultiPath {
         System.out.println("\n" + "=".repeat(80));
         System.out.println("GESAMT-UEBERSICHT FÜR " + plate.name);
         System.out.println("=".repeat(80));
-        int visualizeIdx = org.example.Main.VISUALIZE_PATH_INDEX;
+        int visualizeIdx = org.example.Main.Visualize_MultiPlateMultiPath_PathIndex;
         List<MaxRectBF_MultiPath.AlgorithmPath> paths = algo.getAllPaths();
         if (paths.size() > visualizeIdx) {
             MaxRectBF_MultiPath.AlgorithmPath path = paths.get(visualizeIdx);
