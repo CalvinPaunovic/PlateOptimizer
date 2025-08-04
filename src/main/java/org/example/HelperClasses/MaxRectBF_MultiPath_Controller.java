@@ -4,7 +4,6 @@ import org.example.Main;
 import org.example.Algorithms.MaxRectBF_MultiPath;
 import org.example.DataClasses.Job;
 import org.example.DataClasses.Plate;
-import org.example.Provider.PlateProvider;
 import org.example.Visualizer.BenchmarkVisualizer;
 import org.example.Visualizer.PlateVisualizer;
 
@@ -21,11 +20,11 @@ public class MaxRectBF_MultiPath_Controller {
         List<Job> originalJobs,
         Consumer<List<Job>> sortingMethod,
         String algorithmBaseName,
-        PlateProvider.NamedPlate plateInfo 
+        Plate plateInfo // <-- Typ geändert
         ) {
         List<Job> jobs = JobUtils.createJobCopies(originalJobs);
         if (Main.sortJobs) sortingMethod.accept(jobs);
-        Plate plate = new Plate(algorithmBaseName, plateInfo.width, plateInfo.height); // <-- benutze übergebenes Plattenformat
+        Plate plate = new Plate(algorithmBaseName, plateInfo.width, plateInfo.height, plateInfo.plateId);
         MaxRectBF_MultiPath algorithm = new MaxRectBF_MultiPath(plate);
         // Füge die Platzierungsschleife hinzu!
         for (Job job : jobs) {
@@ -89,11 +88,11 @@ public class MaxRectBF_MultiPath_Controller {
      * Führt den MultiPath-Algorithmus mit Visualisierung nach jedem Schritt aus.
      * Gibt für jeden nicht platzierten Job eine Konsolenmeldung mit Pfadangabe aus.
      */
-    public static void run_MaxRectBF_MultiPath(List<Job> originalJobs, PlateProvider.NamedPlate plateInfo, boolean sortJobs) {
+    public static void run_MaxRectBF_MultiPath(List<Job> originalJobs, Plate plateInfo, boolean sortJobs) {
         System.out.println("\n=== MaxRectBF_MultiPath: Multi-Path Algorithmus ===\n");
         List<Job> jobs = JobUtils.createJobCopies(originalJobs);
         if (sortJobs) JobUtils.sortJobsBySizeDescending(jobs);
-        Plate plate = new Plate("MaxRectBF Multi-Path", plateInfo.width, plateInfo.height);
+        Plate plate = new Plate("MaxRectBF Multi-Path", plateInfo.width, plateInfo.height, plateInfo.plateId);
         MaxRectBF_MultiPath algorithm = new MaxRectBF_MultiPath(plate);
 
         // === HAUPT-PLATZIERUNGS-SCHLEIFE ===
@@ -101,7 +100,6 @@ public class MaxRectBF_MultiPath_Controller {
             Job job = jobs.get(i);
             boolean placed = algorithm.placeJob(job);
             if (!placed) {
-                // Schreibe immer in die Konsole, in welchen Pfaden der Job nicht platziert werden konnte
                 List<MaxRectBF_MultiPath.AlgorithmPath> paths = algorithm.getAllPaths();
                 StringBuilder pfadInfo = new StringBuilder();
                 for (MaxRectBF_MultiPath.AlgorithmPath path : paths) {

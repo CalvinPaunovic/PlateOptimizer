@@ -7,8 +7,6 @@ import org.example.HelperClasses.JobUtils;
 import org.example.HelperClasses.MaxRectBF_MultiPath_Controller;
 import org.example.HelperClasses.MaxRectBF_MultiPlate_Controller;
 import org.example.Provider.JobListProvider;
-import org.example.Provider.PlateProvider;
-import org.example.Visualizer.BenchmarkVisualizer;
 
 
 public class Main {
@@ -31,7 +29,7 @@ public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         // Plattenauswahl: Standard, Groß oder zwei Standardplatten
-        List<PlateProvider.NamedPlate> plates;
+        List<org.example.DataClasses.Plate> plates; // <-- Typ geändert
         System.out.println("Plattenmodus wählen:");
         System.out.println("1 = Standardplatte");
         System.out.println("2 = Großplatte");
@@ -40,20 +38,19 @@ public class Main {
         String plateModeInput = scanner.nextLine().trim();
         switch (plateModeInput) {
             case "2":
-                plates = Arrays.asList(PlateProvider.getLargePlate());
+                plates = Arrays.asList(org.example.Provider.PlateProvider.getLargePlate());
                 break;
             case "3":
-                plates = PlateProvider.getTwoStandardPlates();
+                plates = org.example.Provider.PlateProvider.getTwoStandardPlates();
                 break;
             default:
-                plates = Arrays.asList(PlateProvider.getStandardPlate());
+                plates = Arrays.asList(org.example.Provider.PlateProvider.getStandardPlate());
                 break;
         }
 
         JobListProvider.NamedJobList selection = getUserJobListChoiceWithScanner(scanner);
         List<Job> originalJobs = selection.jobs;
         String jobListInfo = selection.name;
-        // Füge die Variable currentJobListInfo hinzu, falls sie fehlt
         String mode = getUserAlgorithmChoice(scanner);
 
         runMode(originalJobs, mode, jobListInfo, plates);
@@ -102,7 +99,7 @@ public class Main {
     /**
      * Führt das gewählte Platzierungsverfahren aus.
      */
-    private static void runMode(List<Job> originalJobs, String mode, String jobListInfo, List<PlateProvider.NamedPlate> plates) {
+    private static void runMode(List<Job> originalJobs, String mode, String jobListInfo, List<org.example.DataClasses.Plate> plates) {
         // MaxRectsBF_MultiPath Benchmark
         if ("0".equals(mode)) {  
             runBenchmark(originalJobs, jobListInfo, plates.get(0));
@@ -114,14 +111,14 @@ public class Main {
             MultiPlateMultiPath(originalJobs, plates.get(0), plates);
         // MaxRectBF_MultiPlate (work in progress, nur nach Size sortiert, nur mit mindestens zwei Platten)
         } else if ("7".equals(mode)) {
-            MaxRectBF_MultiPlate_Controller.run_MaxRectBF_MultiPlater(originalJobs, plates, sortJobs); // Plattenliste übergeben
+            MaxRectBF_MultiPlate_Controller.run_MaxRectBF_MultiPlate(originalJobs, plates, sortJobs); // Plattenliste übergeben
         }
     }
 
     /**
-     * Führt den MaxRectBF_MultiPath Multi-Path Algorithmus für eine oder mehrere Platten aus.
+     * Führt den MaxRectBF_MultiPath Algorithmus für eine oder mehrere Platten aus.
      */
-    private static void MultiPlateMultiPath(List<Job> originalJobs, PlateProvider.NamedPlate selectedPlate, List<PlateProvider.NamedPlate> selectedPlates) {
+    private static void MultiPlateMultiPath(List<Job> originalJobs, org.example.DataClasses.Plate selectedPlate, List<org.example.DataClasses.Plate> selectedPlates) {
         System.out.println("\n=== MaxRectBF_MultiPath ===\n");
         org.example.Algorithms.MultiPlateMultiPath multiplatemultipath = new org.example.Algorithms.MultiPlateMultiPath();
         List<Job> jobs = JobUtils.createJobCopies(originalJobs);
@@ -136,19 +133,17 @@ public class Main {
     /**
      * Führt den Benchmark für die aktuelle Jobliste aus.
      */
-    private static void runBenchmark(List<Job> originalJobs, String jobListInfo, PlateProvider.NamedPlate plateInfo) {
+    private static void runBenchmark(List<Job> originalJobs, String jobListInfo, org.example.DataClasses.Plate plateInfo) {
         System.out.println("=== BENCHMARK ===");
         System.out.println("Jobliste: " + jobListInfo);
-        List<BenchmarkVisualizer.BenchmarkResult> results = new ArrayList<>();
-        // Entfernt: results.add(BenchmarkRunner.benchmarkFirstFit(originalJobs));
+        List<org.example.Visualizer.BenchmarkVisualizer.BenchmarkResult> results = new ArrayList<>();
         results.addAll(MaxRectBF_MultiPath_Controller.benchmarkMaxRectBF_MultiPath_AllPaths(
             originalJobs, JobUtils::sortJobsBySizeDescending, "MultiPath (nach Fläche)", plateInfo));
         results.addAll(MaxRectBF_MultiPath_Controller.benchmarkMaxRectBF_MultiPath_AllPaths(
             originalJobs, JobUtils::sortJobsByLargestEdgeDescending, "MultiPath (nach Kante)", plateInfo));
-        // Sortiere nach Deckungsrate absteigend
         results.sort((a, b) -> Double.compare(b.coverageRate, a.coverageRate));
         System.out.printf("Benchmark abgeschlossen für Jobliste: %s (%d Jobs)\n", jobListInfo, originalJobs.size());
-        BenchmarkVisualizer.showBenchmarkResults(results, jobListInfo);
+        org.example.Visualizer.BenchmarkVisualizer.showBenchmarkResults(results, jobListInfo);
     }
 
 

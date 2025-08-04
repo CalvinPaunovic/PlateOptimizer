@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.example.DataClasses.Job;
 import org.example.DataClasses.Plate;
-import org.example.Provider.PlateProvider;
 
 /**
  * MultiPlateMultiPath ist eine Klasse, die mehrere Platten (Plates) verwaltet
@@ -30,12 +29,12 @@ public class MultiPlateMultiPath {
     }
 
     // Ausgelagerte Methode für die eigentliche Platzierungslogik
-    public void placeJobsOnPlates(List<PlateProvider.NamedPlate> plateInfos, List<Job> jobs, String jobListInfo) {
+    public void placeJobsOnPlates(List<Plate> plateInfos, List<Job> jobs, String jobListInfo) {
         this.plates.clear();
         this.multiPathAlgorithms.clear();
         List<Job> notPlaced = new ArrayList<>(jobs);
         for (int plateIdx = 0; plateIdx < plateInfos.size(); plateIdx++) {
-            PlateProvider.NamedPlate info = plateInfos.get(plateIdx);
+            Plate info = plateInfos.get(plateIdx);
             Plate plate = new Plate("Platte " + (plateIdx + 1) + ": " + info.name, info.width, info.height);
             plates.add(plate);
             org.example.HelperClasses.JobUtils.sortJobsBySizeDescending(notPlaced);
