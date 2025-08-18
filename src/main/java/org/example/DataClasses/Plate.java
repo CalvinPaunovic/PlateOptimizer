@@ -13,10 +13,12 @@ public class Plate {
     public List<Job> jobs = new ArrayList<>();
     public Integer parentPathIndex = null; // Index des Elternpfads (falls vorhanden), sonst null
 
+    // Konstruktor für SinglePlate
     public Plate(String name, double width, double height) {
         this(name, width, height, null);
     }
 
+    // Konstruktor für MultiPlate
     public Plate(String name, double width, double height, String plateId) {
         this.name = name;
         this.width = width;

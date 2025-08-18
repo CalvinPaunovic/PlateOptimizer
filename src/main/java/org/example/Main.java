@@ -4,13 +4,13 @@ import java.util.*;
 
 import org.example.DataClasses.Job;
 import org.example.HelperClasses.JobUtils;
-import org.example.HelperClasses.MaxRectBF_MultiPath_Controller;
-import org.example.HelperClasses.MaxRectBF_MultiPlate_Controller;
+import org.example.MultiPlate.MultiPlate_Controller;
 import org.example.Provider.JobListProvider;
+import org.example.SinglePlate.MaxRectBF_MultiPath_Controller;
 
 
 public class Main {
-    public static final boolean DEBUG = false;
+    public static final boolean DEBUG = true;
     public static final boolean DEBUG_MultiPath = true;
     public static final boolean DEBUG_MultiPlateMultiPath = true;
 
@@ -111,7 +111,7 @@ public class Main {
             MultiPlateMultiPath(originalJobs, plates.get(0), plates);
         // MaxRectBF_MultiPlate (work in progress, nur nach Size sortiert, nur mit mindestens zwei Platten)
         } else if ("7".equals(mode)) {
-            MaxRectBF_MultiPlate_Controller.run_MaxRectBF_MultiPlate(originalJobs, plates, sortJobs); // Plattenliste übergeben
+            MultiPlate_Controller.run_MaxRectBF_MultiPlate(originalJobs, plates, sortJobs); // Plattenliste übergeben
         }
     }
 
@@ -120,7 +120,7 @@ public class Main {
      */
     private static void MultiPlateMultiPath(List<Job> originalJobs, org.example.DataClasses.Plate selectedPlate, List<org.example.DataClasses.Plate> selectedPlates) {
         System.out.println("\n=== MaxRectBF_MultiPath ===\n");
-        org.example.Algorithms.MultiPlateMultiPath multiplatemultipath = new org.example.Algorithms.MultiPlateMultiPath();
+        org.example.SinglePlate.MultiPlateMultiPath multiplatemultipath = new org.example.SinglePlate.MultiPlateMultiPath();
         List<Job> jobs = JobUtils.createJobCopies(originalJobs);
         if (sortJobs) JobUtils.sortJobsBySizeDescending(jobs);
         String jobListInfo = selectedPlates.size() > 1 ? selectedPlate.name + " + weitere" : selectedPlate.name;

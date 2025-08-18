@@ -5,10 +5,10 @@ import java.awt.*;
 import java.util.List;
 
 import org.example.Main;
-import org.example.Algorithms.MaxRectBF_MultiPath;
-import org.example.Algorithms.MultiPlateMultiPath;
 import org.example.DataClasses.Job;
 import org.example.DataClasses.Plate;
+import org.example.SinglePlate.MaxRectBF_MultiPath;
+import org.example.SinglePlate.MultiPlateMultiPath;
 
 public class PlateVisualizer extends JPanel {
     Plate plate;

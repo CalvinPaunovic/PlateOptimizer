@@ -36,7 +36,6 @@ public class JobUtils {
 
     public static List<Job> createJobCopies(List<Job> originalJobs) {
         List<Job> copies = new ArrayList<>();
-        if (Main.DEBUG) System.out.println("Erstelle Jobs mit Schnittbreite von " + Main.KERF_WIDTH + "mm:");
         for (Job original : originalJobs) {
             double widthWithKerf = original.width + Main.KERF_WIDTH;
             double heightWithKerf = original.height + Main.KERF_WIDTH;
@@ -45,11 +44,6 @@ public class JobUtils {
             copy.originalWidth = original.width;
             copy.originalHeight = original.height;
             copies.add(copy);
-
-            if (Main.DEBUG) {
-                System.out.printf("  Job %d: %.2fx%.2f -> %.2fx%.2f (mit Schnittbreite)\n",
-                        original.id, original.width, original.height, widthWithKerf, heightWithKerf);
-            }
         }
         System.out.println();
         return copies;

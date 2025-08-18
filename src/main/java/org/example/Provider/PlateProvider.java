@@ -21,8 +21,8 @@ public class PlateProvider {
 
     public static List<Plate> getTwoStandardPlates() {
         return Arrays.asList(
-            new Plate("Standardplatte 1", 963.0, 650.0, "1"),
-            new Plate("Standardplatte 2", 963.0, 650.0, "2")
+            new Plate("Standardplatte 1 (963 x 650)", 963.0, 650.0, "1"),
+            new Plate("Standardplatte 2 (963 x 650)", 963.0, 650.0, "2")
         );
     }
 }

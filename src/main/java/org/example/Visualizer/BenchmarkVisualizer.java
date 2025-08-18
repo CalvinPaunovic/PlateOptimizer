@@ -4,8 +4,8 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
-import org.example.Algorithms.MaxRectBF_MultiPath;
 import org.example.DataClasses.Plate;
+import org.example.SinglePlate.MaxRectBF_MultiPath;
 
 import java.awt.*;
 import java.util.List;

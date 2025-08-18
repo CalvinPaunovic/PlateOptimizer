@@ -1,9 +1,9 @@
-package org.example.HelperClasses;
+package org.example.SinglePlate;
 
 import org.example.Main;
-import org.example.Algorithms.MaxRectBF_MultiPath;
 import org.example.DataClasses.Job;
 import org.example.DataClasses.Plate;
+import org.example.HelperClasses.JobUtils;
 import org.example.Visualizer.BenchmarkVisualizer;
 import org.example.Visualizer.PlateVisualizer;
 
