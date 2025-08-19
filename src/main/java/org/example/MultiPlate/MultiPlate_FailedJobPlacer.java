@@ -7,17 +7,14 @@ import org.example.DataClasses.Plate;
 
 import java.util.List;
 
-
-
 public class MultiPlate_FailedJobPlacer {
-    
     boolean debugEnabled = true;
 
     private MultiPlate_DataClasses currentPath;
     private Plate newPlate;
     private List<MultiPlate_DataClasses.FreeRectangle> freeRects;
     private List<Job> failedJobsForPath;
-    
+
     public MultiPlate_FailedJobPlacer(MultiPlate_DataClasses currentPath, Plate newPlate, String pathId, List<Job> failedJobsForPath) {
         this.currentPath = currentPath;
         this.newPlate = newPlate;
@@ -30,49 +27,71 @@ public class MultiPlate_FailedJobPlacer {
         System.out.println("Platte-ID: '" + currentPath.plate.name + ", Anzahl bereits platzierte Jobs: " + currentPath.plate.jobs.size());
         System.out.println("Neue Platte-ID: '" + newPlate.name + "', noch zu platzierende Jobs:");
         for (Job job : failedJobsForPath) {
-            System.out.println("  Job-ID: " + job.id + 
-                             ", Breite: " + job.width + 
-                             ", Höhe: " + job.height);
+            System.out.println("  Job-ID: " + job.id + ", Breite: " + job.width + ", Höhe: " + job.height);
         }
         System.out.println("  Anzahl bereits platzierte Jobs: " + newPlate.jobs.size());
     }
 
-    
-    
     public void placeAllFailedJobs() {
-        System.out.println("\n=== FailedJobPlacer: Platzierungsversuch ===");
+        System.out.println("\n=== FailedJobPlacer: Platzierungsversuch (nur newPlate) ===");
         System.out.println("Pfad: " + currentPath.pathId);
-        System.out.println("Platte: " + newPlate.name);
+        System.out.println("Neue Platte: " + newPlate.name);
+
+        if (failedJobsForPath.isEmpty()) {
+            if (debugEnabled) System.out.println("[FJP] Keine Jobs zum Platzieren.");
+            return;
+        }
 
         MultiPlate_Algorithm algorithm = new MultiPlate_Algorithm();
-
-        // Ersten Job aus der Liste der fehlgeschlagenen Jobs nehmen
-        Job firstJob = failedJobsForPath.get(0);
-        
-        // Ergebnisobjekt für die beste Platzierung
-        MultiPlate_DataClasses.BestFitResult result = new MultiPlate_DataClasses.BestFitResult();
-        
-        // Suche das beste freie Rechteck für diesen Job (ggf. auch rotiert)
-        for (int j = 0; j < currentPath.freeRects.size(); j++) {
-            MultiPlate_DataClasses.FreeRectangle rect = currentPath.freeRects.get(j);
-            algorithm.testAndUpdateBestFit(firstJob.width, firstJob.height, rect, false, result);
-            if (Main.rotateJobs) algorithm.testAndUpdateBestFit(firstJob.height, firstJob.width, rect, true, result);
+        MultiPlate_DataClasses.Strategy tempStrategy = currentPath.strategy; // gleiche Strategie wie aktueller Pfad
+        MultiPlate_DataClasses tempPath = new MultiPlate_DataClasses(this.newPlate, "NP-" + currentPath.pathId, tempStrategy, currentPath.totalPathCount + 1);
+        tempPath.freeRects.clear();
+        for (MultiPlate_DataClasses.FreeRectangle fr : freeRects) {
+            tempPath.freeRects.add(new MultiPlate_DataClasses.FreeRectangle(fr.x, fr.y, fr.width, fr.height));
         }
 
-        // Falls kein Platz gefunden wurden, dann neuen Pfad erzeugen
-        if (result.bestRect == null) {
-            if (debugEnabled) System.out.println(currentPath.pathDescription + ": Job " + firstJob.id + " konnte NICHT platziert werden.");
+        String splittingMethod = tempStrategy == MultiPlate_DataClasses.Strategy.FULL_HEIGHT ? "FullHeight" : "FullWidth";
+        int placedCount = 0;
+        int failedCount = 0;
 
-            // Markiere den Job als "failed" für diesen Pfad
-            currentPath.failedJobs.add(firstJob.id);
+        if (debugEnabled) System.out.println("[FJP] Starte Sequenzplatzierung für " + failedJobsForPath.size() + " Jobs auf neuer Platte");
 
-            // Bestimme die alternative Strategie (FullWidth oder FullHeight)
-            MultiPlate_DataClasses.Strategy newStrategy = currentPath.strategy == MultiPlate_DataClasses.Strategy.FULL_HEIGHT ? MultiPlate_DataClasses.Strategy.FULL_WIDTH : MultiPlate_DataClasses.Strategy.FULL_HEIGHT;
+        for (int jobIndex = 0; jobIndex < failedJobsForPath.size(); jobIndex++) {
+            Job currentJob = failedJobsForPath.get(jobIndex);
+            if (debugEnabled) {
+                System.out.println("[FJP] Job#" + jobIndex + " ID=" + currentJob.id + " (w=" + currentJob.width + ", h=" + currentJob.height + ") - vorhandene freie Rechtecke=" + tempPath.freeRects.size());
+                for (int i = 0; i < tempPath.freeRects.size(); i++) {
+                    MultiPlate_DataClasses.FreeRectangle fr = tempPath.freeRects.get(i);
+                    System.out.println("[FJP]   FR#" + i + " x=" + fr.x + " y=" + fr.y + " w=" + fr.width + " h=" + fr.height);
+                }
+            }
 
-            // TODO: mach eine neue Variable in beiden Konstruktoren von MultiPlate_DataClasses.
-            // Jedes Pfad-Objekt, soll wissen, was die aktuelle Gesamtanzahl der Pfade ist, damit ich das hier einfach inkrementieren kann.
-            // Ändere dazu auch die MultiPlate_Algorithm-Klasse, wenn ein neuer Pfad erzeugt wird, dann inkrementiere diese Anzahl einfach.
+            MultiPlate_DataClasses.BestFitResult result = new MultiPlate_DataClasses.BestFitResult();
+            for (int j = 0; j < tempPath.freeRects.size(); j++) {
+                MultiPlate_DataClasses.FreeRectangle rect = tempPath.freeRects.get(j);
+                algorithm.testAndUpdateBestFit(currentJob.width, currentJob.height, rect, false, result);
+                if (Main.rotateJobs) algorithm.testAndUpdateBestFit(currentJob.height, currentJob.width, rect, true, result);
+            }
 
+            if (result.bestRect == null) {
+                failedCount++;
+                currentPath.failedJobs.add(currentJob.id);
+                if (debugEnabled) System.out.println("[FJP] -> Kein Platz gefunden für Job " + currentJob.id + " (bleibt failed)");
+                continue;
+            }
+
+            algorithm.placeJobInPath(currentJob, result, tempPath, splittingMethod);
+            placedCount++;
+            if (debugEnabled) {
+                System.out.println("[FJP] -> Platziert: Job " + currentJob.id + " an (" + currentJob.x + "," + currentJob.y + ") size=" + currentJob.width + "x" + currentJob.height + (currentJob.rotated ? " (rotated)" : ""));
+                System.out.println("[FJP]    Neue freie Rechtecke=" + tempPath.freeRects.size());
+            }
         }
+
+        // Lokale freeRects Spiegel aktualisieren
+        freeRects.clear();
+        for (MultiPlate_DataClasses.FreeRectangle fr : tempPath.freeRects) freeRects.add(new MultiPlate_DataClasses.FreeRectangle(fr.x, fr.y, fr.width, fr.height));
+
+        System.out.println("[FJP] SUMMARY placed=" + placedCount + " failed=" + failedCount + " total=" + failedJobsForPath.size() + " strategy=" + splittingMethod);
     }
 }

@@ -83,7 +83,8 @@ public class JobListProvider {
             new Job(3, 205, 153),
             new Job(4, 243, 188),
             new Job(5, 243, 188),
-            new Job(6, 205, 153)
+            new Job(6, 205, 153),
+            new Job(7, 205, 153) // NEU
         ));
     }
 

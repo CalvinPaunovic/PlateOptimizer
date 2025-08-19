@@ -13,6 +13,7 @@ public class MultiPlate_Algorithm {
     List<MultiPlate_DataClasses> paths;
     Plate originalPlate;
     boolean debugEnabled = false;
+    private int pathCounter = 0;
 
     public MultiPlate_Algorithm() {
 
@@ -26,15 +27,29 @@ public class MultiPlate_Algorithm {
             this.originalPlate.name = firstPlate.name;
             this.originalPlate.parentPathIndex = 1;
 
-            MultiPlate_DataClasses fullWidthPath = new MultiPlate_DataClasses(this.originalPlate, "1", MultiPlate_DataClasses.Strategy.FULL_WIDTH);
+            pathCounter++; // 1
+            MultiPlate_DataClasses fullWidthPath = new MultiPlate_DataClasses(this.originalPlate, String.valueOf(pathCounter), MultiPlate_DataClasses.Strategy.FULL_WIDTH, pathCounter);
             fullWidthPath.plate.name = firstPlate.name;
             fullWidthPath.plateId = firstPlate.plateId;
             paths.add(fullWidthPath);
 
-            MultiPlate_DataClasses fullHeightPath = new MultiPlate_DataClasses(this.originalPlate, "2", MultiPlate_DataClasses.Strategy.FULL_HEIGHT);
+            pathCounter++; // 2
+            MultiPlate_DataClasses fullHeightPath = new MultiPlate_DataClasses(this.originalPlate, String.valueOf(pathCounter), MultiPlate_DataClasses.Strategy.FULL_HEIGHT, pathCounter);
             fullHeightPath.plate.name = firstPlate.name;
             fullHeightPath.plateId = firstPlate.plateId;
             paths.add(fullHeightPath);
+
+            // Beide initialen Pfade auf aktuellen Gesamtzähler synchronisieren
+            syncTotalPathCount();
+        }
+    }
+
+    private void syncTotalPathCount() {
+        if (paths != null) {
+            for (int i = 0; i < paths.size(); i++) {
+                MultiPlate_DataClasses p = paths.get(i);
+                p.totalPathCount = pathCounter;
+            }
         }
     }
 
@@ -46,9 +61,10 @@ public class MultiPlate_Algorithm {
      */
     // Wird pro Job aufgerufen
     public boolean placeJob(Job originalJob, String plateId) {
-        // Liste für neue alternative Pfade
+        // Liste für neue Kinderpfade
         List<MultiPlate_DataClasses> newPaths = new ArrayList<>();
-        // Flag, ob der Job irgendwo platziert werden konnte
+
+        // Flag, ob der Job im aktuellen Pfad oder einem neu erstellten Kindpfad platziert werden konnte
         boolean anySuccess = false;
 
         // Debug-Ausgabe: Start des Platzierungsversuchs
@@ -64,45 +80,41 @@ public class MultiPlate_Algorithm {
 
             // Debug-Ausgabe: Pfad-Info
             if (debugEnabled) {
-                System.out.println("\n--- [Pfad " + (pathIndex+1) + ": " + currentPath.pathDescription + "] ---");
+                System.out.println("\n--- [Pfad " + (pathIndex+1) + ": " + currentPath.pathId + "] ---");
                 System.out.println("Strategie: " + (currentPath.strategy == MultiPlate_DataClasses.Strategy.FULL_HEIGHT ? "FullHeight" : "FullWidth"));
                 System.out.println("Freie Rechtecke: " + currentPath.freeRects.size());
             }
 
             // Erzeuge eine Kopie des Jobs für diesen Pfad
-            Job job = new Job(originalJob.id, originalJob.width, originalJob.height);
+            Job currentJob = new Job(originalJob.id, originalJob.width, originalJob.height);
             // Ergebnisobjekt für die beste Platzierung
             MultiPlate_DataClasses.BestFitResult result = new MultiPlate_DataClasses.BestFitResult();
 
             // Suche das beste freie Rechteck für diesen Job (ggf. auch rotiert)
             for (int j = 0; j < currentPath.freeRects.size(); j++) {
                 MultiPlate_DataClasses.FreeRectangle rect = currentPath.freeRects.get(j);
-                testAndUpdateBestFit(job.width, job.height, rect, false, result);
-                if (Main.rotateJobs) testAndUpdateBestFit(job.height, job.width, rect, true, result);
+                testAndUpdateBestFit(currentJob.width, currentJob.height, rect, false, result);
+                if (Main.rotateJobs) testAndUpdateBestFit(currentJob.height, currentJob.width, rect, true, result);
             }
 
             // Falls kein Platz gefunden wurde:
             if (result.bestRect == null) {
                 // Debug-Ausgabe: Job konnte nicht platziert werden
-                if (debugEnabled) System.out.println(currentPath.pathDescription + ": Job " + job.id + " konnte NICHT platziert werden.");
-
-                // Markiere den Job als "failed" für diesen Pfad
-                currentPath.failedJobs.add(originalJob.id);
+                if (debugEnabled) System.out.println(currentPath.pathId + ": Job " + currentJob.id + " konnte NICHT platziert werden.");
 
                 // Bestimme die alternative Strategie (FullWidth oder FullHeight)
                 MultiPlate_DataClasses.Strategy newStrategy = currentPath.strategy == MultiPlate_DataClasses.Strategy.FULL_HEIGHT ? MultiPlate_DataClasses.Strategy.FULL_WIDTH : MultiPlate_DataClasses.Strategy.FULL_HEIGHT;
-                int newPathId = paths.size() + newPaths.size() + 1;
+                // Inkrementiere globale Pfadanzahl und verwende sie als neue ID
+                pathCounter++;
+                int newPathId = pathCounter;
 
                 // Debug-Ausgabe: Alternativer Pfad wird erzeugt
-                if (debugEnabled) System.out.println(currentPath.pathDescription + ": Erzeuge alternativen Pfad mit Strategie " + newStrategy + " ab Job " + job.id);
+                if (debugEnabled) System.out.println(currentPath.pathId + ": Erzeuge alternativen Pfad mit Strategie " + newStrategy + " ab Job " + currentJob.id + ". Neuer globaler Pfad-Zähler=" + pathCounter);
 
                 // ERZEUGE NEUEN PFAD mit alternativer Strategie ab dem letzten platzierten Job
-                MultiPlate_DataClasses newMethodPath = new MultiPlate_DataClasses(currentPath, String.valueOf(newPathId), newStrategy, currentPath.pathId, job.id);
+                MultiPlate_DataClasses newMethodPath = new MultiPlate_DataClasses(currentPath, String.valueOf(newPathId), newStrategy, currentPath.pathId, currentJob.id, pathCounter);
                 newMethodPath.strategy = newStrategy;
                 newMethodPath.plateId = plateId;
-
-                // Entferne den zuletzt gescheiterten Job aus der failed-Liste des neuen Pfads
-                newMethodPath.failedJobs.remove(newMethodPath.failedJobs.size() - 1);
 
                 // Hole den zuletzt platzierten Job
                 Job lastJob = newMethodPath.plate.jobs.get(newMethodPath.plate.jobs.size() - 1);
@@ -138,35 +150,32 @@ public class MultiPlate_Algorithm {
                 MultiPlate_DataClasses.BestFitResult newMethodResult = new MultiPlate_DataClasses.BestFitResult();
                 for (int j = 0; j < newMethodPath.freeRects.size(); j++) {
                     MultiPlate_DataClasses.FreeRectangle rect = newMethodPath.freeRects.get(j);
-                    testAndUpdateBestFit(job.width, job.height, rect, false, newMethodResult);
-                    if (Main.rotateJobs) testAndUpdateBestFit(job.height, job.width, rect, true, newMethodResult);
+                    testAndUpdateBestFit(currentJob.width, currentJob.height, rect, false, newMethodResult);
+                    if (Main.rotateJobs) testAndUpdateBestFit(currentJob.height, currentJob.width, rect, true, newMethodResult);
                 }
 
-                // Falls erfolgreich, füge neuen Pfad hinzu
+                // Falls der Job erfolgreich im neuen Kinderpfad platziert werden konnte, füge neuen Pfad zur offiziellen Pfadliste hinzu
                 if (newMethodResult.bestRect != null) {
-                    if (debugEnabled) {
-                        System.out.println(newMethodPath.pathDescription + ": Job " + job.id + " konnte im alternativen Pfad platziert werden.");
-                    }
+                    if (debugEnabled) System.out.println(newMethodPath.pathId + ": Job " + currentJob.id + " konnte im alternativen Pfad platziert werden.");
                     newPaths.add(newMethodPath);
                     anySuccess = true;
-                } else {
-                    // Sonst markiere auch im neuen Pfad als "failed"
-                    if (debugEnabled) {
-                        System.out.println(newMethodPath.pathDescription + ": Job " + job.id + " konnte auch im alternativen Pfad nicht platziert werden.");
-                    }
+                } 
+                // Falls der Job nicht erfolgreich im neuen Kinderpfad platziert werden konnte, markiere auch hier als "failed"
+                else {
+                    if (debugEnabled) System.out.println(newMethodPath.pathId + ": Job " + currentJob.id + " konnte auch im alternativen Pfad nicht platziert werden.");
+                    currentPath.failedJobs.add(currentJob.id);
                     newMethodPath.isActive = true;
-                    newMethodPath.failedJobs.add(originalJob.id);
+                    newMethodPath.failedJobs.add(currentJob.id);
                     newPaths.add(newMethodPath);
                 }
 
             // Geht hier rein, wenn direkt ein Platz gefunden wurde
             } else {
-                if (debugEnabled) {
-                    System.out.println(currentPath.pathDescription + ": Job " + job.id + " wird platziert auf Rechteck (" + result.bestRect.x + "," + result.bestRect.y + "," + result.bestRect.width + "x" + result.bestRect.height + ")" + (result.useRotated ? " [rotiert]" : ""));
-                }
+                if (debugEnabled) System.out.println(currentPath.pathId + ": Job " + currentJob.id + " wird platziert auf Rechteck (" + result.bestRect.x + "," + result.bestRect.y + "," + result.bestRect.width + "x" + result.bestRect.height + ")" + (result.useRotated ? " [rotiert]" : ""));
+                
                 // Platziere den Job im aktuellen Pfad
                 String splittingMethod = currentPath.strategy == MultiPlate_DataClasses.Strategy.FULL_HEIGHT ? "FullHeight" : "FullWidth";
-                placeJobInPath(job, result, currentPath, splittingMethod);
+                placeJobInPath(currentJob, result, currentPath, splittingMethod);
                 currentPath.plateId = plateId;
                 anySuccess = true;
             }
@@ -186,7 +195,7 @@ public class MultiPlate_Algorithm {
         for (int newPathIndex = 0; newPathIndex < newPaths.size(); newPathIndex++) {
             MultiPlate_DataClasses newPath = newPaths.get(newPathIndex);
             if (debugEnabled) {
-                System.out.println("\n[Neuer Pfad " + (newPathIndex+1) + ": " + newPath.pathDescription + "]");
+                System.out.println("\n[Neuer Pfad " + (newPathIndex+1) + ": " + newPath.pathId + "]");
                 System.out.println("Versuche Job " + originalJob.id + " zu platzieren. Strategie: " + (newPath.strategy == MultiPlate_DataClasses.Strategy.FULL_HEIGHT ? "FullHeight" : "FullWidth"));
                 System.out.println("Freie Rechtecke im neuen Pfad: " + newPath.freeRects.size());
             }
@@ -203,14 +212,14 @@ public class MultiPlate_Algorithm {
             // Falls ein passendes Rechteck gefunden wurde, platziere den Job im neuen Pfad
             if (newPathResult.bestRect != null) {
                 if (debugEnabled) {
-                    System.out.println(newPath.pathDescription + ": Job " + job.id + " wird platziert auf Rechteck (" + newPathResult.bestRect.x + "," + newPathResult.bestRect.y + "," + newPathResult.bestRect.width + "x" + newPathResult.bestRect.height + ")" + (newPathResult.useRotated ? " [rotiert]" : ""));
+                    System.out.println(newPath.pathId + ": Job " + job.id + " wird platziert auf Rechteck (" + newPathResult.bestRect.x + "," + newPathResult.bestRect.y + "," + newPathResult.bestRect.width + "x" + newPathResult.bestRect.height + ")" + (newPathResult.useRotated ? " [rotiert]" : ""));
                 }
                 String splittingMethod = newPath.strategy == MultiPlate_DataClasses.Strategy.FULL_HEIGHT ? "FullHeight" : "FullWidth";
                 placeJobInPath(job, newPathResult, newPath, splittingMethod);
                 newPath.plateId = plateId;
             } else {
                 if (debugEnabled) {
-                    System.out.println(newPath.pathDescription + ": Job " + job.id + " konnte im neuen Pfad nicht platziert werden.");
+                    System.out.println(newPath.pathId + ": Job " + job.id + " konnte im neuen Pfad nicht platziert werden.");
                 }
             }
         }
@@ -221,6 +230,8 @@ public class MultiPlate_Algorithm {
         }
         // Füge alle neuen Pfade zur Pfadliste hinzu
         paths.addAll(newPaths);
+        // Nach Hinzufügen aller neuen Pfade erneut synchronisieren
+        syncTotalPathCount();
         return anySuccess;
     }
 
@@ -230,7 +241,7 @@ public class MultiPlate_Algorithm {
      * Splitte das belegte Rechteck nach der gewählten Strategie.
      * Speichere einen Snapshot der freien Rechtecke nach dem Platzieren.
      */
-    private void placeJobInPath(Job job, MultiPlate_DataClasses.BestFitResult result, MultiPlate_DataClasses path, String splittingMethod) {
+    public void placeJobInPath(Job job, MultiPlate_DataClasses.BestFitResult result, MultiPlate_DataClasses path, String splittingMethod) {
         if (result.useRotated) {
             job.rotated = true;
         }
@@ -243,9 +254,9 @@ public class MultiPlate_Algorithm {
         job.splittingMethod = splittingMethod;
         path.plate.jobs.add(job);
         path.placedJobs.add(job);
-        if (debugEnabled) {
-            System.out.println(path.pathDescription + ": Platzierung: Job " + job.id + " auf Platte '" + path.plate.name + "' an Position (" + job.x + "," + job.y + ") Größe: " + job.width + "x" + job.height + (job.rotated ? " [rotiert]" : "") + ", Split: " + splittingMethod);
-        }
+
+        if (debugEnabled) System.out.println(path.pathId + ": Platzierung: Job " + job.id + " auf Platte '" + path.plate.name + "' an Position (" + job.x + "," + job.y + ") Größe: " + job.width + "x" + job.height + (job.rotated ? " [rotiert]" : "") + ", Split: " + splittingMethod);
+        
         if ("FullWidth".equals(splittingMethod)) {
             splitFreeRectFullWidth(result.bestRect, job, path);
         } else {
@@ -257,7 +268,7 @@ public class MultiPlate_Algorithm {
         }
         path.freeRectsPerStep.add(snapshot);
         if (debugEnabled) {
-            System.out.println(path.pathDescription + ": Snapshot freie Rechtecke nach Platzierung: " + path.freeRects.size());
+            System.out.println(path.pathId + ": Snapshot freie Rechtecke nach Platzierung: " + path.freeRects.size());
         }
     }
 
@@ -291,7 +302,7 @@ public class MultiPlate_Algorithm {
         }
     }
 
-    private void splitFreeRectFullHeight(MultiPlate_DataClasses.FreeRectangle rect, Job job, MultiPlate_DataClasses path) {
+    public void splitFreeRectFullHeight(MultiPlate_DataClasses.FreeRectangle rect, Job job, MultiPlate_DataClasses path) {
         path.freeRects.remove(rect);
         path.lastAddedRects.clear();
         if (job.width < rect.width) {
@@ -410,6 +421,10 @@ public class MultiPlate_Algorithm {
             for (Job job : path.plate.jobs) path.jobIds.add(job.id);
         }
         return paths;
+    }
+
+    public int getPathCounter() {
+        return pathCounter;
     }
 
 }

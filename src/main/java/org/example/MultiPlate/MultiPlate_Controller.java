@@ -46,12 +46,11 @@ public class MultiPlate_Controller {
                     }
                 }
                 if (!failedJobsForPath.isEmpty()) {
-                    MultiPlate_FailedJobPlacer placer = new MultiPlate_FailedJobPlacer(path, plateInfos.get(1), path.pathDescription, failedJobsForPath);
+                    MultiPlate_FailedJobPlacer placer = new MultiPlate_FailedJobPlacer(path, plateInfos.get(1), path.pathId, failedJobsForPath);
                     placer.placeAllFailedJobs();
                 }
             }
         }
-
     }
 
     public static void printPathDetails(List<MultiPlate_DataClasses> pathDetails) {
@@ -59,7 +58,7 @@ public class MultiPlate_Controller {
             System.out.println("Pfad: " + info.pathId);
             System.out.println("  Platte: " + info.plate.name);
             System.out.println("  Strategie: " + (info.strategy == MultiPlate_DataClasses.Strategy.FULL_HEIGHT ? "FullHeight" : "FullWidth"));
-            System.out.println("  Parent: " + (info.parentPath != null ? info.parentPath : "-"));
+            System.out.println("  Gesamtanzahl Pfade: " + info.totalPathCount);
             System.out.println("  Abgespalten von Pfad: " + (info.splitFromPathId != null ? info.splitFromPathId : "-") + ", ab Job: " + (info.splitFromJobId != -1 ? info.splitFromJobId : "-"));
             System.out.println("  Jobs:");
             for (Job job : info.plate.jobs) {

@@ -8,7 +8,7 @@ public class MultiPlate_DataClasses {
     public Plate plate;
     public String plateId;
     public List<MultiPlate_DataClasses.FreeRectangle> freeRects;
-    public String pathDescription;
+    // pathDescription entfernt; pathId alleine reicht
     public Integer parentPathIndex;
     public List<List<MultiPlate_DataClasses.FreeRectangle>> freeRectsPerStep = new ArrayList<>();
     public int placementCounter;
@@ -16,19 +16,20 @@ public class MultiPlate_DataClasses {
     public boolean isActive;
     public Strategy strategy;
     public List<Integer> failedJobs;
-    public String parentPath;
+    public String parentPath; // speichert die Parent-Pfad-ID
     public List<Job> placedJobs = new ArrayList<>();
     public List<Integer> jobIds = new ArrayList<>();
     public String splitFromPathId;
     public int splitFromJobId = -1;
+    public int totalPathCount;
 
     public enum Strategy {
         FULL_HEIGHT,
         FULL_WIDTH
     }
 
-    // Konstruktor für die ersten zwei Elternpfade
-    public MultiPlate_DataClasses(Plate originalPlate, String pathId, Strategy strategy) {
+    // Konstruktor für Startpfade
+    public MultiPlate_DataClasses(Plate originalPlate, String pathId, Strategy strategy, int totalPathCount) {
         this.plate = new Plate(originalPlate.name, originalPlate.width, originalPlate.height);
         this.freeRects = new ArrayList<>();
         this.freeRects.add(new MultiPlate_DataClasses.FreeRectangle(0, 0, plate.width, plate.height));
@@ -40,10 +41,11 @@ public class MultiPlate_DataClasses {
         this.failedJobs = new ArrayList<>();
         this.parentPath = null;
         this.plateId = null;
+        this.totalPathCount = totalPathCount;
     }
     
     // Konstruktor für Kinderpfade
-    public MultiPlate_DataClasses(MultiPlate_DataClasses original, String pathId, Strategy strategy, String splitFromPathId, int splitFromJobId) {
+    public MultiPlate_DataClasses(MultiPlate_DataClasses original, String pathId, Strategy strategy, String splitFromPathId, int splitFromJobId, int totalPathCount) {
         this.plate = new Plate(original.plate.name, original.plate.width, original.plate.height, original.plate.plateId);
         for (int i = 0; i < original.plate.jobs.size(); i++) {
             Job originalJob = original.plate.jobs.get(i);
@@ -70,17 +72,15 @@ public class MultiPlate_DataClasses {
         this.placementCounter = original.placementCounter;
         this.isActive = true;
         this.failedJobs = new ArrayList<>(original.failedJobs);
-        this.parentPath = original.pathDescription;
+        this.parentPath = original.pathId; // Parent-ID merken
         this.placedJobs = new ArrayList<>();
-        for (Job copiedJob : this.plate.jobs) {
-            this.placedJobs.add(copiedJob);
-        }
+        for (Job copiedJob : this.plate.jobs) this.placedJobs.add(copiedJob);
         this.plateId = null;
         this.pathId = pathId;
         this.splitFromPathId = splitFromPathId;
         this.splitFromJobId = splitFromJobId;
+        this.totalPathCount = totalPathCount;
     }
-
 
     public static class FreeRectangle {
         public double x;
@@ -94,8 +94,6 @@ public class MultiPlate_DataClasses {
             this.height = height;
         }
     }
-
-
 
     public static class BestFitResult {
         public FreeRectangle bestRect;
