@@ -67,19 +67,27 @@ public class MultiPlate_Algorithm {
         if (hierarchicalChildMode && parentPathIdForChildren != null) {
             childSequenceCounter = 0;
             MultiPlate_DataClasses fullWidthPath = new MultiPlate_DataClasses(new Plate(basePlate.name, basePlate.width, basePlate.height, basePlate.plateId), nextHierChildId(), MultiPlate_DataClasses.Strategy.FULL_WIDTH, 0);
-            fullWidthPath.plate.name = basePlate.name; fullWidthPath.plateId = basePlate.plateId; paths.add(fullWidthPath);
+            fullWidthPath.plate.name = basePlate.name; fullWidthPath.plateId = basePlate.plateId; paths.add(fullWidthPath); addInitialSnapshot(fullWidthPath);
             MultiPlate_DataClasses fullHeightPath = new MultiPlate_DataClasses(new Plate(basePlate.name, basePlate.width, basePlate.height, basePlate.plateId), nextHierChildId(), MultiPlate_DataClasses.Strategy.FULL_HEIGHT, 0);
-            fullHeightPath.plate.name = basePlate.name; fullHeightPath.plateId = basePlate.plateId; paths.add(fullHeightPath);
+            fullHeightPath.plate.name = basePlate.name; fullHeightPath.plateId = basePlate.plateId; paths.add(fullHeightPath); addInitialSnapshot(fullHeightPath);
         } else {
             pathCounter++; // FULL_WIDTH
             MultiPlate_DataClasses fullWidthPath = new MultiPlate_DataClasses(new Plate(basePlate.name, basePlate.width, basePlate.height, basePlate.plateId), pathIdPrefix + pathCounter, MultiPlate_DataClasses.Strategy.FULL_WIDTH, pathCounter);
-            fullWidthPath.plate.name = basePlate.name; fullWidthPath.plateId = basePlate.plateId; paths.add(fullWidthPath);
+            fullWidthPath.plate.name = basePlate.name; fullWidthPath.plateId = basePlate.plateId; paths.add(fullWidthPath); addInitialSnapshot(fullWidthPath);
             pathCounter++; // FULL_HEIGHT
             MultiPlate_DataClasses fullHeightPath = new MultiPlate_DataClasses(new Plate(basePlate.name, basePlate.width, basePlate.height, basePlate.plateId), pathIdPrefix + pathCounter, MultiPlate_DataClasses.Strategy.FULL_HEIGHT, pathCounter);
-            fullHeightPath.plate.name = basePlate.name; fullHeightPath.plateId = basePlate.plateId; paths.add(fullHeightPath);
+            fullHeightPath.plate.name = basePlate.name; fullHeightPath.plateId = basePlate.plateId; paths.add(fullHeightPath); addInitialSnapshot(fullHeightPath);
         }
         syncTotalPathCount();
         if (debugEnabled) System.out.println("[MPA] Initialisierte Platte " + (currentPlateIndex+1) + "/" + plateSequence.size() + ": " + basePlate.name + " prefix='" + pathIdPrefix + "'");
+    }
+
+    private void addInitialSnapshot(MultiPlate_DataClasses path) {
+        if (path.freeRectsPerStep == null) path.freeRectsPerStep = new java.util.ArrayList<>();
+        // Anfangszustand: eine freie Fläche = komplette Platte
+        java.util.List<MultiPlate_DataClasses.FreeRectangle> init = new java.util.ArrayList<>();
+        init.add(new MultiPlate_DataClasses.FreeRectangle(0,0,path.plate.width,path.plate.height));
+        path.freeRectsPerStep.add(init);
     }
 
     private void syncTotalPathCount() {
@@ -147,6 +155,15 @@ public class MultiPlate_Algorithm {
                 // ERZEUGE NEUEN PFAD mit alternativer Strategie ab dem letzten platzierten Job
                 MultiPlate_DataClasses newMethodPath = new MultiPlate_DataClasses(currentPath, newPathId, newStrategy, currentPath.pathId, currentJob.id, pathCounter);
                 newMethodPath.strategy = newStrategy; newMethodPath.plateId = plateId;
+                // Tiefes Kopieren der bisherigen Snapshots des Elternpfades
+                if (currentPath.freeRectsPerStep != null) {
+                    newMethodPath.freeRectsPerStep = new java.util.ArrayList<>();
+                    for (java.util.List<MultiPlate_DataClasses.FreeRectangle> snap : currentPath.freeRectsPerStep) {
+                        java.util.List<MultiPlate_DataClasses.FreeRectangle> copySnap = new java.util.ArrayList<>();
+                        for (MultiPlate_DataClasses.FreeRectangle fr : snap) copySnap.add(new MultiPlate_DataClasses.FreeRectangle(fr.x, fr.y, fr.width, fr.height));
+                        newMethodPath.freeRectsPerStep.add(copySnap);
+                    }
+                }
 
                 // Hole den zuletzt platzierten Job
                 Job lastJob = newMethodPath.plate.jobs.get(newMethodPath.plate.jobs.size() - 1);
@@ -208,7 +225,7 @@ public class MultiPlate_Algorithm {
                 String splittingMethod = currentPath.strategy == MultiPlate_DataClasses.Strategy.FULL_HEIGHT ? "FullHeight" : "FullWidth";
                 placeJobInPath(currentJob, result, currentPath, splittingMethod);
                 currentPath.plateId = plateId;
-                anySuccess = true;
+                // anySuccess = true;
             }
             if (debugEnabled) System.out.println("pathIndex: " + pathIndex + ", initialSize: " + initialSize);
 
@@ -324,7 +341,9 @@ public class MultiPlate_Algorithm {
         } else {
             splitFreeRectFullHeight(result.bestRect, job, path);
         }
-        List<MultiPlate_DataClasses.FreeRectangle> snapshot = new ArrayList<>();
+        // Entferne initialen Snapshot-Platzhalter falls dies der erste echte Job ist und doppelte Darstellung vermieden werden soll
+        // (Optional belassen wir ihn für Step 0 Visualisierung – daher nichts entfernen.)
+        java.util.List<MultiPlate_DataClasses.FreeRectangle> snapshot = new java.util.ArrayList<>();
         for (MultiPlate_DataClasses.FreeRectangle fr : path.freeRects) {
             snapshot.add(new MultiPlate_DataClasses.FreeRectangle(fr.x, fr.y, fr.width, fr.height));
         }
