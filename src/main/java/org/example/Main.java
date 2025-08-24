@@ -10,7 +10,7 @@ import org.example.SinglePlate.MaxRectBF_MultiPath_Controller;
 
 
 public class Main {
-    public static final boolean DEBUG = true;
+    public static final boolean DEBUG = false;
     public static final boolean DEBUG_MultiPath = true;
     public static final boolean DEBUG_MultiPlateMultiPath = true;
 
@@ -28,12 +28,15 @@ public class Main {
      */
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        // Plattenauswahl: Standard, Groß oder zwei Standardplatten
+        // Plattenauswahl: Standard, Groß oder mehrere Standardplatten
         List<org.example.DataClasses.Plate> plates; // <-- Typ geändert
         System.out.println("Plattenmodus wählen:");
         System.out.println("1 = Standardplatte");
         System.out.println("2 = Großplatte");
         System.out.println("3 = Zwei Standardplatten");
+        System.out.println("4 = Drei Standardplatten");
+        System.out.println("5 = Vier Standardplatten");
+        System.out.println("6 = N Standardplatten (gleich groß)");
         System.out.print("Bitte wählen: ");
         String plateModeInput = scanner.nextLine().trim();
         switch (plateModeInput) {
@@ -42,6 +45,20 @@ public class Main {
                 break;
             case "3":
                 plates = org.example.Provider.PlateProvider.getTwoStandardPlates();
+                break;
+            case "4":
+                plates = org.example.Provider.PlateProvider.getThreeStandardPlates();
+                break;
+            case "5":
+                plates = org.example.Provider.PlateProvider.getFourStandardPlates();
+                break;
+            case "6":
+                System.out.print("Anzahl N eingeben: ");
+                String nStr = scanner.nextLine().trim();
+                int n;
+                try { n = Integer.parseInt(nStr); } catch (NumberFormatException e) { n = 2; }
+                if (n < 1) n = 1;
+                plates = org.example.Provider.PlateProvider.getNStandardPlates(n);
                 break;
             default:
                 plates = Arrays.asList(org.example.Provider.PlateProvider.getStandardPlate());
@@ -63,37 +80,16 @@ public class Main {
      * Zeigt dem Nutzer eine Auswahl aller vordefinierten Joblisten und gibt die gewählte zurück.
      */
     private static JobListProvider.NamedJobList getUserJobListChoiceWithScanner(Scanner scanner) {
-        JobListProvider.NamedJobList[] lists = new JobListProvider.NamedJobList[] {
-            JobListProvider.getStandardJobList(),
-            JobListProvider.getSmallJobList(),
-            JobListProvider.getMediumJobList(),
-            JobListProvider.getLargeJobList(),
-            JobListProvider.getAllSameSizeList(),
-            JobListProvider.getDuplicateJobsList(),
-            JobListProvider.getTooLargeJobsList(),
-            JobListProvider.getVerySmallJobsList(),
-            JobListProvider.getMixedExtremeList(),
-            JobListProvider.getSingleJobFitsExactly(),
-            JobListProvider.getSingleJobTooLarge(),
-            JobListProvider.getManyTinyJobs(),
-            JobListProvider.getAlternatingSizesList(),
-            JobListProvider.getDecimalJobsList(),
-            JobListProvider.getExtendedStandardJobList() // <-- hinzugefügt
-        };
+        java.util.List<JobListProvider.NamedJobList> lists = JobListProvider.getAllListsInMenuOrder();
         System.out.println("Welche Jobliste möchten Sie verwenden?");
-        for (int i = 0; i < lists.length; i++) {
-            System.out.printf("%d = %s\n", i + 1, lists[i].name);
+        for (JobListProvider.NamedJobList l : lists) {
+            System.out.printf("%d = %s\n   -> %s\n", l.id, l.name, (l.description==null?"":l.description));
         }
         System.out.print("Bitte wählen: ");
         String input = scanner.nextLine().trim();
-        int idx;
-        try {
-            idx = Integer.parseInt(input) - 1;
-        } catch (NumberFormatException e) {
-            idx = 0;
-        }
-        if (idx < 0 || idx >= lists.length) idx = 0;
-        return lists[idx];
+        int id = Integer.parseInt(input);
+        for (JobListProvider.NamedJobList l : lists) if (l.id == id) return l;
+        return lists.get(0);
     }
 
     /**
@@ -101,10 +97,10 @@ public class Main {
      */
     private static void runMode(List<Job> originalJobs, String mode, String jobListInfo, List<org.example.DataClasses.Plate> plates) {
         // MaxRectsBF_MultiPath Benchmark
-        if ("0".equals(mode)) {  
+        if ("0".equals(mode)) {
             runBenchmark(originalJobs, jobListInfo, plates.get(0));
         // MaxRectsBF_MultiPath ohne Benchmark (nur nach Size sortiert)
-        } else if ("4".equals(mode)) {  
+        } else if ("4".equals(mode)) {
             MaxRectBF_MultiPath_Controller.run_MaxRectBF_MultiPath(originalJobs, plates.get(0), sortJobs);
         // MultiPlateMultiPath Präsentation
         } else if ("5".equals(mode)) {
@@ -112,6 +108,9 @@ public class Main {
         // MaxRectBF_MultiPlate (work in progress, nur nach Size sortiert, nur mit mindestens zwei Platten)
         } else if ("7".equals(mode)) {
             MultiPlate_Controller.run_MaxRectBF_MultiPlate(originalJobs, plates, sortJobs); // Plattenliste übergeben
+        } else if ("8".equals(mode)) {
+            // MultiPlate Benchmark aller Pfade (nur Benchmark anzeigen)
+            MultiPlate_Controller.run_MaxRectBF_MultiPlate_BenchmarkOnly(originalJobs, plates, sortJobs);
         }
     }
 
@@ -155,7 +154,8 @@ public class Main {
         System.out.println("0 = MaxRectsBF_MultiPath (Benchmark)");
         System.out.println("4 = MaxRectsBF_MultiPath (ohne Benchmark, nur nach Size sortiert)");
         System.out.println("5 = MultiPlateMultiPath (Präsentation)");
-        System.out.println("7 = MaxRectBF_MultiPlate (work in progress, nur nach Size sortiert, nur mit mindestens zwei Platten)");
+        System.out.println("7 = MaxRectBF_MultiPlate (Platzierung + Matrix + Visualisierung)");
+        System.out.println("8 = MaxRectBF_MultiPlate (Benchmark aller Pfade)");
         System.out.print("Bitte wählen: ");
         return scanner.nextLine().trim();
     }

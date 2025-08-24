@@ -20,6 +20,26 @@ public class BenchmarkVisualizer extends JFrame {
         public double coverageRate;
         public int totalJobs;
         public List<MaxRectBF_MultiPath.FreeRectangle> specificFreeRects; // Für MultiPath-Pfade
+        // NEU: Multi-Plate Zusatzinfos
+        public int platesUsed = 1;
+        public int platesTotal = 1;
+        public String plate1Name;
+        public Double coveragePlate1; // Prozent
+        public String plate2Name;
+        public Double coveragePlate2; // Prozent
+        // Referenzen auf die Platten
+        public Plate plate1Ref;
+        public Plate plate2Ref;
+        // Freie Rechtecke je Platte (Typ offen gelassen)
+        public List<?> plate1FreeRects;
+        public List<?> plate2FreeRects;
+        // Dynamische Unterstützung für beliebig viele Platten
+        public java.util.List<Plate> platesRefs;          // Reihenfolge der Platten in der Kette
+        public java.util.List<String> platesNames;        // Namen je Platte
+        public java.util.List<Double> platesCoverages;    // Coverage je Platte
+        public java.util.List<java.util.List<?>> platesFreeRects; // freie Rechtecke je Platte
+        // Sortier-Label (z. B. "Fläche" oder "Größte Kante")
+        public String sortLabel;
 
         // Standardkonstruktor
         public BenchmarkResult(String algorithmName, Plate plate, Object algorithm, int placedJobs, double coverageRate, int totalJobs) {
@@ -30,6 +50,18 @@ public class BenchmarkVisualizer extends JFrame {
             this.coverageRate = coverageRate;
             this.totalJobs = totalJobs;
             this.specificFreeRects = null;
+            // Defaults für Ein-Platten-Fall
+            this.plate1Name = plate != null ? plate.name : null;
+            this.coveragePlate1 = coverageRate;
+            this.plate1Ref = plate;
+            this.plate2Ref = null;
+            this.plate1FreeRects = null;
+            this.plate2FreeRects = null;
+            this.platesRefs = new java.util.ArrayList<>();
+            this.platesNames = new java.util.ArrayList<>();
+            this.platesCoverages = new java.util.ArrayList<>();
+            this.platesFreeRects = new java.util.ArrayList<>();
+            this.sortLabel = "-";
         }
 
         // Erweiteter Konstruktor mit freien Rechtecken
@@ -41,6 +73,18 @@ public class BenchmarkVisualizer extends JFrame {
             this.coverageRate = coverageRate;
             this.totalJobs = totalJobs;
             this.specificFreeRects = specificFreeRects;
+            // Defaults für Ein-Platten-Fall
+            this.plate1Name = plate != null ? plate.name : null;
+            this.coveragePlate1 = coverageRate;
+            this.plate1Ref = plate;
+            this.plate2Ref = null;
+            this.plate1FreeRects = null;
+            this.plate2FreeRects = null;
+            this.platesRefs = new java.util.ArrayList<>();
+            this.platesNames = new java.util.ArrayList<>();
+            this.platesCoverages = new java.util.ArrayList<>();
+            this.platesFreeRects = new java.util.ArrayList<>();
+            this.sortLabel = "-";
         }
     }
     
@@ -109,41 +153,124 @@ public class BenchmarkVisualizer extends JFrame {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder("Algorithmus Ranking"));
         
-        // Table Model
-        String[] columnNames = {"Rang", "Algorithmus", "Platzierte Jobs", "Gesamt Jobs", "Erfolgsrate", "Deckungsrate"};
-        DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
+        // Ermittele maximale Anzahl genutzter Platten über alle Ergebnisse
+        int maxPlates = 0;
+        for (BenchmarkResult r : results) {
+            int used = r.platesRefs != null && !r.platesRefs.isEmpty() ? r.platesRefs.size() : r.platesUsed;
+            if (used > maxPlates) maxPlates = used;
+        }
+        // Table Model mit dynamischen Spalten
+        java.util.List<String> colNames = new java.util.ArrayList<>();
+        colNames.add("Rang");
+        colNames.add("Pfad");
+        colNames.add("Sortierung");
+        colNames.add("Platzierte Jobs");
+        colNames.add("Gesamt Jobs");
+        colNames.add("Erfolgsrate");
+        colNames.add("Deckungsrate (gesamt)");
+        colNames.add("Platten genutzt");
+        for (int i = 1; i <= maxPlates; i++) { colNames.add("Platte " + i); colNames.add("Cov" + i); }
+        DefaultTableModel model = new DefaultTableModel(colNames.toArray(new String[0]), 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
+            }
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                // Dynamisch: feste Typen für die ersten 8 Spalten, danach alternierend Name (String), Cov (Double)
+                if (columnIndex == 0) return Integer.class;   // Rang
+                if (columnIndex == 1) return String.class;    // Pfad
+                if (columnIndex == 2) return String.class;    // Sortierung
+                if (columnIndex == 3) return Integer.class;   // Platzierte
+                if (columnIndex == 4) return Integer.class;   // Gesamt
+                if (columnIndex == 5) return Double.class;    // Erfolgsrate
+                if (columnIndex == 6) return Double.class;    // Deckungsrate gesamt
+                if (columnIndex == 7) return String.class;    // Platten genutzt
+                // Ab hier: Platte i / Cov i (Start ab Index 8: Platte 1, Index 9: Cov1, ...)
+                return (columnIndex % 2 == 1) ? Double.class : String.class;
             }
         };
         
         // Fülle die Tabelle mit Daten
         for (int i = 0; i < results.size(); i++) {
             BenchmarkResult result = results.get(i);
-            String rank = String.valueOf(i + 1);
-            String successRate = String.format("%.1f%%", (double) result.placedJobs / result.totalJobs * 100);
-            String coverageRate = String.format("%.2f%%", result.coverageRate);
-            
-            Object[] row = {
-                rank,
-                result.algorithmName,
-                result.placedJobs,
-                result.totalJobs,
-                successRate,
-                coverageRate
-            };
-            model.addRow(row);
-        }
-        
-        table = new JTable(model);
-        customizeTable();
-        
-        JScrollPane scrollPane = new JScrollPane(table);
-        panel.add(scrollPane, BorderLayout.CENTER);
-        
-        return panel;
-    }
+            Integer rank = i + 1;
+            double successRate = result.totalJobs == 0 ? 0.0 : (double) result.placedJobs / result.totalJobs * 100.0;
+            double coverageRate = result.coverageRate;
+            String platesUsed = String.format("%d/%d", result.platesUsed, result.platesTotal);
+            java.util.List<Object> row = new java.util.ArrayList<>();
+            row.add(rank);
+            row.add(result.algorithmName);
+            row.add(result.sortLabel); // neue Spalte Sortierung
+            row.add(result.placedJobs);
+            row.add(result.totalJobs);
+            row.add(successRate);
+            row.add(coverageRate);
+            row.add(platesUsed);
+            for (int pi = 0; pi < maxPlates; pi++) {
+                String name = null; Double cov = null;
+                if (result.platesNames != null && pi < result.platesNames.size()) name = result.platesNames.get(pi);
+                if (result.platesCoverages != null && pi < result.platesCoverages.size()) cov = result.platesCoverages.get(pi);
+                if (name == null) name = "-";
+                row.add(name);
+                row.add(cov);
+            }
+            model.addRow(row.toArray());
+         }
+         
+         table = new JTable(model);
+         // Sortierung konfigurieren
+         javax.swing.table.TableRowSorter<DefaultTableModel> sorter = new javax.swing.table.TableRowSorter<>(model);
+         // Spalte 0 (Rang) nicht sortierbar
+         sorter.setSortable(0, false);
+         // Prozentspalten numerisch sortieren (mit Null-Handling)
+         java.util.Comparator<Double> doubleComparator = (a, b) -> {
+             if (a == b) return 0; if (a == null) return -1; if (b == null) return 1; return Double.compare(a, b);
+         };
+         sorter.setComparator(5, doubleComparator); // Erfolgsrate
+         sorter.setComparator(6, doubleComparator); // Deckungsrate gesamt
+         // Dynamisch alle Cov-Spalten (ab Index 8, jede zweite Spalte -> 9, 11, ...)
+         int baseIdx = 8;
+         for (int ci = baseIdx + 1; ci < model.getColumnCount(); ci += 2) sorter.setComparator(ci, doubleComparator);
+         // Platten genutzt (x/y) sinnvoll: nach Quote (used/total) sortieren, Tiebreak auf used
+         sorter.setComparator(7, (Object a, Object b) -> {
+             String sa = a == null ? "" : a.toString();
+             String sb = b == null ? "" : b.toString();
+             double ra = 0.0; int ua = 0; int ta = 0;
+             double rb = 0.0; int ub = 0; int tb = 0;
+             try { String[] pa = sa.split("/"); ua = Integer.parseInt(pa[0]); ta = Integer.parseInt(pa[1]); ra = ta==0?0.0:((double)ua/ta); } catch(Exception ignored) {}
+             try { String[] pb = sb.split("/"); ub = Integer.parseInt(pb[0]); tb = Integer.parseInt(pb[1]); rb = tb==0?0.0:((double)ub/tb); } catch(Exception ignored) {}
+             int cmp = Double.compare(ra, rb);
+             if (cmp != 0) return cmp;
+             return Integer.compare(ua, ub);
+         });
+         table.setRowSorter(sorter);
+         // Default: Deckungsrate (gesamt) absteigend
+         sorter.setSortKeys(java.util.Arrays.asList(new javax.swing.RowSorter.SortKey(6, javax.swing.SortOrder.DESCENDING))); // Deckungsrate gesamt
+         // Header-Click: für neue Spalte Start mit DESC, danach toggeln
+         table.getTableHeader().addMouseListener(new java.awt.event.MouseAdapter() {
+             @Override
+             public void mouseClicked(java.awt.event.MouseEvent e) {
+                 int viewCol = table.getTableHeader().columnAtPoint(e.getPoint());
+                 if (viewCol < 0) return;
+                 int modelCol = table.convertColumnIndexToModel(viewCol);
+                 if (!sorter.isSortable(modelCol)) return;
+                 java.util.List<? extends javax.swing.RowSorter.SortKey> keys = sorter.getSortKeys();
+                 javax.swing.SortOrder newOrder = javax.swing.SortOrder.DESCENDING;
+                 if (!keys.isEmpty() && keys.get(0).getColumn() == modelCol) {
+                     javax.swing.SortOrder cur = keys.get(0).getSortOrder();
+                     newOrder = (cur == javax.swing.SortOrder.DESCENDING) ? javax.swing.SortOrder.ASCENDING : javax.swing.SortOrder.DESCENDING;
+                 }
+                 sorter.setSortKeys(java.util.Arrays.asList(new javax.swing.RowSorter.SortKey(modelCol, newOrder)));
+             }
+         });
+         customizeTable();
+         
+         JScrollPane scrollPane = new JScrollPane(table);
+         panel.add(scrollPane, BorderLayout.CENTER);
+         
+         return panel;
+     }
     
     private void customizeTable() {
         table.setFont(new Font("Arial", Font.PLAIN, 12));
@@ -156,61 +283,80 @@ public class BenchmarkVisualizer extends JFrame {
         
         // Custom cell renderer für farbige Zeilen
         table.setDefaultRenderer(Object.class, new TableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                JLabel label = new JLabel(value.toString());
-                label.setOpaque(true);
-                label.setFont(table.getFont());
-                label.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-                
-                if (isSelected) {
-                    label.setBackground(new Color(184, 207, 229));
+             @Override
+             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                String text;
+                if (column == 0) {
+                    // Rang dynamisch aus der View-Position
+                    text = String.valueOf(row + 1);
+                } else if (column == 5 || column == 6 || table.getColumnName(column).startsWith("Cov")) {
+                    if (value instanceof Number) text = String.format("%.2f%%", ((Number) value).doubleValue());
+                    else if (value == null) text = "-"; else text = value.toString();
+                } else if (value == null) {
+                    text = "-";
                 } else {
-                    // Verschiedene Farben je nach Rang
-                    if (row == 0) {
-                        label.setBackground(new Color(255, 215, 0, 50)); // Gold
-                    } else if (row == 1) {
-                        label.setBackground(new Color(192, 192, 192, 50)); // Silber
-                    } else if (row == 2) {
-                        label.setBackground(new Color(205, 127, 50, 50)); // Bronze
-                    } else {
-                        label.setBackground(Color.WHITE);
-                    }
+                    text = value.toString();
                 }
-                
-                // Zentriere bestimmte Spalten
-                if (column == 0 || column == 2 || column == 3 || column == 4 || column == 5) {
-                    label.setHorizontalAlignment(JLabel.CENTER);
-                }
-                
-                return label;
-            }
-        });
-    }
-    
-    private void adjustAlgorithmColumnWidth() {
-        // Finde die längste Algorithmus-Name
-        int maxWidth = 0;
-        FontMetrics fm = table.getFontMetrics(table.getFont());
-        
-        // Prüfe den Header-Text
-        String headerText = "Algorithmus";
-        int headerWidth = fm.stringWidth(headerText);
-        maxWidth = Math.max(maxWidth, headerWidth);
-        
-        // Prüfe alle Algorithmus-Namen in den Daten
-        for (int i = 0; i < results.size(); i++) {
-            BenchmarkResult result = results.get(i);
-            int textWidth = fm.stringWidth(result.algorithmName);
-            maxWidth = Math.max(maxWidth, textWidth);
+                JLabel label = new JLabel(text);
+                 label.setOpaque(true);
+                 label.setFont(table.getFont());
+                 label.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+                 
+                 if (isSelected) {
+                     label.setBackground(new Color(184, 207, 229));
+                 } else {
+                     // Verschiedene Farben je nach Rang
+                     if (row == 0) {
+                         label.setBackground(new Color(255, 215, 0, 50)); // Gold
+                     } else if (row == 1) {
+                         label.setBackground(new Color(192, 192, 192, 50)); // Silber
+                     } else if (row == 2) {
+                         label.setBackground(new Color(205, 127, 50, 50)); // Bronze
+                     } else {
+                         label.setBackground(Color.WHITE);
+                     }
+                 }
+                 
+                 // Zentriere bestimmte Spalten
+                 if (column == 0 || column == 3 || column == 4 || column == 5 || column == 6 || column == 7 || table.getColumnName(column).startsWith("Cov")) {
+                     label.setHorizontalAlignment(JLabel.CENTER);
+                 }
+ 
+                 return label;
+             }
+         });
+     }
+ 
+     private void adjustAlgorithmColumnWidth() {
+         // Finde die längste Algorithmus-Name
+         int maxWidth = 0;
+         FontMetrics fm = table.getFontMetrics(table.getFont());
+         
+         // Prüfe den Header-Text
+         String headerText = "Pfad";
+         int headerWidth = fm.stringWidth(headerText);
+         maxWidth = Math.max(maxWidth, headerWidth);
+         
+         // Prüfe alle Algorithmus-Namen in den Daten
+         for (int i = 0; i < results.size(); i++) {
+             BenchmarkResult result = results.get(i);
+             int textWidth = fm.stringWidth(result.algorithmName);
+             maxWidth = Math.max(maxWidth, textWidth);
+         }
+         
+         // Füge Padding hinzu (für Borders und etwas Luft)
+         maxWidth += 40;
+         
+         // Setze die Spaltenbreite für Algorithmus-Spalte
+         table.getColumnModel().getColumn(1).setPreferredWidth(maxWidth);
+         table.getColumnModel().getColumn(1).setMinWidth(maxWidth);
+        // Zusätzliche sinnvolle Breiten
+        table.getColumnModel().getColumn(7).setPreferredWidth(100); // Platten genutzt
+        // Dynamisch: setze Breite für Name/Cov Paare ab Spalte 8
+        for (int c = 8; c < table.getColumnModel().getColumnCount(); c++) {
+            if ((c - 7) % 2 == 0) table.getColumnModel().getColumn(c).setPreferredWidth(140); // Platte i
+            else table.getColumnModel().getColumn(c).setPreferredWidth(80); // Cov i
         }
-        
-        // Füge Padding hinzu (für Borders und etwas Luft)
-        maxWidth += 40;
-        
-        // Setze die Spaltenbreite
-        table.getColumnModel().getColumn(1).setPreferredWidth(maxWidth);
-        table.getColumnModel().getColumn(1).setMinWidth(maxWidth);
     }
     
     private JPanel createStatisticsPanel() {
@@ -297,18 +443,68 @@ public class BenchmarkVisualizer extends JFrame {
     }
     
     private void showPlateVisualization(BenchmarkResult result) {
-        // Print job coordinates before visualization
-        printJobCoordinates(result.plate);
+        // Vor jeder Fenster-Visualisierung: bedingte Konsolenausgabe für ausgewählte Pfade
+        // Falls BenchmarkResult einen explicit pathName enthält, nutze diesen; ansonsten versuche, den Pfad aus algorithmName zu extrahieren.
+        String detectedPathId = null;
+        if (result != null) {
+            if (result.algorithmName != null && result.algorithmName.contains("Pfad ")) {
+                int idx = result.algorithmName.indexOf("Pfad ");
+                int start = idx + 5;
+                int end = start;
+                while (end < result.algorithmName.length() && (Character.isDigit(result.algorithmName.charAt(end)) || result.algorithmName.charAt(end) == '.')) end++;
+                if (end > start) detectedPathId = result.algorithmName.substring(start, end);
+            }
+            // Falls platesRefs vorhanden ist, keine explizite Pfad-ID, aber wir haben eventuell plate names -> prüfe diese
+            if (detectedPathId == null && result.platesNames != null && !result.platesNames.isEmpty()) {
+                // versuche ersten Eintrag
+                String name = result.platesNames.get(0);
+                if (name != null && name.startsWith("Pfad ")) {
+                    detectedPathId = name.substring(5).trim();
+                }
+            }
+        }
+        org.example.MultiPlate.MultiPlate_Controller.printPlateInfoIfSelected(result.plate, detectedPathId);
+
+         // Optionaler Zusatztext zur Sortierung
+         String globalAlgoInfo = (result.sortLabel == null || result.sortLabel.isEmpty() || "-".equals(result.sortLabel)) ? null : ("Sortierung: " + result.sortLabel);
+
+         // Dynamische Mehrplatten-Visualisierung: öffne für alle genutzten Platten ein Fenster
+         if (result.platesRefs != null && !result.platesRefs.isEmpty()) {
+             for (int i = 0; i < result.platesRefs.size(); i++) {
+                 Plate p = result.platesRefs.get(i);
+                // Druck der Job-Koordinaten + Cuts für diese Platte
+                org.example.MultiPlate.MultiPlate_Controller.printPlateInfo(p);
+                 java.util.List<?> freeRects = (result.platesFreeRects != null && i < result.platesFreeRects.size()) ? result.platesFreeRects.get(i) : null;
+                 String name = (result.platesNames != null && i < result.platesNames.size() && result.platesNames.get(i) != null) ? result.platesNames.get(i) : ("Platte " + (i + 1));
+                 String title = result.algorithmName + " | " + name;
+                 PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(p, "7", freeRects, title, globalAlgoInfo, jobListInfo);
+             }
+             return;
+         }
+
+         // Wenn zwei Platten referenziert sind, öffne beide Fenster inkl. freier Rechtecke
+         if (result.plate1Ref != null && result.plate2Ref != null) {
+            // Druck der Job-Koordinaten + Cuts für beide Platten
+            org.example.MultiPlate.MultiPlate_Controller.printPlateInfo(result.plate1Ref);
+            org.example.MultiPlate.MultiPlate_Controller.printPlateInfo(result.plate2Ref);
+
+             String baseTitle = result.algorithmName;
+             int idx = baseTitle.indexOf(" - ");
+             if (idx > 0) baseTitle = baseTitle.substring(0, idx);
+             String title1 = baseTitle + " | " + (result.plate1Name == null ? "Platte 1" : result.plate1Name);
+             String title2 = baseTitle + " | " + (result.plate2Name == null ? "Platte 2" : result.plate2Name);
+             PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(result.plate1Ref, "7", result.plate1FreeRects, title1, globalAlgoInfo, jobListInfo);
+             PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(result.plate2Ref, "7", result.plate2FreeRects, title2, globalAlgoInfo, jobListInfo);
+             return;
+         }
 
         String mode;
         if (result.algorithmName.contains("First Fit")) {
             mode = "1";
-            PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
-                result.plate, mode, null, result.plate.name, null, jobListInfo);
+            PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(result.plate, mode, null, result.plate.name, globalAlgoInfo, jobListInfo);
         } else if (result.algorithmName.contains("Dynamic")) {
             mode = "3";
-            PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
-                result.plate, mode, null, result.plate.name, null, jobListInfo);
+            PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(result.plate, mode, null, result.plate.name, globalAlgoInfo, jobListInfo);
         } else if (result.algorithmName.contains("MultiPath")) {
             mode = "4";
             if (result.specificFreeRects != null) {
@@ -320,114 +516,84 @@ public class BenchmarkVisualizer extends JFrame {
                         titleFromName = titleFromName.substring(titleFromName.lastIndexOf(" - ") + 3);
                     }
                 }
-                PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
-                    result.plate, 
-                    mode, 
-                    result.specificFreeRects, 
-                    titleFromName, 
-                    "Algorithmus: MultiPath (aus Benchmark)",
-                    jobListInfo // <-- Joblisten-Info weitergeben
-                );
-            } else {
-                if (result.algorithm instanceof MaxRectBF_MultiPath) {
-                    MaxRectBF_MultiPath multiPathAlgorithm = (MaxRectBF_MultiPath) result.algorithm;
-                    Object matchingPath = null;
-                    List<?> allPaths = multiPathAlgorithm.getAllPaths();
-                    for (int i = 0; i < allPaths.size(); i++) {
-                        Object path = allPaths.get(i);
-                        try {
-                            java.lang.reflect.Field isActiveField = path.getClass().getDeclaredField("isActive");
-                            java.lang.reflect.Field plateField = path.getClass().getDeclaredField("plate");
-                            isActiveField.setAccessible(true);
-                            plateField.setAccessible(true);
-                            boolean isActive = isActiveField.getBoolean(path);
-                            Object plateObj = plateField.get(path);
-                            if (isActive && plateObj == result.plate) {
-                                matchingPath = path;
-                                break;
-                            }
-                        } catch (Exception ex) {
-                            // Reflection failed, skip this path
+                String algoInfo = "Algorithmus: MultiPath (aus Benchmark)" + (globalAlgoInfo == null ? "" : " | " + globalAlgoInfo);
+                PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(result.plate, mode, result.specificFreeRects, titleFromName, algoInfo, jobListInfo);
+            } else if (result.algorithm instanceof MaxRectBF_MultiPath) {
+                MaxRectBF_MultiPath multiPathAlgorithm = (MaxRectBF_MultiPath) result.algorithm;
+                Object matchingPath = null;
+                List<?> allPaths = multiPathAlgorithm.getAllPaths();
+                for (int i = 0; i < allPaths.size(); i++) {
+                    Object path = allPaths.get(i);
+                    try {
+                        java.lang.reflect.Field isActiveField = path.getClass().getDeclaredField("isActive");
+                        java.lang.reflect.Field plateField = path.getClass().getDeclaredField("plate");
+                        isActiveField.setAccessible(true);
+                        plateField.setAccessible(true);
+                        boolean isActive = isActiveField.getBoolean(path);
+                        Object plateObj = plateField.get(path);
+                        if (isActive && plateObj == result.plate) {
+                            matchingPath = path;
+                            break;
                         }
+                    } catch (Exception ex) {
+                        // Reflection failed, skip this path
                     }
-                    if (matchingPath != null) {
-                        String pathNumber = "1";
-                        try {
-                            java.lang.reflect.Field pathDescriptionField = matchingPath.getClass().getDeclaredField("pathDescription");
-                            pathDescriptionField.setAccessible(true);
-                            String pathDescription = (String) pathDescriptionField.get(matchingPath);
-                            if (pathDescription != null && pathDescription.contains("Pfad ")) {
-                                int start = pathDescription.indexOf("Pfad ") + 5;
-                                int end = pathDescription.indexOf(" ", start);
-                                if (end == -1) end = pathDescription.length();
-                                pathNumber = pathDescription.substring(start, end);
-                            }
-                            String simplifiedTitle = "Pfad " + pathNumber;
-                            java.lang.reflect.Field plateField = matchingPath.getClass().getDeclaredField("plate");
-                            java.lang.reflect.Field freeRectsField = matchingPath.getClass().getDeclaredField("freeRects");
-                            plateField.setAccessible(true);
-                            freeRectsField.setAccessible(true);
-                            Object plateObj = plateField.get(matchingPath);
-                            Object freeRectsObj = freeRectsField.get(matchingPath);
-                            List<MaxRectBF_MultiPath.FreeRectangle> freeRectsList = null;
-                            if (freeRectsObj instanceof List<?>) {
-                                freeRectsList = new java.util.ArrayList<>();
-                                for (Object obj : (List<?>) freeRectsObj) {
-                                    if (obj instanceof MaxRectBF_MultiPath.FreeRectangle) {
-                                        freeRectsList.add((MaxRectBF_MultiPath.FreeRectangle) obj);
-                                    }
+                }
+                if (matchingPath != null) {
+                    String pathNumber = "1";
+                    try {
+                        java.lang.reflect.Field pathDescriptionField = matchingPath.getClass().getDeclaredField("pathDescription");
+                        pathDescriptionField.setAccessible(true);
+                        String pathDescription = (String) pathDescriptionField.get(matchingPath);
+                        if (pathDescription != null && pathDescription.contains("Pfad ")) {
+                            int start = pathDescription.indexOf("Pfad ") + 5;
+                            int end = pathDescription.indexOf(" ", start);
+                            if (end == -1) end = pathDescription.length();
+                            pathNumber = pathDescription.substring(start, end);
+                        }
+                        String simplifiedTitle = "Pfad " + pathNumber;
+                        java.lang.reflect.Field plateField = matchingPath.getClass().getDeclaredField("plate");
+                        java.lang.reflect.Field freeRectsField = matchingPath.getClass().getDeclaredField("freeRects");
+                        plateField.setAccessible(true);
+                        freeRectsField.setAccessible(true);
+                        Object plateObj = plateField.get(matchingPath);
+                        Object freeRectsObj = freeRectsField.get(matchingPath);
+                        List<MaxRectBF_MultiPath.FreeRectangle> freeRectsList = null;
+                        if (freeRectsObj instanceof List<?>) {
+                            freeRectsList = new java.util.ArrayList<>();
+                            for (Object obj : (List<?>) freeRectsObj) {
+                                if (obj instanceof MaxRectBF_MultiPath.FreeRectangle) {
+                                    freeRectsList.add((MaxRectBF_MultiPath.FreeRectangle) obj);
                                 }
                             }
-                            PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
-                                (Plate) plateObj, 
-                                mode, 
-                                freeRectsList, 
-                                simplifiedTitle, 
-                                "Algorithmus: MultiPath (aus Benchmark)",
-                                jobListInfo // <-- Joblisten-Info weitergeben
-                            );
-                        } catch (Exception ex) {
-                            PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
-                                result.plate, mode, null, result.plate.name, null, jobListInfo);
                         }
-                    } else {
-                        PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
-                            result.plate, mode, null, result.plate.name, null, jobListInfo);
+                        String algoInfo = "Algorithmus: MultiPath (aus Benchmark)" + (globalAlgoInfo == null ? "" : " | " + globalAlgoInfo);
+                        PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo((Plate) plateObj, mode, freeRectsList, simplifiedTitle, algoInfo, jobListInfo);
+                    } catch (Exception ex) {
+                        PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(result.plate, mode, null, result.plate.name, globalAlgoInfo, jobListInfo);
                     }
-                    PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
-                        result.plate, mode, null, result.plate.name, null, jobListInfo);
+                } else {
+                    PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(result.plate, mode, null, result.plate.name, globalAlgoInfo, jobListInfo);
                 }
+            } else {
+                PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(result.plate, mode, null, result.plate.name, globalAlgoInfo, jobListInfo);
             }
         } else {
             mode = "2";
-            PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(
-                result.plate, mode, null, result.plate.name, null, jobListInfo);
+            PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(result.plate, mode, null, result.plate.name, globalAlgoInfo, jobListInfo);
         }
     }
-    
-    // Helper method to print job coordinates
-    private void printJobCoordinates(org.example.DataClasses.Plate plate) {
-        System.out.println("Job-Koordinaten auf Platte '" + plate.name + "':");
-        for (org.example.DataClasses.Job job : plate.jobs) {
-            System.out.printf("Job %d: x=%.2f, y=%.2f, w=%.2f, h=%.2f, rotated=%s\n",
-                job.id, job.x, job.y, job.width, job.height, job.rotated ? "ja" : "nein");
-        }
-        System.out.println();
-    }
-    
-    public static void showBenchmarkResults(List<BenchmarkResult> results, String jobListInfo) {
-        // Kein Popup mehr, Info nur im Fenstertitel
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                BenchmarkVisualizer visualizer = new BenchmarkVisualizer(results, jobListInfo);
-                visualizer.setVisible(true);
-            }
+
+    // Statische Helper zum Anzeigen des Benchmark-Fensters
+    public static void showBenchmarkResults(java.util.List<BenchmarkResult> results, String jobListInfo) {
+        SwingUtilities.invokeLater(() -> {
+            BenchmarkVisualizer visualizer = new BenchmarkVisualizer(results, jobListInfo);
+            visualizer.setVisible(true);
         });
     }
 
-    // Bestehende Methode für Rückwärtskompatibilität (ohne Info)
-    public static void showBenchmarkResults(List<BenchmarkResult> results) {
+    // Rückwärtskompatible Überladung
+    public static void showBenchmarkResults(java.util.List<BenchmarkResult> results) {
         showBenchmarkResults(results, "Jobliste: unbekannt");
     }
 }

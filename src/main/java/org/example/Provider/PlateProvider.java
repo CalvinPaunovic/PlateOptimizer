@@ -25,4 +25,17 @@ public class PlateProvider {
             new Plate("Standardplatte 2 (963 x 650)", 963.0, 650.0, "2")
         );
     }
+
+    // Neu: 3, 4 oder N Standardplatten gleicher Größe erzeugen
+    public static List<Plate> getThreeStandardPlates() { return createStandardPlates(3); }
+    public static List<Plate> getFourStandardPlates() { return createStandardPlates(4); }
+    public static List<Plate> getNStandardPlates(int n) { return createStandardPlates(n); }
+
+    private static java.util.List<Plate> createStandardPlates(int count) {
+        java.util.List<Plate> list = new java.util.ArrayList<>(Math.max(0, count));
+        for (int i = 1; i <= count; i++) {
+            list.add(new Plate("Standardplatte " + i + " (963 x 650)", 963.0, 650.0, String.valueOf(i)));
+        }
+        return list;
+    }
 }
