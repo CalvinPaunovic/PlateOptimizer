@@ -11,7 +11,15 @@ import java.util.*;
 
 public class MultiPlate_Controller {
 
-    // NUR NACH FLÄCHE SORTIERT!!!
+    /**
+     * 
+     * Informationen zur Nutzung von mehreren Platten
+     * Für die Benutzung von 3 Platten ist mehr RAM erfoderlich (z.B. 8 GB)
+     * cd C:\Users\cpaun\VisualStudioProjects\PlateOptimizer
+     * java -Xmx8G -cp target\classes org.example.Main
+     *
+     */
+
 
     private static final String[] VISUALIZE_BASE_PATH_NUMBERS = {"1", "1.1", "1.2","1.3", "1.1.1"};
 
@@ -385,7 +393,6 @@ public class MultiPlate_Controller {
          }
 
          
-         /*
          // Lauf 2: Sortierung nach größter Kante (desc)
          {
              // Vorbereitung: Kopien + Sortierung
@@ -423,7 +430,6 @@ public class MultiPlate_Controller {
              for (BenchmarkVisualizer.BenchmarkResult br : secondPass) br.sortLabel = "Größte Kante";
              combined.addAll(secondPass);
          }
-         */
 
 
          // Übergabe an GUI: Gemeinsames Ranking aller Pfade (beide Sortierungen) im Benchmark-Fenster
