@@ -7,6 +7,7 @@ import org.example.HelperClasses.JobUtils;
 import org.example.MultiPlate.MultiPlate_Controller;
 import org.example.Provider.JobListProvider;
 import org.example.SinglePlate.MaxRectBF_MultiPath_Controller;
+import org.example.MultiPlateIndividual.MultiPlateIndividual_Controller; // neu: individueller MultiPlate-Controller
 
 
 public class Main {
@@ -99,18 +100,16 @@ public class Main {
         // MaxRectsBF_MultiPath Benchmark
         if ("0".equals(mode)) {
             runBenchmark(originalJobs, jobListInfo, plates.get(0));
-        // MaxRectsBF_MultiPath ohne Benchmark (nur nach Size sortiert)
         } else if ("4".equals(mode)) {
             MaxRectBF_MultiPath_Controller.run_MaxRectBF_MultiPath(originalJobs, plates.get(0), sortJobs);
-        // MultiPlateMultiPath Präsentation
         } else if ("5".equals(mode)) {
             MultiPlateMultiPath(originalJobs, plates.get(0), plates);
-        // MaxRectBF_MultiPlate (work in progress, nur nach Size sortiert, nur mit mindestens zwei Platten)
         } else if ("7".equals(mode)) {
             MultiPlate_Controller.run_MaxRectBF_MultiPlate(originalJobs, plates, sortJobs); // Plattenliste übergeben
         } else if ("8".equals(mode)) {
-            // MultiPlate Benchmark aller Pfade (nur Benchmark anzeigen)
             MultiPlate_Controller.run_MaxRectBF_MultiPlate_BenchmarkOnly(originalJobs, plates, sortJobs);
+        } else if ("9".equals(mode)) {
+            MultiPlateIndividual_Controller.run_MaxRectBF_MultiPlate(originalJobs, plates, sortJobs);
         }
     }
 
@@ -154,8 +153,9 @@ public class Main {
         System.out.println("0 = MaxRectsBF_MultiPath (Benchmark)");
         System.out.println("4 = MaxRectsBF_MultiPath (ohne Benchmark, nur nach Size sortiert)");
         System.out.println("5 = MultiPlateMultiPath (Präsentation)");
-        System.out.println("7 = MaxRectBF_MultiPlate (Platzierung + Matrix + Visualisierung)");
-        System.out.println("8 = MaxRectBF_MultiPlate (Benchmark aller Pfade)");
+        System.out.println("7 = MultiPlate (Platzierung + Matrix + Visualisierung)");
+        System.out.println("8 = MultiPlate (Benchmark aller Pfade)");
+        System.out.println("9 = MultiPlateIndividual (Benchmark)");
         System.out.print("Bitte wählen: ");
         return scanner.nextLine().trim();
     }

@@ -40,6 +40,8 @@ public class BenchmarkVisualizer extends JFrame {
         public java.util.List<java.util.List<?>> platesFreeRects; // freie Rechtecke je Platte
         // Sortier-Label (z. B. "Fläche" oder "Größte Kante")
         public String sortLabel;
+        // NEU: Job-Set-Label
+        public String jobSetLabel;
 
         // Standardkonstruktor
         public BenchmarkResult(String algorithmName, Plate plate, Object algorithm, int placedJobs, double coverageRate, int totalJobs) {
@@ -62,6 +64,7 @@ public class BenchmarkVisualizer extends JFrame {
             this.platesCoverages = new java.util.ArrayList<>();
             this.platesFreeRects = new java.util.ArrayList<>();
             this.sortLabel = "-";
+            this.jobSetLabel = "-";
         }
 
         // Erweiteter Konstruktor mit freien Rechtecken
@@ -85,6 +88,7 @@ public class BenchmarkVisualizer extends JFrame {
             this.platesCoverages = new java.util.ArrayList<>();
             this.platesFreeRects = new java.util.ArrayList<>();
             this.sortLabel = "-";
+            this.jobSetLabel = "-";
         }
     }
     
@@ -164,6 +168,7 @@ public class BenchmarkVisualizer extends JFrame {
         colNames.add("Rang");
         colNames.add("Pfad");
         colNames.add("Sortierung");
+        colNames.add("Job-Set");
         colNames.add("Platzierte Jobs");
         colNames.add("Gesamt Jobs");
         colNames.add("Erfolgsrate");
@@ -172,22 +177,21 @@ public class BenchmarkVisualizer extends JFrame {
         for (int i = 1; i <= maxPlates; i++) { colNames.add("Platte " + i); colNames.add("Cov" + i); }
         DefaultTableModel model = new DefaultTableModel(colNames.toArray(new String[0]), 0) {
             @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            public boolean isCellEditable(int row, int column) { return false; }
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                // Dynamisch: feste Typen für die ersten 8 Spalten, danach alternierend Name (String), Cov (Double)
+                // Feste Typen für die ersten 9 Spalten, danach alternierend Name (String), Cov (Double)
                 if (columnIndex == 0) return Integer.class;   // Rang
                 if (columnIndex == 1) return String.class;    // Pfad
                 if (columnIndex == 2) return String.class;    // Sortierung
-                if (columnIndex == 3) return Integer.class;   // Platzierte
-                if (columnIndex == 4) return Integer.class;   // Gesamt
-                if (columnIndex == 5) return Double.class;    // Erfolgsrate
-                if (columnIndex == 6) return Double.class;    // Deckungsrate gesamt
-                if (columnIndex == 7) return String.class;    // Platten genutzt
-                // Ab hier: Platte i / Cov i (Start ab Index 8: Platte 1, Index 9: Cov1, ...)
-                return (columnIndex % 2 == 1) ? Double.class : String.class;
+                if (columnIndex == 3) return String.class;    // Job-Set
+                if (columnIndex == 4) return Integer.class;   // Platzierte
+                if (columnIndex == 5) return Integer.class;   // Gesamt
+                if (columnIndex == 6) return Double.class;    // Erfolgsrate
+                if (columnIndex == 7) return Double.class;    // Deckungsrate gesamt
+                if (columnIndex == 8) return String.class;    // Platten genutzt
+                // Ab hier: Platte i / Cov i (Start ab Index 9: Platte 1, Index 10: Cov1, ...)
+                return (columnIndex % 2 == 0) ? Double.class : String.class; // wird unten durch setComparator präzisiert
             }
         };
         
@@ -201,7 +205,8 @@ public class BenchmarkVisualizer extends JFrame {
             java.util.List<Object> row = new java.util.ArrayList<>();
             row.add(rank);
             row.add(result.algorithmName);
-            row.add(result.sortLabel); // neue Spalte Sortierung
+            row.add(result.sortLabel);
+            row.add(result.jobSetLabel == null ? "-" : result.jobSetLabel);
             row.add(result.placedJobs);
             row.add(result.totalJobs);
             row.add(successRate);
@@ -219,21 +224,14 @@ public class BenchmarkVisualizer extends JFrame {
          }
          
          table = new JTable(model);
-         // Sortierung konfigurieren
          javax.swing.table.TableRowSorter<DefaultTableModel> sorter = new javax.swing.table.TableRowSorter<>(model);
-         // Spalte 0 (Rang) nicht sortierbar
          sorter.setSortable(0, false);
-         // Prozentspalten numerisch sortieren (mit Null-Handling)
-         java.util.Comparator<Double> doubleComparator = (a, b) -> {
-             if (a == b) return 0; if (a == null) return -1; if (b == null) return 1; return Double.compare(a, b);
-         };
-         sorter.setComparator(5, doubleComparator); // Erfolgsrate
-         sorter.setComparator(6, doubleComparator); // Deckungsrate gesamt
-         // Dynamisch alle Cov-Spalten (ab Index 8, jede zweite Spalte -> 9, 11, ...)
-         int baseIdx = 8;
+         java.util.Comparator<Double> doubleComparator = (a, b) -> { if (a == b) return 0; if (a == null) return -1; if (b == null) return 1; return Double.compare(a, b); };
+         sorter.setComparator(6, doubleComparator); // Erfolgsrate
+         sorter.setComparator(7, doubleComparator); // Deckungsrate gesamt
+         int baseIdx = 9;
          for (int ci = baseIdx + 1; ci < model.getColumnCount(); ci += 2) sorter.setComparator(ci, doubleComparator);
-         // Platten genutzt (x/y) sinnvoll: nach Quote (used/total) sortieren, Tiebreak auf used
-         sorter.setComparator(7, (Object a, Object b) -> {
+         sorter.setComparator(8, (Object a, Object b) -> {
              String sa = a == null ? "" : a.toString();
              String sb = b == null ? "" : b.toString();
              double ra = 0.0; int ua = 0; int ta = 0;
@@ -244,26 +242,8 @@ public class BenchmarkVisualizer extends JFrame {
              if (cmp != 0) return cmp;
              return Integer.compare(ua, ub);
          });
+         sorter.setSortKeys(java.util.Arrays.asList(new javax.swing.RowSorter.SortKey(7, javax.swing.SortOrder.DESCENDING))); // Deckungsrate gesamt
          table.setRowSorter(sorter);
-         // Default: Deckungsrate (gesamt) absteigend
-         sorter.setSortKeys(java.util.Arrays.asList(new javax.swing.RowSorter.SortKey(6, javax.swing.SortOrder.DESCENDING))); // Deckungsrate gesamt
-         // Header-Click: für neue Spalte Start mit DESC, danach toggeln
-         table.getTableHeader().addMouseListener(new java.awt.event.MouseAdapter() {
-             @Override
-             public void mouseClicked(java.awt.event.MouseEvent e) {
-                 int viewCol = table.getTableHeader().columnAtPoint(e.getPoint());
-                 if (viewCol < 0) return;
-                 int modelCol = table.convertColumnIndexToModel(viewCol);
-                 if (!sorter.isSortable(modelCol)) return;
-                 java.util.List<? extends javax.swing.RowSorter.SortKey> keys = sorter.getSortKeys();
-                 javax.swing.SortOrder newOrder = javax.swing.SortOrder.DESCENDING;
-                 if (!keys.isEmpty() && keys.get(0).getColumn() == modelCol) {
-                     javax.swing.SortOrder cur = keys.get(0).getSortOrder();
-                     newOrder = (cur == javax.swing.SortOrder.DESCENDING) ? javax.swing.SortOrder.ASCENDING : javax.swing.SortOrder.DESCENDING;
-                 }
-                 sorter.setSortKeys(java.util.Arrays.asList(new javax.swing.RowSorter.SortKey(modelCol, newOrder)));
-             }
-         });
          customizeTable();
          
          JScrollPane scrollPane = new JScrollPane(table);
@@ -281,7 +261,6 @@ public class BenchmarkVisualizer extends JFrame {
         // Automatische Spaltenbreite für "Algorithmus"-Spalte (Index 1)
         adjustAlgorithmColumnWidth();
         
-        // Custom cell renderer für farbige Zeilen
         table.setDefaultRenderer(Object.class, new TableCellRenderer() {
              @Override
              public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -289,7 +268,7 @@ public class BenchmarkVisualizer extends JFrame {
                 if (column == 0) {
                     // Rang dynamisch aus der View-Position
                     text = String.valueOf(row + 1);
-                } else if (column == 5 || column == 6 || table.getColumnName(column).startsWith("Cov")) {
+                } else if (column == 6 || column == 7 || table.getColumnName(column).startsWith("Cov")) {
                     if (value instanceof Number) text = String.format("%.2f%%", ((Number) value).doubleValue());
                     else if (value == null) text = "-"; else text = value.toString();
                 } else if (value == null) {
@@ -318,7 +297,7 @@ public class BenchmarkVisualizer extends JFrame {
                  }
                  
                  // Zentriere bestimmte Spalten
-                 if (column == 0 || column == 3 || column == 4 || column == 5 || column == 6 || column == 7 || table.getColumnName(column).startsWith("Cov")) {
+                 if (column == 0 || column == 4 || column == 5 || column == 6 || column == 7 || column == 8 || table.getColumnName(column).startsWith("Cov")) {
                      label.setHorizontalAlignment(JLabel.CENTER);
                  }
  
@@ -351,10 +330,10 @@ public class BenchmarkVisualizer extends JFrame {
          table.getColumnModel().getColumn(1).setPreferredWidth(maxWidth);
          table.getColumnModel().getColumn(1).setMinWidth(maxWidth);
         // Zusätzliche sinnvolle Breiten
-        table.getColumnModel().getColumn(7).setPreferredWidth(100); // Platten genutzt
-        // Dynamisch: setze Breite für Name/Cov Paare ab Spalte 8
-        for (int c = 8; c < table.getColumnModel().getColumnCount(); c++) {
-            if ((c - 7) % 2 == 0) table.getColumnModel().getColumn(c).setPreferredWidth(140); // Platte i
+        table.getColumnModel().getColumn(8).setPreferredWidth(100); // Platten genutzt
+        // Dynamisch: setze Breite für Name/Cov Paare ab Spalte 9
+        for (int c = 9; c < table.getColumnModel().getColumnCount(); c++) {
+            if ((c - 8) % 2 == 1) table.getColumnModel().getColumn(c).setPreferredWidth(140); // Platte i
             else table.getColumnModel().getColumn(c).setPreferredWidth(80); // Cov i
         }
     }

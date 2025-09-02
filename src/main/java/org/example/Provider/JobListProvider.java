@@ -271,11 +271,11 @@ public class JobListProvider {
         ));
     }
 
-    // Erweiterte StandardJobList für zwei Platten
-    public static NamedJobList getExtendedStandardJobListTwo() {
+    // Erweiterte StandardJobList für drei Platten
+    public static NamedJobList getExtendedStandardJobListThree() {
         // Fläche pro Platte: 963*650=625950, zwei Platten: 1.251.900
         // Jobs: Summe Flächen ca. 1.100.000
-        return new NamedJobList(16, "Erweiterte Standardliste Zwei", "Standardliste + Ergänzungen für 3 Platten", Arrays.asList(
+        return new NamedJobList(16, "Erweiterte Standardliste Drei", "Standardliste + Ergänzungen für 3 Platten", Arrays.asList(
             new Job(0, 402, 480),
             new Job(1, 305, 222),
             new Job(2, 220, 573),
@@ -290,6 +290,33 @@ public class JobListProvider {
             new Job(11, 243, 188)
             //new Job(12, 243, 188),
             //new Job(13, 205, 153)
+        ));
+    }
+
+    // Erweiterte StandardJobList für vier Platten
+    public static NamedJobList getExtendedStandardJobListFour() {
+        // Fläche pro Platte: 963*650=625950
+        // Ziel: genug Jobs, damit 3 Platten nicht ausreichen und eine vierte benötigt wird
+        return new NamedJobList(17, "Erweiterte Standardliste Vier", "Standardliste + Ergänzungen für 4 Platten", Arrays.asList(
+            new Job(0, 402, 480),
+            new Job(1, 305, 222),
+            new Job(2, 220, 573),
+            new Job(3, 205, 153),
+            new Job(4, 243, 188),
+            new Job(5, 243, 188),
+            new Job(6, 205, 153),
+            new Job(7, 402, 480),
+            new Job(8, 305, 222),
+            new Job(9, 220, 573),
+            new Job(10, 205, 153),
+            new Job(11, 243, 188),
+            new Job(12, 243, 188),
+            new Job(13, 205, 153),
+            new Job(14, 402, 480),
+            new Job(15, 402, 480),
+            new Job(16, 450, 550),
+            new Job(17, 305, 222),
+            new Job(18, 300, 320)
         ));
     }
 
@@ -312,7 +339,8 @@ public class JobListProvider {
             getAlternatingSizesList(),
             getDecimalJobsList(),
             getExtendedStandardJobList(),
-            getExtendedStandardJobListTwo()
+            getExtendedStandardJobListThree(),
+            getExtendedStandardJobListFour()
         );
     }
 
