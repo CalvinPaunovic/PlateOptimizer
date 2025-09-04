@@ -29,37 +29,43 @@ public class Main {
      */
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        // Plattenauswahl: Standard, Groß oder mehrere Standardplatten
-        List<org.example.DataClasses.Plate> plates; // <-- Typ geändert
+        List<org.example.DataClasses.Plate> plates;
         System.out.println("Plattenmodus wählen:");
+        System.out.println("0 = Großplatte");
         System.out.println("1 = Standardplatte");
-        System.out.println("2 = Großplatte");
-        System.out.println("3 = Zwei Standardplatten");
-        System.out.println("4 = Drei Standardplatten");
-        System.out.println("5 = Vier Standardplatten");
-        System.out.println("6 = N Standardplatten (gleich groß)");
+        System.out.println("2 = Zwei Standardplatten");
+        System.out.println("3 = Drei Standardplatten");
+        System.out.println("4 = Vier Standardplatten");
+        System.out.println("5 = N Standardplatten (gleich groß)");
+        System.out.println("6 = Unendliche Standardplatten"); // NEU
         System.out.print("Bitte wählen: ");
         String plateModeInput = scanner.nextLine().trim();
         switch (plateModeInput) {
-            case "2":
+            case "0":
                 plates = Arrays.asList(org.example.Provider.PlateProvider.getLargePlate());
                 break;
-            case "3":
+            case "1":
+                plates = Arrays.asList(org.example.Provider.PlateProvider.getStandardPlate());
+                break;
+            case "2":
                 plates = org.example.Provider.PlateProvider.getTwoStandardPlates();
                 break;
-            case "4":
+            case "3":
                 plates = org.example.Provider.PlateProvider.getThreeStandardPlates();
                 break;
-            case "5":
+            case "4":
                 plates = org.example.Provider.PlateProvider.getFourStandardPlates();
                 break;
-            case "6":
+            case "5":
                 System.out.print("Anzahl N eingeben: ");
                 String nStr = scanner.nextLine().trim();
                 int n;
                 try { n = Integer.parseInt(nStr); } catch (NumberFormatException e) { n = 2; }
                 if (n < 1) n = 1;
                 plates = org.example.Provider.PlateProvider.getNStandardPlates(n);
+                break;
+            case "6": // Unendlich viele Standardplatten
+                plates = Arrays.asList(org.example.Provider.PlateProvider.getStandardPlate());
                 break;
             default:
                 plates = Arrays.asList(org.example.Provider.PlateProvider.getStandardPlate());
@@ -71,7 +77,12 @@ public class Main {
         String jobListInfo = selection.name;
         String mode = getUserAlgorithmChoice(scanner);
 
-        runMode(originalJobs, mode, jobListInfo, plates);
+        // Bei Modus 9 und Plattenmodus 6 direkt Unlimited-Variante aufrufen
+        if ("9".equals(mode) && "6".equals(plateModeInput)) {
+            MultiPlateIndividual_Controller.run_MaxRectBF_MultiPlate_Unlimited(originalJobs, plates.get(0), sortJobs);
+        } else {
+            runMode(originalJobs, mode, jobListInfo, plates);
+        }
 
         scanner.close();
     }
@@ -109,6 +120,7 @@ public class Main {
         } else if ("8".equals(mode)) {
             MultiPlate_Controller.run_MaxRectBF_MultiPlate_BenchmarkOnly(originalJobs, plates, sortJobs);
         } else if ("9".equals(mode)) {
+            // Standard (begrenzte) Variante
             MultiPlateIndividual_Controller.run_MaxRectBF_MultiPlate(originalJobs, plates, sortJobs);
         }
     }

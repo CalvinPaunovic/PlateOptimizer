@@ -11,27 +11,27 @@ import org.example.DataClasses.Plate;
 public class MultiPlateIndividual_Algorithm {
 
     List<MultiPlate_DataClasses> paths; // aktive Pfade der aktuell bearbeiteten Platte
-    Plate originalPlate; // erste Platte (wie zuvor)
+    Plate originalPlate; // erste Platte
     boolean debugEnabled = false;
     private int pathCounter = 0;
-    // Prefix für Pfad-IDs (z.B. Verknüpfung zu Elternpfad auf anderer Platte)
-    private String pathIdPrefix = ""; // leer = Standard
-
-    // NEU: Mehrplatten-Unterstützung
-    private List<Plate> plateSequence = new ArrayList<>(); // Reihenfolge aller Platten
-    private int currentPlateIndex = 0; // Index der aktuell genutzten Platte
-    private List<MultiPlate_DataClasses> completedPlatePaths = new ArrayList<>(); // akkumulierte Pfade bereits fertig bearbeiteter Platten
-
-    // Hierarchische Kindpfade (z.B. Elternpfad 4 -> 4.1, 4.2, 4.3 ...)
+    private String pathIdPrefix = "";
+    private List<Plate> plateSequence = new ArrayList<>();
+    private int currentPlateIndex = 0;
+    private List<MultiPlate_DataClasses> completedPlatePaths = new ArrayList<>();
     private boolean hierarchicalChildMode = false;
     private String parentPathIdForChildren = null;
     private int childSequenceCounter = 0;
-
-    private static final boolean ALWAYS_BRANCH = true; // Neuer Modus: nach jeder erfolgreichen Platzierung alternativen Pfad erzeugen
+    private static final boolean ALWAYS_BRANCH = true;
 
     public MultiPlateIndividual_Algorithm() { }
 
-    // Konstruktor mit Prefix
+    // Konstruktor mit Flag für unendliche Platten
+    public MultiPlateIndividual_Algorithm(List<Plate> plateInfos, boolean unlimitedPlates) {
+        if (plateInfos != null) this.plateSequence.addAll(plateInfos);
+        this.paths = new ArrayList<>();
+        if (!plateSequence.isEmpty()) initializePathsForPlate(plateSequence.get(0));
+    }
+
     public MultiPlateIndividual_Algorithm(List<Plate> plateInfos, String pathIdPrefix) {
         if (plateInfos != null) this.plateSequence.addAll(plateInfos);
         this.pathIdPrefix = pathIdPrefix == null ? "" : pathIdPrefix;
@@ -342,7 +342,9 @@ public class MultiPlateIndividual_Algorithm {
 
     // Wechsel zur nächsten Platte (falls vorhanden)
     private boolean switchToNextPlate() {
-        if (currentPlateIndex + 1 >= plateSequence.size()) return false;
+        if (currentPlateIndex + 1 >= plateSequence.size()) {
+            return false; // keine weitere Platte im aktuellen Algorithmus
+        }
         // Zusammenfassung aktuelle Platte
         if (debugEnabled) {
             int jobsTotal = 0; int failedTotal = 0;

@@ -11,10 +11,9 @@ public class PlateProvider {
     }
 
     public static Plate getLargePlate() {
-        return new Plate("Großplatte", 1200.0, 800.0, "1");
+        return new Plate("Großplatte", 1200.0, 800.0, "0");
     }
 
-    // Gibt eine Liste mit allen verfügbaren Platten zurück
     public static List<Plate> getPlateList() {
         return Arrays.asList(getStandardPlate(), getLargePlate());
     }
@@ -26,7 +25,6 @@ public class PlateProvider {
         );
     }
 
-    // Neu: 3, 4 oder N Standardplatten gleicher Größe erzeugen
     public static List<Plate> getThreeStandardPlates() { return createStandardPlates(3); }
     public static List<Plate> getFourStandardPlates() { return createStandardPlates(4); }
     public static List<Plate> getNStandardPlates(int n) { return createStandardPlates(n); }

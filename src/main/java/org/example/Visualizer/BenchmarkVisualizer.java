@@ -15,33 +15,30 @@ public class BenchmarkVisualizer extends JFrame {
     public static class BenchmarkResult {
         public String algorithmName;
         public Plate plate;
-        public Object algorithm;  // MaxRectBF, MaxRectBF_Dynamic, oder MaxRectBF_MultiPath
+        public Object algorithm;
         public int placedJobs;
         public double coverageRate;
         public int totalJobs;
-        public List<MaxRectBF_MultiPath.FreeRectangle> specificFreeRects; // Für MultiPath-Pfade
-        // NEU: Multi-Plate Zusatzinfos
+        public List<MaxRectBF_MultiPath.FreeRectangle> specificFreeRects;
         public int platesUsed = 1;
         public int platesTotal = 1;
         public String plate1Name;
-        public Double coveragePlate1; // Prozent
+        public Double coveragePlate1;
         public String plate2Name;
-        public Double coveragePlate2; // Prozent
-        // Referenzen auf die Platten
+        public Double coveragePlate2;
         public Plate plate1Ref;
         public Plate plate2Ref;
-        // Freie Rechtecke je Platte (Typ offen gelassen)
         public List<?> plate1FreeRects;
         public List<?> plate2FreeRects;
-        // Dynamische Unterstützung für beliebig viele Platten
-        public java.util.List<Plate> platesRefs;          // Reihenfolge der Platten in der Kette
-        public java.util.List<String> platesNames;        // Namen je Platte
-        public java.util.List<Double> platesCoverages;    // Coverage je Platte
-        public java.util.List<java.util.List<?>> platesFreeRects; // freie Rechtecke je Platte
-        // Sortier-Label (z. B. "Fläche" oder "Größte Kante")
+        public java.util.List<Plate> platesRefs;          
+        public java.util.List<String> platesNames;        
+        public java.util.List<Double> platesCoverages;    
+        public java.util.List<java.util.List<?>> platesFreeRects; 
         public String sortLabel;
-        // NEU: Job-Set-Label
         public String jobSetLabel;
+        public String sortedBy;
+        public String rootSetId;
+        public java.util.List<String> perPlateSetLabels;
 
         // Standardkonstruktor
         public BenchmarkResult(String algorithmName, Plate plate, Object algorithm, int placedJobs, double coverageRate, int totalJobs) {
@@ -52,7 +49,6 @@ public class BenchmarkVisualizer extends JFrame {
             this.coverageRate = coverageRate;
             this.totalJobs = totalJobs;
             this.specificFreeRects = null;
-            // Defaults für Ein-Platten-Fall
             this.plate1Name = plate != null ? plate.name : null;
             this.coveragePlate1 = coverageRate;
             this.plate1Ref = plate;
@@ -65,6 +61,9 @@ public class BenchmarkVisualizer extends JFrame {
             this.platesFreeRects = new java.util.ArrayList<>();
             this.sortLabel = "-";
             this.jobSetLabel = "-";
+            this.sortedBy = "-";
+            this.rootSetId = "-";
+            this.perPlateSetLabels = new java.util.ArrayList<>();
         }
 
         // Erweiteter Konstruktor mit freien Rechtecken
@@ -76,7 +75,6 @@ public class BenchmarkVisualizer extends JFrame {
             this.coverageRate = coverageRate;
             this.totalJobs = totalJobs;
             this.specificFreeRects = specificFreeRects;
-            // Defaults für Ein-Platten-Fall
             this.plate1Name = plate != null ? plate.name : null;
             this.coveragePlate1 = coverageRate;
             this.plate1Ref = plate;
@@ -89,6 +87,9 @@ public class BenchmarkVisualizer extends JFrame {
             this.platesFreeRects = new java.util.ArrayList<>();
             this.sortLabel = "-";
             this.jobSetLabel = "-";
+            this.sortedBy = "-";
+            this.rootSetId = "-";
+            this.perPlateSetLabels = new java.util.ArrayList<>();
         }
     }
     
@@ -139,7 +140,7 @@ public class BenchmarkVisualizer extends JFrame {
         panel.setPreferredSize(new Dimension(0, 80));
         panel.setLayout(new BorderLayout());
         
-        JLabel titleLabel = new JLabel("CodiPaq PlateOptimizer", JLabel.CENTER);
+        JLabel titleLabel = new JLabel("PlateOptimizer", JLabel.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setForeground(Color.WHITE);
         
@@ -163,35 +164,33 @@ public class BenchmarkVisualizer extends JFrame {
             int used = r.platesRefs != null && !r.platesRefs.isEmpty() ? r.platesRefs.size() : r.platesUsed;
             if (used > maxPlates) maxPlates = used;
         }
+        
         // Table Model mit dynamischen Spalten
         java.util.List<String> colNames = new java.util.ArrayList<>();
         colNames.add("Rang");
         colNames.add("Pfad");
-        colNames.add("Sortierung");
-        colNames.add("Job-Set");
+        colNames.add("Sortiert nach");
+        colNames.add("Root-Set (P1)");
         colNames.add("Platzierte Jobs");
         colNames.add("Gesamt Jobs");
         colNames.add("Erfolgsrate");
-        colNames.add("Deckungsrate (gesamt)");
-        colNames.add("Platten genutzt");
         for (int i = 1; i <= maxPlates; i++) { colNames.add("Platte " + i); colNames.add("Cov" + i); }
         DefaultTableModel model = new DefaultTableModel(colNames.toArray(new String[0]), 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                // Feste Typen für die ersten 9 Spalten, danach alternierend Name (String), Cov (Double)
-                if (columnIndex == 0) return Integer.class;   // Rang
-                if (columnIndex == 1) return String.class;    // Pfad
-                if (columnIndex == 2) return String.class;    // Sortierung
-                if (columnIndex == 3) return String.class;    // Job-Set
-                if (columnIndex == 4) return Integer.class;   // Platzierte
-                if (columnIndex == 5) return Integer.class;   // Gesamt
-                if (columnIndex == 6) return Double.class;    // Erfolgsrate
-                if (columnIndex == 7) return Double.class;    // Deckungsrate gesamt
-                if (columnIndex == 8) return String.class;    // Platten genutzt
-                // Ab hier: Platte i / Cov i (Start ab Index 9: Platte 1, Index 10: Cov1, ...)
-                return (columnIndex % 2 == 0) ? Double.class : String.class; // wird unten durch setComparator präzisiert
+                String name = getColumnName(columnIndex);
+                if ("Rang".equals(name)) return Integer.class;
+                if ("Pfad".equals(name)) return String.class;
+                if ("Sortiert nach".equals(name)) return String.class;
+                if ("Root-Set (P1)".equals(name)) return String.class;
+                if ("Platzierte Jobs".equals(name)) return Integer.class;
+                if ("Gesamt Jobs".equals(name)) return Integer.class;
+                if ("Erfolgsrate".equals(name)) return Double.class;
+                if (name.startsWith("Platte ")) return String.class;
+                if (name.startsWith("Cov")) return Double.class;
+                return Object.class;
             }
         };
         
@@ -200,18 +199,23 @@ public class BenchmarkVisualizer extends JFrame {
             BenchmarkResult result = results.get(i);
             Integer rank = i + 1;
             double successRate = result.totalJobs == 0 ? 0.0 : (double) result.placedJobs / result.totalJobs * 100.0;
-            double coverageRate = result.coverageRate;
-            String platesUsed = String.format("%d/%d", result.platesUsed, result.platesTotal);
+            String sortedBy = "-";
+            if (result.sortedBy != null && !result.sortedBy.trim().isEmpty() && !"-".equals(result.sortedBy)) {
+                sortedBy = result.sortedBy;
+            } else if (result.sortLabel != null) {
+                String sl = result.sortLabel.toLowerCase();
+                if (sl.contains("fläche")) sortedBy = "Fläche";
+                else if (sl.contains("kante")) sortedBy = "Kante";
+            }
             java.util.List<Object> row = new java.util.ArrayList<>();
             row.add(rank);
             row.add(result.algorithmName);
-            row.add(result.sortLabel);
-            row.add(result.jobSetLabel == null ? "-" : result.jobSetLabel);
+            row.add(sortedBy);
+            String root = result.rootSetId == null ? "-" : result.rootSetId;
+            row.add(root);
             row.add(result.placedJobs);
             row.add(result.totalJobs);
             row.add(successRate);
-            row.add(coverageRate);
-            row.add(platesUsed);
             for (int pi = 0; pi < maxPlates; pi++) {
                 String name = null; Double cov = null;
                 if (result.platesNames != null && pi < result.platesNames.size()) name = result.platesNames.get(pi);
@@ -226,31 +230,43 @@ public class BenchmarkVisualizer extends JFrame {
          table = new JTable(model);
          javax.swing.table.TableRowSorter<DefaultTableModel> sorter = new javax.swing.table.TableRowSorter<>(model);
          sorter.setSortable(0, false);
-         java.util.Comparator<Double> doubleComparator = (a, b) -> { if (a == b) return 0; if (a == null) return -1; if (b == null) return 1; return Double.compare(a, b); };
-         sorter.setComparator(6, doubleComparator); // Erfolgsrate
-         sorter.setComparator(7, doubleComparator); // Deckungsrate gesamt
-         int baseIdx = 9;
-         for (int ci = baseIdx + 1; ci < model.getColumnCount(); ci += 2) sorter.setComparator(ci, doubleComparator);
-         sorter.setComparator(8, (Object a, Object b) -> {
+         // Comparator für Pfad-ID (Spalte "Pfad")
+         sorter.setComparator(model.findColumn("Pfad"), (Object a, Object b) -> {
              String sa = a == null ? "" : a.toString();
              String sb = b == null ? "" : b.toString();
-             double ra = 0.0; int ua = 0; int ta = 0;
-             double rb = 0.0; int ub = 0; int tb = 0;
-             try { String[] pa = sa.split("/"); ua = Integer.parseInt(pa[0]); ta = Integer.parseInt(pa[1]); ra = ta==0?0.0:((double)ua/ta); } catch(Exception ignored) {}
-             try { String[] pb = sb.split("/"); ub = Integer.parseInt(pb[0]); tb = Integer.parseInt(pb[1]); rb = tb==0?0.0:((double)ub/tb); } catch(Exception ignored) {}
-             int cmp = Double.compare(ra, rb);
-             if (cmp != 0) return cmp;
-             return Integer.compare(ua, ub);
+             String ida = sa.replaceAll("[^0-9.]", "");
+             String idb = sb.replaceAll("[^0-9.]", "");
+             String[] pa = ida.split("\\.");
+             String[] pb = idb.split("\\.");
+             int len = Math.max(pa.length, pb.length);
+             for (int i2 = 0; i2 < len; i2++) {
+                 int va = (i2 < pa.length && !pa[i2].isEmpty()) ? Integer.parseInt(pa[i2]) : 0;
+                 int vb = (i2 < pb.length && !pb[i2].isEmpty()) ? Integer.parseInt(pb[i2]) : 0;
+                 if (va != vb) return Integer.compare(va, vb);
+             }
+             return 0;
          });
-         sorter.setSortKeys(java.util.Arrays.asList(new javax.swing.RowSorter.SortKey(7, javax.swing.SortOrder.DESCENDING))); // Deckungsrate gesamt
-         table.setRowSorter(sorter);
-         customizeTable();
-         
-         JScrollPane scrollPane = new JScrollPane(table);
-         panel.add(scrollPane, BorderLayout.CENTER);
-         
-         return panel;
-     }
+         java.util.Comparator<Double> doubleComparator = (a, b) -> { if (a == b) return 0; if (a == null) return -1; if (b == null) return 1; return Double.compare(a, b); };
+         sorter.setComparator(model.findColumn("Erfolgsrate"), doubleComparator);
+         for (int ci = 0; ci < model.getColumnCount(); ci++) if (model.getColumnName(ci).startsWith("Cov")) sorter.setComparator(ci, doubleComparator);
+
+        // Standard-Sortierung: Coverage-Rate (absteigend), dann Erfolgsrate (absteigend)
+        int covCol = -1;
+        for (int ci = 0; ci < model.getColumnCount(); ci++) {
+            if (model.getColumnName(ci).startsWith("Cov")) { covCol = ci; break; }
+        }
+        java.util.List<javax.swing.RowSorter.SortKey> sortKeys = new java.util.ArrayList<>();
+        if (covCol >= 0) sortKeys.add(new javax.swing.RowSorter.SortKey(covCol, javax.swing.SortOrder.DESCENDING));
+        sortKeys.add(new javax.swing.RowSorter.SortKey(model.findColumn("Erfolgsrate"), javax.swing.SortOrder.DESCENDING));
+        sorter.setSortKeys(sortKeys);
+        table.setRowSorter(sorter);
+        customizeTable();
+        
+        JScrollPane scrollPane = new JScrollPane(table);
+        panel.add(scrollPane, BorderLayout.CENTER);
+        
+        return panel;
+    }
     
     private void customizeTable() {
         table.setFont(new Font("Arial", Font.PLAIN, 12));
@@ -258,17 +274,17 @@ public class BenchmarkVisualizer extends JFrame {
         table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
         table.getTableHeader().setBackground(new Color(240, 240, 240));
         
-        // Automatische Spaltenbreite für "Algorithmus"-Spalte (Index 1)
+        // Automatische Spaltenbreite für "Pfad"-Spalte
         adjustAlgorithmColumnWidth();
         
         table.setDefaultRenderer(Object.class, new TableCellRenderer() {
              @Override
              public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                String name = table.getColumnName(column);
                 String text;
-                if (column == 0) {
-                    // Rang dynamisch aus der View-Position
+                if ("Rang".equals(name)) {
                     text = String.valueOf(row + 1);
-                } else if (column == 6 || column == 7 || table.getColumnName(column).startsWith("Cov")) {
+                } else if ("Erfolgsrate".equals(name) || "Deckungsrate (gesamt)".equals(name) || name.startsWith("Cov")) {
                     if (value instanceof Number) text = String.format("%.2f%%", ((Number) value).doubleValue());
                     else if (value == null) text = "-"; else text = value.toString();
                 } else if (value == null) {
@@ -284,21 +300,21 @@ public class BenchmarkVisualizer extends JFrame {
                  if (isSelected) {
                      label.setBackground(new Color(184, 207, 229));
                  } else {
-                     // Verschiedene Farben je nach Rang
                      if (row == 0) {
-                         label.setBackground(new Color(255, 215, 0, 50)); // Gold
+                         label.setBackground(new Color(255, 215, 0, 50));
                      } else if (row == 1) {
-                         label.setBackground(new Color(192, 192, 192, 50)); // Silber
+                         label.setBackground(new Color(192, 192, 192, 50));
                      } else if (row == 2) {
-                         label.setBackground(new Color(205, 127, 50, 50)); // Bronze
+                         label.setBackground(new Color(205, 127, 50, 50));
                      } else {
                          label.setBackground(Color.WHITE);
                      }
                  }
                  
-                 // Zentriere bestimmte Spalten
-                 if (column == 0 || column == 4 || column == 5 || column == 6 || column == 7 || column == 8 || table.getColumnName(column).startsWith("Cov")) {
+                 if ("Rang".equals(name) || "Platzierte Jobs".equals(name) || "Gesamt Jobs".equals(name) || "Erfolgsrate".equals(name) || "Deckungsrate (gesamt)".equals(name) || "Platten genutzt".equals(name) || name.startsWith("Cov")) {
                      label.setHorizontalAlignment(JLabel.CENTER);
+                 } else {
+                     label.setHorizontalAlignment(JLabel.LEFT);
                  }
  
                  return label;
@@ -307,34 +323,37 @@ public class BenchmarkVisualizer extends JFrame {
      }
  
      private void adjustAlgorithmColumnWidth() {
-         // Finde die längste Algorithmus-Name
          int maxWidth = 0;
          FontMetrics fm = table.getFontMetrics(table.getFont());
          
-         // Prüfe den Header-Text
          String headerText = "Pfad";
          int headerWidth = fm.stringWidth(headerText);
          maxWidth = Math.max(maxWidth, headerWidth);
          
-         // Prüfe alle Algorithmus-Namen in den Daten
          for (int i = 0; i < results.size(); i++) {
              BenchmarkResult result = results.get(i);
              int textWidth = fm.stringWidth(result.algorithmName);
              maxWidth = Math.max(maxWidth, textWidth);
          }
          
-         // Füge Padding hinzu (für Borders und etwas Luft)
          maxWidth += 40;
          
-         // Setze die Spaltenbreite für Algorithmus-Spalte
-         table.getColumnModel().getColumn(1).setPreferredWidth(maxWidth);
-         table.getColumnModel().getColumn(1).setMinWidth(maxWidth);
-        // Zusätzliche sinnvolle Breiten
-        table.getColumnModel().getColumn(8).setPreferredWidth(100); // Platten genutzt
-        // Dynamisch: setze Breite für Name/Cov Paare ab Spalte 9
-        for (int c = 9; c < table.getColumnModel().getColumnCount(); c++) {
-            if ((c - 8) % 2 == 1) table.getColumnModel().getColumn(c).setPreferredWidth(140); // Platte i
-            else table.getColumnModel().getColumn(c).setPreferredWidth(80); // Cov i
+         table.getColumnModel().getColumn(table.getColumnModel().getColumnIndex("Pfad")).setPreferredWidth(maxWidth);
+         table.getColumnModel().getColumn(table.getColumnModel().getColumnIndex("Pfad")).setMinWidth(maxWidth);
+        try {
+            int platesUsedIdx = table.getColumnModel().getColumnIndex("Platten genutzt");
+            table.getColumnModel().getColumn(platesUsedIdx).setPreferredWidth(110);
+        } catch (IllegalArgumentException ignored) {
+        }
+        // Dynamisch: setze Breite für Name/Cov Paare ab "Platte 1"
+        int start = -1;
+        try { start = table.getColumnModel().getColumnIndex("Platte 1"); } catch(Exception ignored) {}
+        if (start >= 0) {
+            for (int c = start; c < table.getColumnModel().getColumnCount(); c++) {
+                String name = table.getColumnName(c);
+                if (name.startsWith("Platte ")) table.getColumnModel().getColumn(c).setPreferredWidth(140);
+                else if (name.startsWith("Cov")) table.getColumnModel().getColumn(c).setPreferredWidth(80);
+            }
         }
     }
     
@@ -378,16 +397,10 @@ public class BenchmarkVisualizer extends JFrame {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(BorderFactory.createTitledBorder("Aktionen"));
         
-        JButton visualizeBestButton = new JButton("🏆 Beste Lösung anzeigen");
-        visualizeBestButton.setPreferredSize(new Dimension(180, 40));
-        visualizeBestButton.addActionListener(e -> visualizeBestSolution());
-        
         JButton visualizeSelectedButton = new JButton("👁️ Ausgewählte anzeigen");
         visualizeSelectedButton.setPreferredSize(new Dimension(180, 40));
         visualizeSelectedButton.addActionListener(e -> visualizeSelectedSolution());
         
-        panel.add(Box.createVerticalStrut(10));
-        panel.add(visualizeBestButton);
         panel.add(Box.createVerticalStrut(10));
         panel.add(visualizeSelectedButton);
         panel.add(Box.createVerticalGlue());
@@ -404,21 +417,18 @@ public class BenchmarkVisualizer extends JFrame {
         return sum / results.size();
     }
     
-    private void visualizeBestSolution() {
-        if (!results.isEmpty()) {
-            BenchmarkResult best = results.get(0);
-            showPlateVisualization(best);
-        }
-    }
-    
     private void visualizeSelectedSolution() {
         int selectedRow = table.getSelectedRow();
-        if (selectedRow >= 0 && selectedRow < results.size()) {
-            BenchmarkResult selected = results.get(selectedRow);
-            showPlateVisualization(selected);
-        } else {
-            JOptionPane.showMessageDialog(this, "Bitte wählen Sie eine Zeile aus der Tabelle aus.", "Keine Auswahl", JOptionPane.INFORMATION_MESSAGE);
+        if (selectedRow >= 0) {
+            // View-Index -> Model-Index abbilden (wegen Sortierung/Filterung)
+            int modelRow = table.convertRowIndexToModel(selectedRow);
+            if (modelRow >= 0 && modelRow < results.size()) {
+                BenchmarkResult selected = results.get(modelRow);
+                showPlateVisualization(selected);
+                return;
+            }
         }
+        JOptionPane.showMessageDialog(this, "Bitte wählen Sie eine Zeile aus der Tabelle aus.", "Keine Auswahl", JOptionPane.INFORMATION_MESSAGE);
     }
     
     private void showPlateVisualization(BenchmarkResult result) {
@@ -563,7 +573,6 @@ public class BenchmarkVisualizer extends JFrame {
         }
     }
 
-    // Statische Helper zum Anzeigen des Benchmark-Fensters
     public static void showBenchmarkResults(java.util.List<BenchmarkResult> results, String jobListInfo) {
         SwingUtilities.invokeLater(() -> {
             BenchmarkVisualizer visualizer = new BenchmarkVisualizer(results, jobListInfo);
@@ -571,8 +580,4 @@ public class BenchmarkVisualizer extends JFrame {
         });
     }
 
-    // Rückwärtskompatible Überladung
-    public static void showBenchmarkResults(java.util.List<BenchmarkResult> results) {
-        showBenchmarkResults(results, "Jobliste: unbekannt");
-    }
 }
