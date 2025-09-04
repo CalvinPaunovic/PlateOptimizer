@@ -250,24 +250,17 @@ public class JobListProvider {
     }
 
     // Erweiterte StandardJobList für zwei Platten
-    public static NamedJobList getExtendedStandardJobList() {
-        // Fläche pro Platte: 963*650=625950, zwei Platten: 1.251.900
-        // Jobs: Summe Flächen ca. 1.100.000
+    public static NamedJobList getExtendedStandardJobListTwo() {
         return new NamedJobList(15, "Erweiterte Standardliste", "Standardliste + Ergänzungen für 2 Platten", Arrays.asList(
-            new Job(0, 402, 480),
-            new Job(1, 305, 222),
             new Job(2, 220, 573),
-            new Job(3, 205, 153),
+            new Job(0, 402, 480),
+            new Job(7, 402, 480),
+            new Job(1, 305, 222),
+            new Job(8, 305, 222),
             new Job(4, 243, 188),
             new Job(5, 243, 188),
-            new Job(6, 205, 153),
-            new Job(7, 402, 480),
-            new Job(8, 305, 222)
-            //new Job(9, 220, 573),
-            //new Job(10, 205, 153),
-            //new Job(11, 243, 188),
-            //new Job(12, 243, 188),
-            //new Job(13, 205, 153)
+            new Job(3, 205, 153),
+            new Job(6, 205, 153)
         ));
     }
 
@@ -288,8 +281,6 @@ public class JobListProvider {
             new Job(9, 220, 573),
             new Job(10, 205, 153),
             new Job(11, 243, 188)
-            //new Job(12, 243, 188),
-            //new Job(13, 205, 153)
         ));
     }
 
@@ -320,6 +311,14 @@ public class JobListProvider {
         ));
     }
 
+    /*
+     * MultiPlateIndividual-Algorithmus:
+     * Anzahl Pfade wächst exponentiell mit Anzahl der Jobs.
+     * Anzahl Pfade = 2^(Anzahl Jobs) * 2 (mal zwei, weil der Algorithmus nach Fläche und nach Kante ausgeführt wird)
+     * getExtendedStandardJobListTwo: 2^9 * 2 = 1024
+     * getExtendedStandardJobListThree: 2^12 * 2 = 8192
+     * getExtendedStandardJobListFour: 2^19 * 2 = 1.048.576 -> Nicht genug RAM!!!
+     */
 
     // Menü in fester Reihenfolge (IDs aufsteigend)
     public static java.util.List<NamedJobList> getAllListsInMenuOrder() {
@@ -338,7 +337,7 @@ public class JobListProvider {
             getManyTinyJobs(),
             getAlternatingSizesList(),
             getDecimalJobsList(),
-            getExtendedStandardJobList(),
+            getExtendedStandardJobListTwo(),
             getExtendedStandardJobListThree(),
             getExtendedStandardJobListFour()
         );

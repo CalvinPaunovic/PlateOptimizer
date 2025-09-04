@@ -193,11 +193,29 @@ public class BenchmarkVisualizer extends JFrame {
                 return Object.class;
             }
         };
+
+        // NEU: Gemeinsame Rangberechnung pro Root-Set (P1) über beide Sortierungen
+        java.util.Map<String, Double> bestCoverageByGroup = new java.util.HashMap<>();
+        for (int i = 0; i < results.size(); i++) {
+            BenchmarkResult r = results.get(i);
+            String groupKey = (r.rootSetId != null && !r.rootSetId.trim().isEmpty() && !"-".equals(r.rootSetId)) ? r.rootSetId : r.algorithmName;
+            double cov = r.coverageRate;
+            bestCoverageByGroup.merge(groupKey, cov, Math::max);
+        }
+        java.util.List<java.util.Map.Entry<String, Double>> groupEntries = new java.util.ArrayList<>(bestCoverageByGroup.entrySet());
+        groupEntries.sort((a, b) -> Double.compare(b.getValue(), a.getValue())); // absteigend
+        java.util.Map<String, Integer> rankByGroup = new java.util.HashMap<>();
+        int rankCounter = 1;
+        for (java.util.Map.Entry<String, Double> e : groupEntries) {
+            rankByGroup.put(e.getKey(), rankCounter++);
+        }
         
         // Fülle die Tabelle mit Daten
         for (int i = 0; i < results.size(); i++) {
             BenchmarkResult result = results.get(i);
-            Integer rank = i + 1;
+            // NEU: Rang aus gemeinsamer Rangliste pro Root-Set (P1)
+            String groupKey = (result.rootSetId != null && !result.rootSetId.trim().isEmpty() && !"-".equals(result.rootSetId)) ? result.rootSetId : result.algorithmName;
+            Integer rank = rankByGroup.getOrDefault(groupKey, i + 1);
             double successRate = result.totalJobs == 0 ? 0.0 : (double) result.placedJobs / result.totalJobs * 100.0;
             String sortedBy = "-";
             if (result.sortedBy != null && !result.sortedBy.trim().isEmpty() && !"-".equals(result.sortedBy)) {
@@ -225,30 +243,30 @@ public class BenchmarkVisualizer extends JFrame {
                 row.add(cov);
             }
             model.addRow(row.toArray());
-         }
+        }
          
-         table = new JTable(model);
-         javax.swing.table.TableRowSorter<DefaultTableModel> sorter = new javax.swing.table.TableRowSorter<>(model);
-         sorter.setSortable(0, false);
-         // Comparator für Pfad-ID (Spalte "Pfad")
-         sorter.setComparator(model.findColumn("Pfad"), (Object a, Object b) -> {
-             String sa = a == null ? "" : a.toString();
-             String sb = b == null ? "" : b.toString();
-             String ida = sa.replaceAll("[^0-9.]", "");
-             String idb = sb.replaceAll("[^0-9.]", "");
-             String[] pa = ida.split("\\.");
-             String[] pb = idb.split("\\.");
-             int len = Math.max(pa.length, pb.length);
-             for (int i2 = 0; i2 < len; i2++) {
-                 int va = (i2 < pa.length && !pa[i2].isEmpty()) ? Integer.parseInt(pa[i2]) : 0;
-                 int vb = (i2 < pb.length && !pb[i2].isEmpty()) ? Integer.parseInt(pb[i2]) : 0;
-                 if (va != vb) return Integer.compare(va, vb);
-             }
-             return 0;
-         });
-         java.util.Comparator<Double> doubleComparator = (a, b) -> { if (a == b) return 0; if (a == null) return -1; if (b == null) return 1; return Double.compare(a, b); };
-         sorter.setComparator(model.findColumn("Erfolgsrate"), doubleComparator);
-         for (int ci = 0; ci < model.getColumnCount(); ci++) if (model.getColumnName(ci).startsWith("Cov")) sorter.setComparator(ci, doubleComparator);
+        table = new JTable(model);
+        javax.swing.table.TableRowSorter<DefaultTableModel> sorter = new javax.swing.table.TableRowSorter<>(model);
+        sorter.setSortable(0, false);
+        // Comparatoren
+        sorter.setComparator(model.findColumn("Pfad"), (Object a, Object b) -> {
+            String sa = a == null ? "" : a.toString();
+            String sb = b == null ? "" : b.toString();
+            String ida = sa.replaceAll("[^0-9.]", "");
+            String idb = sb.replaceAll("[^0-9.]", "");
+            String[] pa = ida.split("\\.");
+            String[] pb = idb.split("\\.");
+            int len = Math.max(pa.length, pb.length);
+            for (int i2 = 0; i2 < len; i2++) {
+                int va = (i2 < pa.length && !pa[i2].isEmpty()) ? Integer.parseInt(pa[i2]) : 0;
+                int vb = (i2 < pb.length && !pb[i2].isEmpty()) ? Integer.parseInt(pb[i2]) : 0;
+                if (va != vb) return Integer.compare(va, vb);
+            }
+            return 0;
+        });
+        java.util.Comparator<Double> doubleComparator = (a, b) -> { if (a == b) return 0; if (a == null) return -1; if (b == null) return 1; return Double.compare(a, b); };
+        sorter.setComparator(model.findColumn("Erfolgsrate"), doubleComparator);
+        for (int ci = 0; ci < model.getColumnCount(); ci++) if (model.getColumnName(ci).startsWith("Cov")) sorter.setComparator(ci, doubleComparator);
 
         // Standard-Sortierung: Coverage-Rate (absteigend), dann Erfolgsrate (absteigend)
         int covCol = -1;
@@ -283,7 +301,8 @@ public class BenchmarkVisualizer extends JFrame {
                 String name = table.getColumnName(column);
                 String text;
                 if ("Rang".equals(name)) {
-                    text = String.valueOf(row + 1);
+                    // NEU: Rang aus dem Zellenwert anzeigen (nicht aus row+1)
+                    text = value == null ? "-" : String.valueOf(value);
                 } else if ("Erfolgsrate".equals(name) || "Deckungsrate (gesamt)".equals(name) || name.startsWith("Cov")) {
                     if (value instanceof Number) text = String.format("%.2f%%", ((Number) value).doubleValue());
                     else if (value == null) text = "-"; else text = value.toString();
@@ -293,31 +312,31 @@ public class BenchmarkVisualizer extends JFrame {
                     text = value.toString();
                 }
                 JLabel label = new JLabel(text);
-                 label.setOpaque(true);
-                 label.setFont(table.getFont());
-                 label.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+                label.setOpaque(true);
+                label.setFont(table.getFont());
+                label.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
                  
-                 if (isSelected) {
-                     label.setBackground(new Color(184, 207, 229));
-                 } else {
-                     if (row == 0) {
-                         label.setBackground(new Color(255, 215, 0, 50));
-                     } else if (row == 1) {
-                         label.setBackground(new Color(192, 192, 192, 50));
-                     } else if (row == 2) {
-                         label.setBackground(new Color(205, 127, 50, 50));
-                     } else {
-                         label.setBackground(Color.WHITE);
-                     }
-                 }
+                if (isSelected) {
+                    label.setBackground(new Color(184, 207, 229));
+                } else {
+                    if (row == 0) {
+                        label.setBackground(new Color(255, 215, 0, 50));
+                    } else if (row == 1) {
+                        label.setBackground(new Color(192, 192, 192, 50));
+                    } else if (row == 2) {
+                        label.setBackground(new Color(205, 127, 50, 50));
+                    } else {
+                        label.setBackground(Color.WHITE);
+                    }
+                }
                  
-                 if ("Rang".equals(name) || "Platzierte Jobs".equals(name) || "Gesamt Jobs".equals(name) || "Erfolgsrate".equals(name) || "Deckungsrate (gesamt)".equals(name) || "Platten genutzt".equals(name) || name.startsWith("Cov")) {
-                     label.setHorizontalAlignment(JLabel.CENTER);
-                 } else {
-                     label.setHorizontalAlignment(JLabel.LEFT);
-                 }
+                if ("Rang".equals(name) || "Platzierte Jobs".equals(name) || "Gesamt Jobs".equals(name) || "Erfolgsrate".equals(name) || "Deckungsrate (gesamt)".equals(name) || "Platten genutzt".equals(name) || name.startsWith("Cov")) {
+                    label.setHorizontalAlignment(JLabel.CENTER);
+                } else {
+                    label.setHorizontalAlignment(JLabel.LEFT);
+                }
  
-                 return label;
+                return label;
              }
          });
      }
@@ -376,14 +395,12 @@ public class BenchmarkVisualizer extends JFrame {
                 "🥉 Schlechteste Deckungsrate: %.2f%% (%s)<br/>" +
                 "📈 Verbesserung: %.2f Prozentpunkte<br/>" +
                 "📋 Getestete Algorithmen: %d<br/>" +
-                "⚡ Durchschnittliche Deckungsrate: %.2f%%<br/>" +
                 "</div></html>",
                 best.plate.name, best.plate.width, best.plate.height,
                 best.coverageRate, best.algorithmName,
                 worst.coverageRate, worst.algorithmName,
                 improvement,
-                results.size(),
-                getAverageCoverageRate()
+                results.size()
             ));
             
             panel.add(statisticsLabel);
@@ -406,15 +423,6 @@ public class BenchmarkVisualizer extends JFrame {
         panel.add(Box.createVerticalGlue());
         
         return panel;
-    }
-    
-    private double getAverageCoverageRate() {
-        double sum = 0;
-        for (int i = 0; i < results.size(); i++) {
-            BenchmarkResult result = results.get(i);
-            sum += result.coverageRate;
-        }
-        return sum / results.size();
     }
     
     private void visualizeSelectedSolution() {

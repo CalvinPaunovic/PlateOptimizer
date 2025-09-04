@@ -18,9 +18,7 @@ public class MultiPlateIndividual_Algorithm {
     private List<Plate> plateSequence = new ArrayList<>();
     private int currentPlateIndex = 0;
     private List<MultiPlate_DataClasses> completedPlatePaths = new ArrayList<>();
-    private boolean hierarchicalChildMode = false;
-    private String parentPathIdForChildren = null;
-    private int childSequenceCounter = 0;
+
     private static final boolean ALWAYS_BRANCH = true;
 
     public MultiPlateIndividual_Algorithm() { }
@@ -49,15 +47,6 @@ public class MultiPlateIndividual_Algorithm {
         }
     }
 
-    // Hierarchischer Konstruktor (für zweite Platte eines bestehenden Pfads)
-    public MultiPlateIndividual_Algorithm(java.util.List<Plate> plateInfos, String parentPathId, boolean hierarchicalChildMode) {
-        if (plateInfos != null) this.plateSequence.addAll(plateInfos);
-        this.paths = new java.util.ArrayList<>();
-        this.hierarchicalChildMode = hierarchicalChildMode;
-        this.parentPathIdForChildren = parentPathId;
-        if (!plateSequence.isEmpty()) initializePathsForPlate(plateSequence.get(0));
-    }
-
     // Initialisiert Basis-Pfade (FULL_WIDTH / FULL_HEIGHT) für die angegebene Platte
     private void initializePathsForPlate(Plate basePlate) {
         // Ursprüngliches Verhalten (erste Platte klonen)
@@ -65,20 +54,12 @@ public class MultiPlateIndividual_Algorithm {
         this.originalPlate.name = basePlate.name;
         this.originalPlate.parentPathIndex = 1;
         this.paths.clear();
-        if (hierarchicalChildMode && parentPathIdForChildren != null) {
-            childSequenceCounter = 0;
-            MultiPlate_DataClasses fullWidthPath = new MultiPlate_DataClasses(new Plate(basePlate.name, basePlate.width, basePlate.height, basePlate.plateId), nextHierChildId(), MultiPlate_DataClasses.Strategy.FULL_WIDTH, 0);
-            fullWidthPath.plate.name = basePlate.name; fullWidthPath.plateId = basePlate.plateId; paths.add(fullWidthPath); addInitialSnapshot(fullWidthPath);
-            MultiPlate_DataClasses fullHeightPath = new MultiPlate_DataClasses(new Plate(basePlate.name, basePlate.width, basePlate.height, basePlate.plateId), nextHierChildId(), MultiPlate_DataClasses.Strategy.FULL_HEIGHT, 0);
-            fullHeightPath.plate.name = basePlate.name; fullHeightPath.plateId = basePlate.plateId; paths.add(fullHeightPath); addInitialSnapshot(fullHeightPath);
-        } else {
-            pathCounter++; // FULL_WIDTH
-            MultiPlate_DataClasses fullWidthPath = new MultiPlate_DataClasses(new Plate(basePlate.name, basePlate.width, basePlate.height, basePlate.plateId), pathIdPrefix + pathCounter, MultiPlate_DataClasses.Strategy.FULL_WIDTH, pathCounter);
-            fullWidthPath.plate.name = basePlate.name; fullWidthPath.plateId = basePlate.plateId; paths.add(fullWidthPath); addInitialSnapshot(fullWidthPath);
-            pathCounter++; // FULL_HEIGHT
-            MultiPlate_DataClasses fullHeightPath = new MultiPlate_DataClasses(new Plate(basePlate.name, basePlate.width, basePlate.height, basePlate.plateId), pathIdPrefix + pathCounter, MultiPlate_DataClasses.Strategy.FULL_HEIGHT, pathCounter);
-            fullHeightPath.plate.name = basePlate.name; fullHeightPath.plateId = basePlate.plateId; paths.add(fullHeightPath); addInitialSnapshot(fullHeightPath);
-        }
+        pathCounter++; // FULL_WIDTH
+        MultiPlate_DataClasses fullWidthPath = new MultiPlate_DataClasses(new Plate(basePlate.name, basePlate.width, basePlate.height, basePlate.plateId), pathIdPrefix + pathCounter, MultiPlate_DataClasses.Strategy.FULL_WIDTH, pathCounter);
+        fullWidthPath.plate.name = basePlate.name; fullWidthPath.plateId = basePlate.plateId; paths.add(fullWidthPath); addInitialSnapshot(fullWidthPath);
+        pathCounter++; // FULL_HEIGHT
+        MultiPlate_DataClasses fullHeightPath = new MultiPlate_DataClasses(new Plate(basePlate.name, basePlate.width, basePlate.height, basePlate.plateId), pathIdPrefix + pathCounter, MultiPlate_DataClasses.Strategy.FULL_HEIGHT, pathCounter);
+        fullHeightPath.plate.name = basePlate.name; fullHeightPath.plateId = basePlate.plateId; paths.add(fullHeightPath); addInitialSnapshot(fullHeightPath);
         syncTotalPathCount();
         if (debugEnabled) System.out.println("[MPA] Initialisierte Platte " + (currentPlateIndex+1) + "/" + plateSequence.size() + ": " + basePlate.name + " prefix='" + pathIdPrefix + "'");
     }
@@ -100,14 +81,14 @@ public class MultiPlateIndividual_Algorithm {
         }
     }
 
-    // Versucht, ein Job auf der aktuellen Platte zu platzieren (inkl. Erzeugung alternativer Pfade) – unverändert zur bisherigen Logik extrahiert
+    // Versucht, ein Job auf der aktuellen Platte zu platzieren (inkl. Erzeugung alternativer Pfade)
     private boolean attemptPlaceOnCurrentPlate(Job originalJob, String plateId) {
         List<MultiPlate_DataClasses> newBranchPaths = new ArrayList<>();
         boolean anySuccess = false;
         int initialSize = paths.size();
         for (int pathIndex = 0; pathIndex < initialSize; pathIndex++) {
             MultiPlate_DataClasses currentPath = paths.get(pathIndex);
-            int jobsBeforePlacement = currentPath.plate.jobs.size(); // neu: Zustand vor Platzierung merken
+            int jobsBeforePlacement = currentPath.plate.jobs.size();
 
             // Debug-Ausgabe: Pfad-Info
             if (debugEnabled) {
@@ -135,13 +116,9 @@ public class MultiPlateIndividual_Algorithm {
 
                 // Bestimme die alternative Strategie (FullWidth oder FullHeight)
                 MultiPlate_DataClasses.Strategy newStrategy = currentPath.strategy == MultiPlate_DataClasses.Strategy.FULL_HEIGHT ? MultiPlate_DataClasses.Strategy.FULL_WIDTH : MultiPlate_DataClasses.Strategy.FULL_HEIGHT;
-                String newPathId;
-                if (hierarchicalChildMode && parentPathIdForChildren != null) {
-                    newPathId = nextHierChildId();
-                } else {
-                    pathCounter++;
-                    newPathId = pathIdPrefix + pathCounter;
-                }
+                // immer einfache neue Pfad-ID (ohne Hierarchie)
+                pathCounter++;
+                String newPathId = pathIdPrefix + pathCounter;
                 // Inkrementiere globale Pfadanzahl und verwende sie als neue ID
 
                 // Debug-Ausgabe: Alternativer Pfad wird erzeugt
@@ -150,7 +127,8 @@ public class MultiPlateIndividual_Algorithm {
                 // ERZEUGE NEUEN PFAD mit alternativer Strategie ab dem letzten platzierten Job
                 MultiPlate_DataClasses newMethodPath = new MultiPlate_DataClasses(currentPath, newPathId, newStrategy, currentPath.pathId, jobCandidate.id, pathCounter);
                 newMethodPath.strategy = newStrategy; newMethodPath.plateId = plateId;
-                // Tiefes Kopieren der bisherigen Snapshots des Elternpfades
+                // setze Parent-/Fork-Informationen für spätere Analyse/Visualisierung
+                setParentAndForkInfo(newMethodPath, currentPath.pathId, jobCandidate.id);
                 if (currentPath.freeRectsPerStep != null) {
                     newMethodPath.freeRectsPerStep = new java.util.ArrayList<>();
                     for (java.util.List<MultiPlate_DataClasses.FreeRectangle> snap : currentPath.freeRectsPerStep) {
@@ -159,7 +137,8 @@ public class MultiPlateIndividual_Algorithm {
                         newMethodPath.freeRectsPerStep.add(copySnap);
                     }
                 }
-
+                // Umsplittung nur wenn im neuen Pfad bereits mindestens ein Job platziert wurde
+                if (!newMethodPath.plate.jobs.isEmpty()) {
                 // Umsplittung nur wenn bereits ein Job existiert; bei leerem Pfad entfällt die Rekonstruktion
                 if (!newMethodPath.plate.jobs.isEmpty()) {
                     // Hole den zuletzt platzierten Job
@@ -192,6 +171,7 @@ public class MultiPlateIndividual_Algorithm {
                         splitFreeRectFullWidth(originalRect, lastJob, newMethodPath);
                     }
                 }
+            } 
                 
                  // Versuche, den Job im neuen Pfad zu platzieren
                  MultiPlate_DataClasses.BestFitResult newMethodResult = new MultiPlate_DataClasses.BestFitResult();
@@ -201,7 +181,7 @@ public class MultiPlateIndividual_Algorithm {
                      if (Main.rotateJobs) testAndUpdateBestFit(jobCandidate.height, jobCandidate.width, rect, true, newMethodResult);
                  }
                  
-                 // Falls der Job erfolgreich im neuen Kinderpfad platziert werden konnte, füge neuen Pfad zur offiziellen Pfadliste hinzu
+                 // Falls der Job erfolgreich im neuen Pfad platziert werden konnte, füge neuen Pfad zur offiziellen Pfadliste hinzu
                  if (newMethodResult.bestRect != null) {
                      if (debugEnabled) System.out.println("[MP] Plate#" + (currentPlateIndex+1) + " '" + plateSequence.get(currentPlateIndex).name + "' AltPath " + newMethodPath.pathId + " platziert Job " + jobCandidate.id + " (" + newMethodResult.bestRect.x + "," + newMethodResult.bestRect.y + "," + newMethodResult.bestRect.width + "x" + newMethodResult.bestRect.height + ")" + (newMethodResult.useRotated ? " [rot]" : ""));
                      newBranchPaths.add(newMethodPath);
@@ -224,8 +204,6 @@ public class MultiPlateIndividual_Algorithm {
                 placeJobInPath(jobCandidate, result, currentPath, splittingMethod);
                 currentPath.plateId = plateId;
                 anySuccess = true;
-                // Suche nach dem Marker der Erfolgsplatzierung:
-                // if (debugEnabled) System.out.println("[MP] Plate#" + (currentPlateIndex+1) + " Path " + currentPath.pathId + " platziert Job ...");
                 if (result.bestRect != null) { // Erfolgspfad
                     // Stelle sicher, dass wir den Job platzieren, falls nicht bereits geschehen
                     // Anschließend: Branch nur wenn nicht erster Job (jobsBeforePlacement > 0)
@@ -233,16 +211,13 @@ public class MultiPlateIndividual_Algorithm {
                     if (ALWAYS_BRANCH && jobsBeforePlacement > 0) {
                         // Alternativen Pfad mit entgegengesetzter Strategie erzeugen
                         MultiPlate_DataClasses.Strategy newStrategy = currentPath.strategy == MultiPlate_DataClasses.Strategy.FULL_HEIGHT ? MultiPlate_DataClasses.Strategy.FULL_WIDTH : MultiPlate_DataClasses.Strategy.FULL_HEIGHT;
-                        String newPathId;
-                        if (hierarchicalChildMode && parentPathIdForChildren != null) {
-                            newPathId = nextHierChildId();
-                        } else {
-                            pathCounter++;
-                            newPathId = pathIdPrefix + pathCounter;
-                        }
+                        // immer einfache neue Pfad-ID (ohne Hierarchie)
+                        pathCounter++;
+                        String newPathId = pathIdPrefix + pathCounter;
                         MultiPlate_DataClasses altPath = new MultiPlate_DataClasses(currentPath, newPathId, newStrategy, currentPath.pathId, jobCandidate.id, pathCounter);
                         altPath.strategy = newStrategy; altPath.plateId = plateId;
-                        // Deep copy der Snapshots vom Elternpfad (inkl. des gerade hinzugefügten)
+                        // setze Parent-/Fork-Informationen für spätere Analyse/Visualisierung
+                        setParentAndForkInfo(altPath, currentPath.pathId, jobCandidate.id);
                         if (currentPath.freeRectsPerStep != null) {
                             altPath.freeRectsPerStep = new java.util.ArrayList<>();
                             for (java.util.List<MultiPlate_DataClasses.FreeRectangle> snap : currentPath.freeRectsPerStep) {
@@ -503,6 +478,45 @@ public class MultiPlateIndividual_Algorithm {
 
     public int getPathCounter() { return pathCounter; }
 
-    private String nextHierChildId() { childSequenceCounter++; return parentPathIdForChildren + "." + childSequenceCounter; }
+    // Helper: setze Parent- und Fork-Infos auf dem neuen Pfad für Controller/Matrix (mehrere Feldnamen versuchen)
+    private void setParentAndForkInfo(MultiPlate_DataClasses pathObj, String parentPathId, Integer forkJobId) {
+        if (pathObj == null) return;
+        // mögliche Feldnamen für Parent-Id
+        String[] parentNames = { "parentPathId", "parentId", "previousPathId", "originParentPathId", "parentPath", "parent" };
+        for (String n : parentNames) trySetStringField(pathObj, n, parentPathId);
+        // mögliche Feldnamen für Fork-Job-Id
+        String[] forkNames = { "forkJobId", "startFromJobId", "branchFromJobId", "copiedAtJobId", "splitFromJobId", "forkJob" };
+        for (String n : forkNames) trySetIntField(pathObj, n, forkJobId);
+    }
 
+    private void trySetStringField(Object obj, String fieldName, String value) {
+        if (obj == null || fieldName == null || value == null) return;
+        try {
+            java.lang.reflect.Field f = obj.getClass().getDeclaredField(fieldName);
+            f.setAccessible(true);
+            f.set(obj, value);
+        } catch (NoSuchFieldException nsf) {
+            // Feld nicht vorhanden — ignorieren
+        } catch (Exception ex) {
+            // andere Fehler — ignorieren
+        }
+    }
+
+    private void trySetIntField(Object obj, String fieldName, Integer value) {
+        if (obj == null || fieldName == null || value == null) return;
+        try {
+            java.lang.reflect.Field f = obj.getClass().getDeclaredField(fieldName);
+            f.setAccessible(true);
+            Class<?> t = f.getType();
+            if (t == int.class || t == Integer.class) f.set(obj, value);
+            else {
+                // falls String erwartet wird, setze String-Repräsentation
+                f.set(obj, String.valueOf(value));
+            }
+        } catch (NoSuchFieldException nsf) {
+            // Feld nicht vorhanden — ignorieren
+        } catch (Exception ex) {
+            // andere Fehler — ignorieren
+        }
+    }
 }

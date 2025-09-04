@@ -37,7 +37,7 @@ public class Main {
         System.out.println("3 = Drei Standardplatten");
         System.out.println("4 = Vier Standardplatten");
         System.out.println("5 = N Standardplatten (gleich groß)");
-        System.out.println("6 = Unendliche Standardplatten"); // NEU
+        System.out.println("6 = Unendliche Standardplatten");
         System.out.print("Bitte wählen: ");
         String plateModeInput = scanner.nextLine().trim();
         switch (plateModeInput) {
