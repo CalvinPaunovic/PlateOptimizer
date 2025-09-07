@@ -37,35 +37,151 @@ public class CutLineCalculator {
 
     private static void computeGuillotineCutsRecursive(Region region, java.util.List<CutLine> out) {
         if (region == null || region.jobs.isEmpty()) return;
-        if (region.jobs.size() <= 1) return; // nothing to split further
+        // Wenn genau ein Job in der Region liegt, entlang seiner Kanten voll-length Schnitte emittieren
+        if (region.jobs.size() == 1) {
+            emitIsolationCuts(region, out);
+            return;
+        }
+        if (region.jobs.size() <= 1) return; // safety
 
-        // Try vertical then horizontal; pick the better (more balanced) split if both possible
+        // 1) Prefer edge-peeling cuts: trim jobs (or strips) from the outside first
+        SplitCandidate peelV = findEdgePeelVertical(region);
+        SplitCandidate peelH = findEdgePeelHorizontal(region);
+        SplitCandidate chosenPeel = null;
+        if (peelV != null && peelH != null) {
+            // choose the thinner strip to peel
+            double widthV = Math.min(Math.abs(peelV.coord - region.x0), Math.abs(region.x1 - peelV.coord));
+            double widthH = Math.min(Math.abs(peelH.coord - region.y0), Math.abs(region.y1 - peelH.coord));
+            chosenPeel = (widthV <= widthH) ? peelV : peelH;
+        } else if (peelV != null) {
+            chosenPeel = peelV;
+        } else if (peelH != null) {
+            chosenPeel = peelH;
+        }
+
+        if (chosenPeel != null) {
+            if (chosenPeel.vertical) {
+                out.add(new CutLine(0, true, normalize(chosenPeel.coord), normalize(region.y0), normalize(region.y1)));
+                Region left = region.subLeft(chosenPeel.coord); left.jobs = new java.util.ArrayList<>(chosenPeel.leftJobs);
+                Region right = region.subRight(chosenPeel.coord); right.jobs = new java.util.ArrayList<>(chosenPeel.rightJobs);
+                computeGuillotineCutsRecursive(left, out);
+                computeGuillotineCutsRecursive(right, out);
+            } else {
+                out.add(new CutLine(0, false, normalize(chosenPeel.coord), normalize(region.x0), normalize(region.x1)));
+                Region top = region.subTop(chosenPeel.coord); top.jobs = new java.util.ArrayList<>(chosenPeel.topJobs);
+                Region bottom = region.subBottom(chosenPeel.coord); bottom.jobs = new java.util.ArrayList<>(chosenPeel.bottomJobs);
+                computeGuillotineCutsRecursive(top, out);
+                computeGuillotineCutsRecursive(bottom, out);
+            }
+            return;
+        }
+
+        // 2) Fallback: balanced split (previous behavior)
         SplitCandidate bestVert = findVerticalCut(region);
         SplitCandidate bestHoriz = findHorizontalCut(region);
-
         SplitCandidate chosen = chooseBetter(region, bestVert, bestHoriz);
-        if (chosen == null) return; // cannot split (non-guillotine arrangement for this region)
+        if (chosen == null) return; // cannot split
 
-        // Emit cut (full-length across the region)
         if (chosen.vertical) {
             out.add(new CutLine(0, true, normalize(chosen.coord), normalize(region.y0), normalize(region.y1)));
-            // Create subregions left and right
-            Region left = region.subLeft(chosen.coord);
-            left.jobs = new java.util.ArrayList<>(chosen.leftJobs);
-            Region right = region.subRight(chosen.coord);
-            right.jobs = new java.util.ArrayList<>(chosen.rightJobs);
+            Region left = region.subLeft(chosen.coord); left.jobs = new java.util.ArrayList<>(chosen.leftJobs);
+            Region right = region.subRight(chosen.coord); right.jobs = new java.util.ArrayList<>(chosen.rightJobs);
             computeGuillotineCutsRecursive(left, out);
             computeGuillotineCutsRecursive(right, out);
         } else {
             out.add(new CutLine(0, false, normalize(chosen.coord), normalize(region.x0), normalize(region.x1)));
-            // Create subregions top and bottom (we keep y increasing downward as per coordinates)
-            Region top = region.subTop(chosen.coord);
-            top.jobs = new java.util.ArrayList<>(chosen.topJobs);
-            Region bottom = region.subBottom(chosen.coord);
-            bottom.jobs = new java.util.ArrayList<>(chosen.bottomJobs);
+            Region top = region.subTop(chosen.coord); top.jobs = new java.util.ArrayList<>(chosen.topJobs);
+            Region bottom = region.subBottom(chosen.coord); bottom.jobs = new java.util.ArrayList<>(chosen.bottomJobs);
             computeGuillotineCutsRecursive(top, out);
             computeGuillotineCutsRecursive(bottom, out);
         }
+    }
+
+    // Emittiert Vollschnitte entlang der Job-Kanten, um das Einzelteil vollständig herauszutrennen
+    private static void emitIsolationCuts(Region region, java.util.List<CutLine> out) {
+        Job j = region.jobs.get(0);
+        double left = j.x;
+        double right = j.x + j.width;
+        double top = j.y;
+        double bottom = j.y + j.height;
+
+        // Vertikale Schnitte links/rechts wenn noch Rand vorhanden ist
+        if (left > region.x0 + EPS) {
+            out.add(new CutLine(0, true, normalize(left), normalize(region.y0), normalize(region.y1)));
+        }
+        if (right < region.x1 - EPS) {
+            out.add(new CutLine(0, true, normalize(right), normalize(region.y0), normalize(region.y1)));
+        }
+        // Horizontale Schnitte oben/unten wenn noch Rand vorhanden ist
+        if (top > region.y0 + EPS) {
+            out.add(new CutLine(0, false, normalize(top), normalize(region.x0), normalize(region.x1)));
+        }
+        if (bottom < region.y1 - EPS) {
+            out.add(new CutLine(0, false, normalize(bottom), normalize(region.x0), normalize(region.x1)));
+        }
+    }
+
+    // Prefer edge-peeling vertical cut: if a job touches left (x0) cut at its right edge; if touches right (x1) cut at its left edge
+    private static SplitCandidate findEdgePeelVertical(Region r) {
+        java.util.List<SplitCandidate> candidates = new java.util.ArrayList<>();
+        for (Job j : r.jobs) {
+            boolean touchesLeft = Math.abs(j.x - r.x0) < EPS;
+            boolean touchesRight = Math.abs((j.x + j.width) - r.x1) < EPS;
+            if (!touchesLeft && !touchesRight) continue;
+            double xCut = touchesLeft ? j.x + j.width : j.x;
+            if (xCut <= r.x0 + EPS || xCut >= r.x1 - EPS) continue;
+            if (!isVerticalLineClear(r.jobs, xCut)) continue;
+            java.util.List<Job> left = new java.util.ArrayList<>();
+            java.util.List<Job> right = new java.util.ArrayList<>();
+            partitionVertical(r.jobs, xCut, left, right);
+            if (left.isEmpty() || right.isEmpty()) continue; // must split
+            SplitCandidate sc = new SplitCandidate();
+            sc.vertical = true; sc.coord = xCut; sc.leftJobs = left; sc.rightJobs = right;
+            candidates.add(sc);
+        }
+        if (candidates.isEmpty()) return null;
+        // choose the minimum strip thickness relative to region borders
+        candidates.sort((a,b)->{
+            double wa = Math.min(Math.abs(a.coord - r.x0), Math.abs(r.x1 - a.coord));
+            double wb = Math.min(Math.abs(b.coord - r.x0), Math.abs(r.x1 - b.coord));
+            int cmp = Double.compare(wa, wb);
+            if (cmp!=0) return cmp;
+            int diffA = Math.abs(a.leftJobs.size() - a.rightJobs.size());
+            int diffB = Math.abs(b.leftJobs.size() - b.rightJobs.size());
+            return Integer.compare(diffA, diffB); // tie-breaker: more balanced
+        });
+        return candidates.get(0);
+    }
+
+    // Prefer edge-peeling horizontal cut: if a job touches top (y0) cut at its bottom; if touches bottom (y1) cut at its top
+    private static SplitCandidate findEdgePeelHorizontal(Region r) {
+        java.util.List<SplitCandidate> candidates = new java.util.ArrayList<>();
+        for (Job j : r.jobs) {
+            boolean touchesTop = Math.abs(j.y - r.y0) < EPS;
+            boolean touchesBottom = Math.abs((j.y + j.height) - r.y1) < EPS;
+            if (!touchesTop && !touchesBottom) continue;
+            double yCut = touchesTop ? j.y + j.height : j.y;
+            if (yCut <= r.y0 + EPS || yCut >= r.y1 - EPS) continue;
+            if (!isHorizontalLineClear(r.jobs, yCut)) continue;
+            java.util.List<Job> top = new java.util.ArrayList<>();
+            java.util.List<Job> bottom = new java.util.ArrayList<>();
+            partitionHorizontal(r.jobs, yCut, top, bottom);
+            if (top.isEmpty() || bottom.isEmpty()) continue;
+            SplitCandidate sc = new SplitCandidate();
+            sc.vertical = false; sc.coord = yCut; sc.topJobs = top; sc.bottomJobs = bottom;
+            candidates.add(sc);
+        }
+        if (candidates.isEmpty()) return null;
+        candidates.sort((a,b)->{
+            double ha = Math.min(Math.abs(a.coord - r.y0), Math.abs(r.y1 - a.coord));
+            double hb = Math.min(Math.abs(b.coord - r.y0), Math.abs(r.y1 - b.coord));
+            int cmp = Double.compare(ha, hb);
+            if (cmp!=0) return cmp;
+            int diffA = Math.abs(a.topJobs.size() - a.bottomJobs.size());
+            int diffB = Math.abs(b.topJobs.size() - b.bottomJobs.size());
+            return Integer.compare(diffA, diffB);
+        });
+        return candidates.get(0);
     }
 
     private static SplitCandidate chooseBetter(Region r, SplitCandidate v, SplitCandidate h) {
