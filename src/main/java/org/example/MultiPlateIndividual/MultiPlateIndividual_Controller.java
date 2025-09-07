@@ -10,7 +10,7 @@ import java.util.*;
 
 public class MultiPlateIndividual_Controller {
 
-    private static final boolean ENABLE_CONSOLE_OUTPUT_CUTS = true;  // Schnittkoordinaten auf Konsole ausgeben
+    private static final boolean ENABLE_CONSOLE_OUTPUT_CUTS = false;  // Schnittkoordinaten auf Konsole ausgeben
     private static final boolean ENABLE_CONSOLE_OUTPUTS_JOBSETS = false;
 
     /*
@@ -80,8 +80,12 @@ public class MultiPlateIndividual_Controller {
         /*
          * Platte 1 (Strategie-Code-Matrix) auf Konsole ausgeben
          */
-        printStrategyCodeMatrix(firstPlatePaths, "Platte 1 - Strategie-Matrix (Fläche)");
-        printStrategyCodeMatrix(pathsEdgeP1,   "Platte 1 - Strategie-Matrix (Kante)");
+        {
+            List<Integer> orderArea = new ArrayList<>(); for (Job j : jobs) orderArea.add(j.id);
+            printStrategyCodeMatrix(firstPlatePaths, "Platte 1 - Strategie-Matrix (Fläche)", orderArea);
+            List<Integer> orderEdge = new ArrayList<>(); for (Job j : jobsEdge) orderEdge.add(j.id);
+            printStrategyCodeMatrix(pathsEdgeP1,   "Platte 1 - Strategie-Matrix (Kante)", orderEdge);
+        }
 
         /*
          * Platte 1 (Fläche + Kante): Zusammen im BenchmarkVisualizer anzeigen
@@ -523,8 +527,12 @@ public class MultiPlateIndividual_Controller {
         }
 
         // Matrix-Ausgabe für Platte 1
-        printStrategyCodeMatrix(firstPlatePaths, "Platte 1 - Strategie-Matrix (Fläche)");
-        printStrategyCodeMatrix(pathsEdgeP1,   "Platte 1 - Strategie-Matrix (Kante)");
+        {
+            List<Integer> orderArea = new ArrayList<>(); for (Job j : jobs) orderArea.add(j.id);
+            printStrategyCodeMatrix(firstPlatePaths, "Platte 1 - Strategie-Matrix (Fläche)", orderArea);
+            List<Integer> orderEdge = new ArrayList<>(); for (Job j : jobsEdge) orderEdge.add(j.id);
+            printStrategyCodeMatrix(pathsEdgeP1,   "Platte 1 - Strategie-Matrix (Kante)", orderEdge);
+        }
 
         // P1 anzeigen
         List<BenchmarkVisualizer.BenchmarkResult> combinedP1 = new ArrayList<>();
@@ -659,10 +667,9 @@ public class MultiPlateIndividual_Controller {
      * - Zellen: W/H (+r für rotiert) oder "--" wenn im Pfad nicht platziert.
      * - Herkunft: nur am Fork-Job des Pfads "P<parentPathId>", vorherige (vererbte) Jobs bleiben "--".
      */
-    private static void printStrategyCodeMatrix(List<MultiPlate_DataClasses> allPaths, String title) {
+    private static void printStrategyCodeMatrix(List<MultiPlate_DataClasses> allPaths, String title, List<Integer> desiredOrder) {
         if (allPaths == null || allPaths.isEmpty()) return;
 
-        // Index nach pathId
         Map<String, MultiPlate_DataClasses> byId = new HashMap<>();
         List<MultiPlate_DataClasses> candidates = new ArrayList<>();
         for (MultiPlate_DataClasses p : allPaths) {
@@ -672,16 +679,14 @@ public class MultiPlateIndividual_Controller {
 
         // Jobs pro Pfad nach placementOrder sammeln
         List<List<Job>> jobsPerPath = new ArrayList<>();
-        int repIndex = -1, repCount = -1;
         for (int i = 0; i < candidates.size(); i++) {
             MultiPlate_DataClasses path = candidates.get(i);
-            List<Job> jobs = new ArrayList<>(path.plate.jobs);
-            jobs.sort(Comparator.comparingInt(j -> j.placementOrder));
-            jobsPerPath.add(jobs);
-            if (jobs.size() > repCount) { repCount = jobs.size(); repIndex = i; }
+            List<Job> jobsLoc = new ArrayList<>(path.plate.jobs);
+            jobsLoc.sort(Comparator.comparingInt(j -> j.placementOrder));
+            jobsPerPath.add(jobsLoc);
         }
 
-        // Globale Job-ID-Menge: placed ∪ failed (Reflection)
+        // Globale Job-ID-Menge: placed ∪ failed
         LinkedHashSet<Integer> allJobIds = new LinkedHashSet<>();
         for (int i = 0; i < candidates.size(); i++) {
             for (Job j : jobsPerPath.get(i)) allJobIds.add(j.id);
@@ -689,18 +694,27 @@ public class MultiPlateIndividual_Controller {
             if (failed != null) allJobIds.addAll(failed);
         }
 
-        // Spaltenreihenfolge bestimmen:
-        // 1) repräsentativer Pfad (placementOrder)
+        // Spaltenreihenfolge bestimmen: exakt gewünschte Sortier-Reihenfolge, fehlende ggf. hinten anfügen
         List<Integer> colJobIds = new ArrayList<>();
-        if (repIndex >= 0) for (Job j : jobsPerPath.get(repIndex)) colJobIds.add(j.id);
-        // 2) fehlende Jobs numerisch anfügen
-        List<Integer> rest = new ArrayList<>();
-        for (Integer id : allJobIds) if (!colJobIds.contains(id)) rest.add(id);
-        Collections.sort(rest);
-        colJobIds.addAll(rest);
+        if (desiredOrder != null && !desiredOrder.isEmpty()) {
+            for (Integer id : desiredOrder) if (id != null) colJobIds.add(id);
+            for (Integer id : allJobIds) if (!colJobIds.contains(id)) colJobIds.add(id);
+        } else {
+            // Fallback: bisherige Logik (repräsentativer Pfad, dann Rest numerisch)
+            int repIndex = -1, repCount = -1;
+            for (int i = 0; i < candidates.size(); i++) {
+                int sz = jobsPerPath.get(i).size();
+                if (sz > repCount) { repCount = sz; repIndex = i; }
+            }
+            if (repIndex >= 0) for (Job j : jobsPerPath.get(repIndex)) colJobIds.add(j.id);
+            List<Integer> rest = new ArrayList<>();
+            for (Integer id : allJobIds) if (!colJobIds.contains(id)) rest.add(id);
+            Collections.sort(rest);
+            colJobIds.addAll(rest);
+        }
         int maxCols = Math.max(1, colJobIds.size());
 
-        // Kopfzeile: Job-Labels J<id>
+        // Kopfzeile
         StringBuilder header = new StringBuilder();
         header.append("\n").append(title).append("\n");
         header.append(String.format("%-14s | ", "Pfad"));
@@ -724,23 +738,22 @@ public class MultiPlateIndividual_Controller {
         // Für jeden Pfad: Strategie-Zeile + Herkunft-Zeile (nur am Fork-Job)
         for (int idx = 0; idx < candidates.size(); idx++) {
             MultiPlate_DataClasses path = candidates.get(idx);
-            List<Job> jobs = jobsPerPath.get(idx);
+            List<Job> jobsLoc = jobsPerPath.get(idx);
 
-            // Strategie: init "--"
             String[] stratCells = new String[maxCols];
             Arrays.fill(stratCells, "--");
-            for (Job j : jobs) {
+            for (Job j : jobsLoc) {
                 Integer ci = colIndexByJobId.get(j.id);
                 if (ci == null || ci < 0 || ci >= maxCols) continue;
                 String code;
                 if (j.splittingMethod == null) {
-                    code = j.rotated ? "?r" : "? ";
+                    code = "? ";
                 } else if ("FullHeight".equalsIgnoreCase(j.splittingMethod)) {
-                    code = j.rotated ? "Hr" : "H ";
+                    code = "H ";
                 } else if ("FullWidth".equalsIgnoreCase(j.splittingMethod)) {
-                    code = j.rotated ? "Wr" : "W ";
+                    code = "W ";
                 } else {
-                    code = j.rotated ? "?r" : "? ";
+                    code = "? ";
                 }
                 stratCells[ci] = code;
             }
@@ -749,7 +762,6 @@ public class MultiPlateIndividual_Controller {
             for (int i = 0; i < maxCols; i++) rowStrategy.append(String.format("%-4s", stratCells[i]));
             System.out.println(rowStrategy.toString());
 
-            // Herkunft: nur am Fork-Job dieses Pfads markieren
             String[] originCells = new String[maxCols];
             Arrays.fill(originCells, "--");
             String parentId = getParentPathIdReflect(path);
@@ -769,7 +781,7 @@ public class MultiPlateIndividual_Controller {
             System.out.println(rowOrigin.toString());
         }
 
-        System.out.println(); // Leerzeile
+        System.out.println();
     }
 
     // Reflection-Helpers: lese Parent-Id / Fork-JobId (mehrere mögliche Feldnamen)

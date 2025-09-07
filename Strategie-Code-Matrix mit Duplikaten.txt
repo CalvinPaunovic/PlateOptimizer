@@ -1,0 +1,1027 @@
+Platte 1 - Strategie-Matrix (Kante)
+Pfad           | J2  J0  J7  J1  J8  J4  J5  J3  J6
+------------------------------------------------------
+Pfad 1         | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  --
+Pfad 2         | H   H   --  H   H   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  --
+Pfad 3         | W   H   --  H   H   --  --  --  --
+Herkunft       | --  P1  --  --  --  --  --  --  --
+Pfad 4         | H   W   --  W   W   --  --  W   W
+Herkunft       | --  P2  --  --  --  --  --  --  --
+Pfad 5         | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  P1  --  --  --  --  --  --
+Pfad 6         | H   H   --  W   W   --  --  W   W
+Herkunft       | --  --  P2  --  --  --  --  --  --
+Pfad 7         | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  P3  --  --  --  --  --  --
+Pfad 8         | H   W   --  H   H   H   --  H   --
+Herkunft       | --  --  P4  --  --  --  --  --  --
+Pfad 9         | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  P1  --  --  --  --  --
+Pfad 10        | H   H   --  W   W   W   --  W   --
+Herkunft       | --  --  --  P2  --  --  --  --  --
+Pfad 11        | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  P3  --  --  --  --  --
+Pfad 12        | H   W   --  H   H   --  --  H   H
+Herkunft       | --  --  --  P4  --  --  --  --  --
+Pfad 13        | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  P5  --  --  --  --  --
+Pfad 14        | H   H   --  H   H   --  --  H   H
+Herkunft       | --  --  --  P6  --  --  --  --  --
+Pfad 15        | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  P7  --  --  --  --  --
+Pfad 16        | H   W   --  W   W   W   --  W   --
+Herkunft       | --  --  --  P8  --  --  --  --  --
+Pfad 17        | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  P1  --  --  --  --
+Pfad 18        | H   H   --  H   W   W   --  W   --
+Herkunft       | --  --  --  --  P2  --  --  --  --
+Pfad 19        | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  P3  --  --  --  --
+Pfad 20        | H   W   --  W   H   --  --  H   H
+Herkunft       | --  --  --  --  P4  --  --  --  --
+Pfad 21        | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  P5  --  --  --  --
+Pfad 22        | H   H   --  W   H   --  --  H   H
+Herkunft       | --  --  --  --  P6  --  --  --  --
+Pfad 23        | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  P7  --  --  --  --
+Pfad 24        | H   W   --  H   W   W   --  W   --
+Herkunft       | --  --  --  --  P8  --  --  --  --
+Pfad 25        | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  P9  --  --  --  --
+Pfad 26        | H   H   --  W   H   H   --  H   --
+Herkunft       | --  --  --  --  P10 --  --  --  --
+Pfad 27        | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  P11 --  --  --  --
+Pfad 28        | H   W   --  H   W   --  --  W   W
+Herkunft       | --  --  --  --  P12 --  --  --  --  
+Pfad 29        | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  P13 --  --  --  --
+Pfad 30        | H   H   --  H   W   --  --  W   W
+Herkunft       | --  --  --  --  P14 --  --  --  --
+Pfad 31        | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  P15 --  --  --  --
+Pfad 32        | H   W   --  W   H   H   --  H   --
+Herkunft       | --  --  --  --  P16 --  --  --  --
+Pfad 33        | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  P1  --  --  --
+Pfad 34        | H   H   --  H   H   W   --  W   --
+Herkunft       | --  --  --  --  --  P2  --  --  --
+Pfad 35        | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  P3  --  --  --
+Pfad 36        | H   W   --  W   W   --  --  H   H
+Herkunft       | --  --  --  --  --  P4  --  --  --
+Pfad 37        | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  P5  --  --  --
+Pfad 38        | H   H   --  W   W   --  --  H   H
+Herkunft       | --  --  --  --  --  P6  --  --  --
+Pfad 39        | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  P7  --  --  --
+Pfad 40        | H   W   --  H   H   W   --  W   --
+Herkunft       | --  --  --  --  --  P8  --  --  --
+Pfad 41        | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  P9  --  --  --
+Pfad 42        | H   H   --  W   W   H   --  H   --
+Herkunft       | --  --  --  --  --  P10 --  --  --
+Pfad 43        | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  P11 --  --  --
+Pfad 44        | H   W   --  H   H   --  --  W   W
+Herkunft       | --  --  --  --  --  P12 --  --  --
+Pfad 45        | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  P13 --  --  --
+Pfad 46        | H   H   --  H   H   --  --  W   W
+Herkunft       | --  --  --  --  --  P14 --  --  --
+Pfad 47        | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  P15 --  --  --
+Pfad 48        | H   W   --  W   W   H   --  H   --
+Herkunft       | --  --  --  --  --  P16 --  --  --
+Pfad 49        | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  P17 --  --  --
+Pfad 50        | H   H   --  H   W   H   --  H   --
+Herkunft       | --  --  --  --  --  P18 --  --  --
+Pfad 51        | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  P19 --  --  --
+Pfad 52        | H   W   --  W   H   --  --  W   W
+Herkunft       | --  --  --  --  --  P20 --  --  --
+Pfad 53        | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  P21 --  --  --
+Pfad 54        | H   H   --  W   H   --  --  W   W
+Herkunft       | --  --  --  --  --  P22 --  --  --
+Pfad 55        | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  P23 --  --  --
+Pfad 56        | H   W   --  H   W   H   --  H   --
+Herkunft       | --  --  --  --  --  P24 --  --  --
+Pfad 57        | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  P25 --  --  --
+Pfad 58        | H   H   --  W   H   W   --  W   --
+Herkunft       | --  --  --  --  --  P26 --  --  --
+Pfad 59        | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  P27 --  --  --  
+Pfad 60        | H   W   --  H   W   --  --  H   H
+Herkunft       | --  --  --  --  --  P28 --  --  --
+Pfad 61        | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  P29 --  --  --
+Pfad 62        | H   H   --  H   W   --  --  H   H
+Herkunft       | --  --  --  --  --  P30 --  --  --
+Pfad 63        | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  P31 --  --  --
+Pfad 64        | H   W   --  W   H   W   --  W   --
+Herkunft       | --  --  --  --  --  P32 --  --  --
+Pfad 65        | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P1  --  --
+Pfad 66        | H   H   --  H   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  P2  --  --
+Pfad 67        | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P3  --  --
+Pfad 68        | H   W   --  W   W   --  --  H   H
+Herkunft       | --  --  --  --  --  --  P4  --  --
+Pfad 69        | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P5  --  --
+Pfad 70        | H   H   --  W   W   --  --  H   H
+Herkunft       | --  --  --  --  --  --  P6  --  --
+Pfad 71        | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P7  --  --
+Pfad 72        | H   W   --  H   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  P8  --  --
+Pfad 73        | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P9  --  --
+Pfad 74        | H   H   --  W   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  P10 --  --
+Pfad 75        | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P11 --  --
+Pfad 76        | H   W   --  H   H   --  --  W   W
+Herkunft       | --  --  --  --  --  --  P12 --  --
+Pfad 77        | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P13 --  --
+Pfad 78        | H   H   --  H   H   --  --  W   W
+Herkunft       | --  --  --  --  --  --  P14 --  --
+Pfad 79        | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P15 --  --
+Pfad 80        | H   W   --  W   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  P16 --  --
+Pfad 81        | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P17 --  --
+Pfad 82        | H   H   --  H   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  P18 --  --
+Pfad 83        | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P19 --  --
+Pfad 84        | H   W   --  W   H   --  --  W   W
+Herkunft       | --  --  --  --  --  --  P20 --  --
+Pfad 85        | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P21 --  --
+Pfad 86        | H   H   --  W   H   --  --  W   W
+Herkunft       | --  --  --  --  --  --  P22 --  --
+Pfad 87        | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P23 --  --
+Pfad 88        | H   W   --  H   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  P24 --  --
+Pfad 89        | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P25 --  --
+Pfad 90        | H   H   --  W   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  P26 --  --
+Pfad 91        | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P27 --  --
+Pfad 92        | H   W   --  H   W   --  --  H   H
+Herkunft       | --  --  --  --  --  --  P28 --  --
+Pfad 93        | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P29 --  --
+Pfad 94        | H   H   --  H   W   --  --  H   H
+Herkunft       | --  --  --  --  --  --  P30 --  --
+Pfad 95        | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P31 --  --
+Pfad 96        | H   W   --  W   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  P32 --  --
+Pfad 97        | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P33 --  --  
+Pfad 98        | H   H   --  H   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  P34 --  --
+Pfad 99        | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P35 --  --
+Pfad 100       | H   W   --  W   W   --  --  W   W
+Herkunft       | --  --  --  --  --  --  P36 --  --
+Pfad 101       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P37 --  --
+Pfad 102       | H   H   --  W   W   --  --  W   W
+Herkunft       | --  --  --  --  --  --  P38 --  --
+Pfad 103       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P39 --  --
+Pfad 104       | H   W   --  H   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  P40 --  --
+Pfad 105       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P41 --  --
+Pfad 106       | H   H   --  W   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  P42 --  --
+Pfad 107       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P43 --  --
+Pfad 108       | H   W   --  H   H   --  --  H   H
+Herkunft       | --  --  --  --  --  --  P44 --  --
+Pfad 109       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P45 --  --
+Pfad 110       | H   H   --  H   H   --  --  H   H
+Herkunft       | --  --  --  --  --  --  P46 --  --
+Pfad 111       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P47 --  --
+Pfad 112       | H   W   --  W   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  P48 --  --
+Pfad 113       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P49 --  --
+Pfad 114       | H   H   --  H   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  P50 --  --
+Pfad 115       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P51 --  --
+Pfad 116       | H   W   --  W   H   --  --  H   H
+Herkunft       | --  --  --  --  --  --  P52 --  --
+Pfad 117       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P53 --  --
+Pfad 118       | H   H   --  W   H   --  --  H   H
+Herkunft       | --  --  --  --  --  --  P54 --  --
+Pfad 119       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P55 --  --
+Pfad 120       | H   W   --  H   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  P56 --  --
+Pfad 121       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P57 --  --
+Pfad 122       | H   H   --  W   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  P58 --  --
+Pfad 123       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P59 --  --
+Pfad 124       | H   W   --  H   W   --  --  W   W
+Herkunft       | --  --  --  --  --  --  P60 --  --
+Pfad 125       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P61 --  --
+Pfad 126       | H   H   --  H   W   --  --  W   W
+Herkunft       | --  --  --  --  --  --  P62 --  --
+Pfad 127       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  P63 --  --
+Pfad 128       | H   W   --  W   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  P64 --  --
+Pfad 129       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P1  --
+Pfad 130       | H   H   --  H   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P2  --
+Pfad 131       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P3  --  
+Pfad 132       | H   W   --  W   W   --  --  H   H
+Herkunft       | --  --  --  --  --  --  --  P4  --
+Pfad 133       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P5  --
+Pfad 134       | H   H   --  W   W   --  --  H   H
+Herkunft       | --  --  --  --  --  --  --  P6  --
+Pfad 135       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P7  --
+Pfad 136       | H   W   --  H   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P8  --
+Pfad 137       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P9  --
+Pfad 138       | H   H   --  W   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P10 --
+Pfad 139       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P11 --
+Pfad 140       | H   W   --  H   H   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P12 --
+Pfad 141       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P13 --
+Pfad 142       | H   H   --  H   H   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P14 --
+Pfad 143       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P15 --
+Pfad 144       | H   W   --  W   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P16 --
+Pfad 145       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P17 --
+Pfad 146       | H   H   --  H   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P18 --
+Pfad 147       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P19 --
+Pfad 148       | H   W   --  W   H   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P20 --
+Pfad 149       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P21 --
+Pfad 150       | H   H   --  W   H   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P22 --
+Pfad 151       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P23 --
+Pfad 152       | H   W   --  H   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P24 --
+Pfad 153       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P25 --
+Pfad 154       | H   H   --  W   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P26 --
+Pfad 155       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P27 --
+Pfad 156       | H   W   --  H   W   --  --  H   H
+Herkunft       | --  --  --  --  --  --  --  P28 --
+Pfad 157       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P29 --
+Pfad 158       | H   H   --  H   W   --  --  H   H
+Herkunft       | --  --  --  --  --  --  --  P30 --
+Pfad 159       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P31 --
+Pfad 160       | H   W   --  W   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P32 --
+Pfad 161       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P33 --
+Pfad 162       | H   H   --  H   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P34 --
+Pfad 163       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P35 --
+Pfad 164       | H   W   --  W   W   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P36 --
+Pfad 165       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P37 --
+Pfad 166       | H   H   --  W   W   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P38 --
+Pfad 167       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P39 --
+Pfad 168       | H   W   --  H   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P40 --
+Pfad 169       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P41 --
+Pfad 170       | H   H   --  W   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P42 --
+Pfad 171       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P43 --
+Pfad 172       | H   W   --  H   H   --  --  H   H
+Herkunft       | --  --  --  --  --  --  --  P44 --
+Pfad 173       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P45 --
+Pfad 174       | H   H   --  H   H   --  --  H   H   
+Herkunft       | --  --  --  --  --  --  --  P46 --
+Pfad 175       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P47 --
+Pfad 176       | H   W   --  W   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P48 --
+Pfad 177       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P49 --
+Pfad 178       | H   H   --  H   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P50 --
+Pfad 179       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P51 --
+Pfad 180       | H   W   --  W   H   --  --  H   H
+Herkunft       | --  --  --  --  --  --  --  P52 --
+Pfad 181       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P53 --
+Pfad 182       | H   H   --  W   H   --  --  H   H
+Herkunft       | --  --  --  --  --  --  --  P54 --
+Pfad 183       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P55 --
+Pfad 184       | H   W   --  H   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P56 --
+Pfad 185       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P57 --
+Pfad 186       | H   H   --  W   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P58 --
+Pfad 187       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P59 --
+Pfad 188       | H   W   --  H   W   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P60 --
+Pfad 189       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P61 --
+Pfad 190       | H   H   --  H   W   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P62 --
+Pfad 191       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P63 --
+Pfad 192       | H   W   --  W   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P64 --
+Pfad 193       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P65 --
+Pfad 194       | H   H   --  H   H   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P66 --
+Pfad 195       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P67 --
+Pfad 196       | H   W   --  W   W   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P68 --
+Pfad 197       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P69 --
+Pfad 198       | H   H   --  W   W   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P70 --
+Pfad 199       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P71 --
+Pfad 200       | H   W   --  H   H   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P72 --
+Pfad 201       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P73 --
+Pfad 202       | H   H   --  W   W   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P74 --
+Pfad 203       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P75 --
+Pfad 204       | H   W   --  H   H   --  --  H   H
+Herkunft       | --  --  --  --  --  --  --  P76 --
+Pfad 205       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P77 --
+Pfad 206       | H   H   --  H   H   --  --  H   H
+Herkunft       | --  --  --  --  --  --  --  P78 --
+Pfad 207       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P79 --
+Pfad 208       | H   W   --  W   W   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P80 --
+Pfad 209       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P81 --
+Pfad 210       | H   H   --  H   W   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P82 --
+Pfad 211       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P83 --
+Pfad 212       | H   W   --  W   H   --  --  H   H
+Herkunft       | --  --  --  --  --  --  --  P84 --  
+Pfad 213       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P85 --
+Pfad 214       | H   H   --  W   H   --  --  H   H
+Herkunft       | --  --  --  --  --  --  --  P86 --
+Pfad 215       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P87 --
+Pfad 216       | H   W   --  H   W   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P88 --
+Pfad 217       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P89 --
+Pfad 218       | H   H   --  W   H   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P90 --
+Pfad 219       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P91 --
+Pfad 220       | H   W   --  H   W   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P92 --
+Pfad 221       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P93 --
+Pfad 222       | H   H   --  H   W   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P94 --
+Pfad 223       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P95 --
+Pfad 224       | H   W   --  W   H   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P96 --
+Pfad 225       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P97 --
+Pfad 226       | H   H   --  H   H   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P98 --
+Pfad 227       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P99 --
+Pfad 228       | H   W   --  W   W   --  --  H   H
+Herkunft       | --  --  --  --  --  --  --  P100--
+Pfad 229       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P101--
+Pfad 230       | H   H   --  W   W   --  --  H   H
+Herkunft       | --  --  --  --  --  --  --  P102--
+Pfad 231       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P103--
+Pfad 232       | H   W   --  H   H   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P104--
+Pfad 233       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P105--
+Pfad 234       | H   H   --  W   W   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P106--
+Pfad 235       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P107--
+Pfad 236       | H   W   --  H   H   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P108--
+Pfad 237       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P109--
+Pfad 238       | H   H   --  H   H   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P110--
+Pfad 239       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P111--
+Pfad 240       | H   W   --  W   W   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P112--
+Pfad 241       | W   W   --  W   H   --  --  --  --  
+Herkunft       | --  --  --  --  --  --  --  P113--
+Pfad 242       | H   H   --  H   W   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P114--
+Pfad 243       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P115--
+Pfad 244       | H   W   --  W   H   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P116--
+Pfad 245       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P117--
+Pfad 246       | H   H   --  W   H   --  --  W   W
+Herkunft       | --  --  --  --  --  --  --  P118--
+Pfad 247       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P119--
+Pfad 248       | H   W   --  H   W   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  P120--
+Pfad 249       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P121--
+Pfad 250       | H   H   --  W   H   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P122--
+Pfad 251       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P123--
+Pfad 252       | H   W   --  H   W   --  --  H   H
+Herkunft       | --  --  --  --  --  --  --  P124--
+Pfad 253       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P125--
+Pfad 254       | H   H   --  H   W   --  --  H   H
+Herkunft       | --  --  --  --  --  --  --  P126--
+Pfad 255       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  P127--
+Pfad 256       | H   W   --  W   H   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  P128--
+Pfad 257       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P1
+Pfad 258       | H   H   --  H   H   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P2
+Pfad 259       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P3
+Pfad 260       | H   W   --  W   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P4
+Pfad 261       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P5
+Pfad 262       | H   H   --  W   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P6
+Pfad 263       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P7
+Pfad 264       | H   W   --  H   H   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P8
+Pfad 265       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P9
+Pfad 266       | H   H   --  W   W   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P10
+Pfad 267       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P11
+Pfad 268       | H   W   --  H   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P12
+Pfad 269       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P13
+Pfad 270       | H   H   --  H   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P14 
+Pfad 271       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P15
+Pfad 272       | H   W   --  W   W   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P16
+Pfad 273       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P17
+Pfad 274       | H   H   --  H   W   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P18
+Pfad 275       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P19
+Pfad 276       | H   W   --  W   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P20
+Pfad 277       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P21
+Pfad 278       | H   H   --  W   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P22
+Pfad 279       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P23
+Pfad 280       | H   W   --  H   W   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P24
+Pfad 281       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P25
+Pfad 282       | H   H   --  W   H   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P26
+Pfad 283       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P27
+Pfad 284       | H   W   --  H   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P28
+Pfad 285       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P29
+Pfad 286       | H   H   --  H   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P30
+Pfad 287       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P31
+Pfad 288       | H   W   --  W   H   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P32
+Pfad 289       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P33
+Pfad 290       | H   H   --  H   H   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P34
+Pfad 291       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P35
+Pfad 292       | H   W   --  W   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P36
+Pfad 293       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P37
+Pfad 294       | H   H   --  W   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P38
+Pfad 295       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P39
+Pfad 296       | H   W   --  H   H   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P40
+Pfad 297       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P41
+Pfad 298       | H   H   --  W   W   H   --  H   --  
+Herkunft       | --  --  --  --  --  --  --  --  P42
+Pfad 299       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P43
+Pfad 300       | H   W   --  H   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P44
+Pfad 301       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P45
+Pfad 302       | H   H   --  H   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P46
+Pfad 303       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P47
+Pfad 304       | H   W   --  W   W   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P48
+Pfad 305       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P49
+Pfad 306       | H   H   --  H   W   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P50
+Pfad 307       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P51
+Pfad 308       | H   W   --  W   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P52
+Pfad 309       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P53
+Pfad 310       | H   H   --  W   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P54
+Pfad 311       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P55
+Pfad 312       | H   W   --  H   W   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P56
+Pfad 313       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P57
+Pfad 314       | H   H   --  W   H   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P58
+Pfad 315       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P59
+Pfad 316       | H   W   --  H   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P60
+Pfad 317       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P61
+Pfad 318       | H   H   --  H   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P62
+Pfad 319       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P63
+Pfad 320       | H   W   --  W   H   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P64
+Pfad 321       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P65
+Pfad 322       | H   H   --  H   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P66
+Pfad 323       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P67
+Pfad 324       | H   W   --  W   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P68
+Pfad 325       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P69
+Pfad 326       | H   H   --  W   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P70
+Pfad 327       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P71
+Pfad 328       | H   W   --  H   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P72
+Pfad 329       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P73
+Pfad 330       | H   H   --  W   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P74
+Pfad 331       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P75
+Pfad 332       | H   W   --  H   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P76
+Pfad 333       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P77
+Pfad 334       | H   H   --  H   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P78
+Pfad 335       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P79
+Pfad 336       | H   W   --  W   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P80
+Pfad 337       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P81
+Pfad 338       | H   H   --  H   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P82
+Pfad 339       | W   H   --  H   W   --  --  --  --  
+Herkunft       | --  --  --  --  --  --  --  --  P83
+Pfad 340       | H   W   --  W   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P84
+Pfad 341       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P85
+Pfad 342       | H   H   --  W   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P86
+Pfad 343       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P87
+Pfad 344       | H   W   --  H   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P88
+Pfad 345       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P89
+Pfad 346       | H   H   --  W   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P90
+Pfad 347       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P91
+Pfad 348       | H   W   --  H   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P92
+Pfad 349       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P93
+Pfad 350       | H   H   --  H   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P94
+Pfad 351       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P95
+Pfad 352       | H   W   --  W   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P96
+Pfad 353       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P97
+Pfad 354       | H   H   --  H   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P98
+Pfad 355       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P99
+Pfad 356       | H   W   --  W   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P100
+Pfad 357       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P101
+Pfad 358       | H   H   --  W   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P102
+Pfad 359       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P103
+Pfad 360       | H   W   --  H   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P104
+Pfad 361       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P105
+Pfad 362       | H   H   --  W   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P106
+Pfad 363       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P107
+Pfad 364       | H   W   --  H   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P108
+Pfad 365       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P109
+Pfad 366       | H   H   --  H   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P110
+Pfad 367       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P111
+Pfad 368       | H   W   --  W   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P112
+Pfad 369       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P113
+Pfad 370       | H   H   --  H   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P114
+Pfad 371       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P115
+Pfad 372       | H   W   --  W   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P116
+Pfad 373       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P117
+Pfad 374       | H   H   --  W   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P118
+Pfad 375       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P119
+Pfad 376       | H   W   --  H   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P120
+Pfad 377       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P121
+Pfad 378       | H   H   --  W   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P122
+Pfad 379       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P123
+Pfad 380       | H   W   --  H   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P124
+Pfad 381       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P125
+Pfad 382       | H   H   --  H   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P126
+Pfad 383       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P127
+Pfad 384       | H   W   --  W   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P128
+Pfad 385       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P129
+Pfad 386       | H   H   --  H   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P130
+Pfad 387       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P131
+Pfad 388       | H   W   --  W   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P132
+Pfad 389       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P133
+Pfad 390       | H   H   --  W   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P134
+Pfad 391       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P135
+Pfad 392       | H   W   --  H   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P136
+Pfad 393       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P137
+Pfad 394       | H   H   --  W   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P138
+Pfad 395       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P139
+Pfad 396       | H   W   --  H   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P140
+Pfad 397       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P141
+Pfad 398       | H   H   --  H   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P142
+Pfad 399       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P143
+Pfad 400       | H   W   --  W   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P144
+Pfad 401       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P145
+Pfad 402       | H   H   --  H   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P146
+Pfad 403       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P147
+Pfad 404       | H   W   --  W   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P148
+Pfad 405       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P149
+Pfad 406       | H   H   --  W   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P150
+Pfad 407       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P151
+Pfad 408       | H   W   --  H   W   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P152
+Pfad 409       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P153
+Pfad 410       | H   H   --  W   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P154
+Pfad 411       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P155
+Pfad 412       | H   W   --  H   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P156
+Pfad 413       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P157
+Pfad 414       | H   H   --  H   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P158
+Pfad 415       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P159
+Pfad 416       | H   W   --  W   H   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P160
+Pfad 417       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P161
+Pfad 418       | H   H   --  H   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P162
+Pfad 419       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P163
+Pfad 420       | H   W   --  W   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P164
+Pfad 421       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P165
+Pfad 422       | H   H   --  W   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P166
+Pfad 423       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P167
+Pfad 424       | H   W   --  H   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P168
+Pfad 425       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P169
+Pfad 426       | H   H   --  W   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P170
+Pfad 427       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P171
+Pfad 428       | H   W   --  H   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P172
+Pfad 429       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P173
+Pfad 430       | H   H   --  H   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P174
+Pfad 431       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P175
+Pfad 432       | H   W   --  W   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P176
+Pfad 433       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P177
+Pfad 434       | H   H   --  H   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P178
+Pfad 435       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P179
+Pfad 436       | H   W   --  W   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P180
+Pfad 437       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P181
+Pfad 438       | H   H   --  W   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P182
+Pfad 439       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P183
+Pfad 440       | H   W   --  H   W   H   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P184
+Pfad 441       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P185
+Pfad 442       | H   H   --  W   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P186
+Pfad 443       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P187
+Pfad 444       | H   W   --  H   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P188
+Pfad 445       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P189
+Pfad 446       | H   H   --  H   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P190
+Pfad 447       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P191
+Pfad 448       | H   W   --  W   H   W   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P192
+Pfad 449       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P193
+Pfad 450       | H   H   --  H   H   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P194
+Pfad 451       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P195
+Pfad 452       | H   W   --  W   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P196
+Pfad 453       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P197
+Pfad 454       | H   H   --  W   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P198
+Pfad 455       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P199
+Pfad 456       | H   W   --  H   H   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P200
+Pfad 457       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P201
+Pfad 458       | H   H   --  W   W   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P202
+Pfad 459       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P203
+Pfad 460       | H   W   --  H   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P204
+Pfad 461       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P205
+Pfad 462       | H   H   --  H   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P206
+Pfad 463       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P207
+Pfad 464       | H   W   --  W   W   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P208
+Pfad 465       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P209
+Pfad 466       | H   H   --  H   W   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P210
+Pfad 467       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P211
+Pfad 468       | H   W   --  W   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P212
+Pfad 469       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P213
+Pfad 470       | H   H   --  W   H   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P214
+Pfad 471       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P215
+Pfad 472       | H   W   --  H   W   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P216
+Pfad 473       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P217
+Pfad 474       | H   H   --  W   H   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P218
+Pfad 475       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P219
+Pfad 476       | H   W   --  H   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P220
+Pfad 477       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P221
+Pfad 478       | H   H   --  H   W   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P222
+Pfad 479       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P223
+Pfad 480       | H   W   --  W   H   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P224
+Pfad 481       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P225
+Pfad 482       | H   H   --  H   H   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P226
+Pfad 483       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P227
+Pfad 484       | H   W   --  W   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P228
+Pfad 485       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P229
+Pfad 486       | H   H   --  W   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P230
+Pfad 487       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P231
+Pfad 488       | H   W   --  H   H   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P232
+Pfad 489       | W   W   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P233
+Pfad 490       | H   H   --  W   W   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P234
+Pfad 491       | W   H   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P235
+Pfad 492       | H   W   --  H   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P236
+Pfad 493       | W   W   --  W   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P237
+Pfad 494       | H   H   --  H   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P238
+Pfad 495       | W   H   --  H   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P239
+Pfad 496       | H   W   --  W   W   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P240
+Pfad 497       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P241
+Pfad 498       | H   H   --  H   W   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P242
+Pfad 499       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P243
+Pfad 500       | H   W   --  W   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P244
+Pfad 501       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P245
+Pfad 502       | H   H   --  W   H   --  --  W   H
+Herkunft       | --  --  --  --  --  --  --  --  P246
+Pfad 503       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P247
+Pfad 504       | H   W   --  H   W   H   --  H   --
+Herkunft       | --  --  --  --  --  --  --  --  P248
+Pfad 505       | W   W   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P249
+Pfad 506       | H   H   --  W   H   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P250
+Pfad 507       | W   H   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P251
+Pfad 508       | H   W   --  H   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P252
+Pfad 509       | W   W   --  W   H   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P253
+Pfad 510       | H   H   --  H   W   --  --  H   W
+Herkunft       | --  --  --  --  --  --  --  --  P254
+Pfad 511       | W   H   --  H   W   --  --  --  --
+Herkunft       | --  --  --  --  --  --  --  --  P255
+Pfad 512       | H   W   --  W   H   W   --  W   --
+Herkunft       | --  --  --  --  --  --  --  --  P256

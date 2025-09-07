@@ -1,0 +1,67 @@
+Platte 1 - Strategie-Matrix (Kante)
+Pfad           | J2      J0      J7      J1      J8      J4      J5      J3      J6
+------------------------------------------------------------------------------------------
+Pfad 1         | W       W       --      W       W       --      --      --      --
+Herkunft       | --      --      --      --      --      --      --      --      --
+Pfad 2         | H       H       --      H       H       H       --      H       --
+Herkunft       | --      --      --      --      --      --      --      --      --
+Pfad 3         | W       H       --      H       H       --      --      --      --
+Herkunft       | --      P1      --      --      --      --      --      --      --
+Pfad 4         | H       W       --      W       W       --      --      W       W
+Herkunft       | --      P2      --      --      --      --      --      --      --
+Pfad 9         | W       W       --      H       H       --      --      --      --
+Herkunft       | --      --      --      P1      --      --      --      --      --
+Pfad 10        | H       H       --      W       W       W       --      W       --
+Herkunft       | --      --      --      P2      --      --      --      --      --
+Pfad 11        | W       H       --      W       W       --      --      --      --
+Herkunft       | --      --      --      P3      --      --      --      --      --
+Pfad 12        | H       W       --      H       H       --      --      H       H
+Herkunft       | --      --      --      P4      --      --      --      --      --
+Pfad 13        | W       W       --      W       H       --      --      --      --
+Herkunft       | --      --      --      --      P1      --      --      --      --
+Pfad 14        | H       H       --      H       W       W       --      W       --
+Herkunft       | --      --      --      --      P2      --      --      --      --
+Pfad 15        | W       H       --      H       W       --      --      --      --
+Herkunft       | --      --      --      --      P3      --      --      --      --
+Pfad 16        | H       W       --      W       H       --      --      H       H
+Herkunft       | --      --      --      --      P4      --      --      --      --
+Pfad 17        | W       W       --      H       W       --      --      --      --      
+Herkunft       | --      --      --      --      P9      --      --      --      --
+Pfad 18        | H       H       --      W       H       H       --      H       --
+Herkunft       | --      --      --      --      P10     --      --      --      --
+Pfad 19        | W       H       --      W       H       --      --      --      --
+Herkunft       | --      --      --      --      P11     --      --      --      --
+Pfad 20        | H       W       --      H       W       --      --      W       W
+Herkunft       | --      --      --      --      P12     --      --      --      --
+Pfad 26        | H       H       --      W       W       H       --      H       --
+Herkunft       | --      --      --      --      --      P10     --      --      --
+Pfad 34        | H       H       --      W       H       W       --      W       --
+Herkunft       | --      --      --      --      --      P18     --      --      --
+Pfad 56        | H       H       --      H       H       H       --      W       --
+Herkunft       | --      --      --      --      --      --      --      P2      --
+Pfad 58        | H       W       --      W       W       --      --      H       H
+Herkunft       | --      --      --      --      --      --      --      P4      --
+Pfad 60        | H       H       --      W       W       W       --      H       --
+Herkunft       | --      --      --      --      --      --      --      P10     --
+Pfad 64        | H       H       --      H       W       W       --      H       --
+Herkunft       | --      --      --      --      --      --      --      P14     --
+Pfad 66        | H       W       --      W       H       --      --      W       W
+Herkunft       | --      --      --      --      --      --      --      P16     --
+Pfad 68        | H       H       --      W       H       H       --      W       --
+Herkunft       | --      --      --      --      --      --      --      P18     --
+Pfad 71        | H       H       --      W       W       H       --      W       --
+Herkunft       | --      --      --      --      --      --      --      P26     --
+Pfad 72        | H       H       --      W       H       W       --      H       --
+Herkunft       | --      --      --      --      --      --      --      P34     --
+Pfad 76        | H       W       --      W       W       --      --      W       H
+Herkunft       | --      --      --      --      --      --      --      --      P4
+Pfad 80        | H       W       --      H       H       --      --      H       W
+Herkunft       | --      --      --      --      --      --      --      --      P12
+Pfad 84        | H       W       --      W       H       --      --      H       W
+Herkunft       | --      --      --      --      --      --      --      --      P16
+Pfad 88        | H       W       --      H       W       --      --      W       H
+Herkunft       | --      --      --      --      --      --      --      --      P20
+Pfad 92        | H       W       --      W       W       --      --      H       W
+Herkunft       | --      --      --      --      --      --      --      --      P58
+Pfad 95        | H       W       --      W       H       --      --      W       H
+Herkunft       | --      --      --      --      --      --      --      --      P66
