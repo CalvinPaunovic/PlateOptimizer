@@ -10,11 +10,186 @@ import java.util.*;
 
 public class MultiPlateIndividual_Controller {
 
-    private static final boolean ENABLE_CONSOLE_OUTPUT_CUTS = false;  // Schnittkoordinaten auf Konsole ausgeben
+    private static final boolean ENABLE_CONSOLE_OUTPUT_CUTS = true;  // SchniFttkoordinaten auf Konsole ausgeben
     private static final boolean ENABLE_CONSOLE_OUTPUTS_JOBSETS = false;
 
     /*
-     * Erster Aufruf
+     * Unendlicher Plattenmodus: Platte wird immer wieder neu geklont, bis keine Job-Sets mehr offen sind
+     */
+    public static void run_MaxRectBF_MultiPlate_Unlimited(List<Job> originalJobs, Plate plateTemplate, boolean sortJobs) {
+        if (plateTemplate == null || originalJobs == null || originalJobs.isEmpty()) return;
+
+        // Platte 1 (Fläche)
+        List<Job> jobs = JobUtils.createJobCopies(originalJobs);
+        if (sortJobs) JobUtils.sortJobsBySizeDescending(jobs);
+        MultiPlateIndividual_Algorithm firstPlateAlgorithm = new MultiPlateIndividual_Algorithm(java.util.Arrays.asList(clonePlate(plateTemplate)));
+        for (Job job : jobs) firstPlateAlgorithm.placeJob(job, plateTemplate.plateId);
+        List<MultiPlate_DataClasses> firstPlatePaths = firstPlateAlgorithm.getPathsAndFailedJobsOverviewData();
+
+        // Gruppenbildung P1 (Fläche)
+        Set<Integer> allJobIds = new LinkedHashSet<>(); for (Job j : originalJobs) allJobIds.add(j.id);
+        List<JobSetGroup> groups = buildUnplacedJobGroups(firstPlatePaths, allJobIds);
+        printJobSetGroups(groups, 1, "Fläche");
+
+        // Benchmarks P1 (Fläche)
+        List<BenchmarkVisualizer.BenchmarkResult> resP1 = buildBenchmarkResults(firstPlatePaths, jobs, java.util.Arrays.asList(plateTemplate));
+        for (BenchmarkVisualizer.BenchmarkResult br : resP1) { br.sortLabel = "Platte 1"; br.sortedBy = "Fläche"; }
+        Map<String,String> rootByPathArea = new HashMap<>();
+        for (JobSetGroup g : groups) for (String pid : g.pathIds) rootByPathArea.put(pid, g.rootSetId);
+        for (BenchmarkVisualizer.BenchmarkResult br : resP1) {
+            String pid = extractPathId(br.algorithmName);
+            br.rootSetId = pid != null ? rootByPathArea.getOrDefault(pid, "-") : "-";
+        }
+
+        // Platte 1 (Kante)
+        List<Job> jobsEdge = JobUtils.createJobCopies(originalJobs);
+        if (sortJobs) JobUtils.sortJobsByLargestEdgeDescending(jobsEdge);
+        MultiPlateIndividual_Algorithm algoEdge = new MultiPlateIndividual_Algorithm(java.util.Arrays.asList(clonePlate(plateTemplate)));
+        for (Job job : jobsEdge) algoEdge.placeJob(job, plateTemplate.plateId);
+        List<MultiPlate_DataClasses> pathsEdgeP1 = algoEdge.getPathsAndFailedJobsOverviewData();
+
+        // Gruppenbildung/Benchmark P1 (Kante)
+        List<JobSetGroup> groupsEdge = buildUnplacedJobGroups(pathsEdgeP1, allJobIds);
+        printJobSetGroups(groupsEdge, 1, "Kante");
+        List<BenchmarkVisualizer.BenchmarkResult> resP1Edge = buildBenchmarkResults(pathsEdgeP1, originalJobs, java.util.Arrays.asList(plateTemplate));
+        for (BenchmarkVisualizer.BenchmarkResult br : resP1Edge) { br.sortLabel = "Platte 1"; br.sortedBy = "Kante"; }
+        Map<String,String> rootByPathEdge = new HashMap<>();
+        for (JobSetGroup g : groupsEdge) for (String pid : g.pathIds) rootByPathEdge.put(pid, g.rootSetId);
+        for (BenchmarkVisualizer.BenchmarkResult br : resP1Edge) {
+            String pid = extractPathId(br.algorithmName);
+            br.rootSetId = pid != null ? rootByPathEdge.getOrDefault(pid, "-") : "-";
+        }
+
+        // Matrix-Ausgabe für Platte 1
+        {
+            List<Integer> orderArea = new ArrayList<>(); for (Job j : jobs) orderArea.add(j.id);
+            printStrategyCodeMatrix(firstPlatePaths, "Platte 1 - Strategie-Matrix (Fläche)", orderArea);
+            List<Integer> orderEdge = new ArrayList<>(); for (Job j : jobsEdge) orderEdge.add(j.id);
+            printStrategyCodeMatrix(pathsEdgeP1,   "Platte 1 - Strategie-Matrix (Kante)", orderEdge);
+        }
+
+        // P1 anzeigen
+        List<BenchmarkVisualizer.BenchmarkResult> combinedP1 = new ArrayList<>();
+        combinedP1.addAll(resP1); combinedP1.addAll(resP1Edge);
+        BenchmarkVisualizer.showBenchmarkResults(combinedP1, "Platte 1 - Gesamtlauf");
+
+        // Folgeplatten: solange Gruppen existieren, pro Stufe eine neue Platte aus Template erzeugen
+        List<JobSetGroup> currentGroupsArea = groups;
+        List<JobSetGroup> currentGroupsEdge = groupsEdge;
+        int plateIdx = 1; // nächste Platte ist P2
+        while (true) {
+            if (currentGroupsArea.isEmpty() && currentGroupsEdge.isEmpty()) break;
+            Plate currentPlate = clonePlate(plateTemplate);
+            Map<String, JobSetGroup> aggregatedForNextArea = new LinkedHashMap<>();
+            Map<String, JobSetGroup> aggregatedForNextEdge = new LinkedHashMap<>();
+
+            // A) Seed = Fläche
+            for (JobSetGroup g : currentGroupsArea) {
+                if (g.jobIds.isEmpty()) continue;
+                List<Job> subset = getJobsSubsetForIds(originalJobs, g.jobIds);
+                if (sortJobs) JobUtils.sortJobsBySizeDescending(subset);
+                MultiPlateIndividual_Algorithm algoArea = new MultiPlateIndividual_Algorithm(java.util.Arrays.asList(currentPlate));
+                for (Job j : subset) algoArea.placeJob(j, currentPlate.plateId);
+                List<MultiPlate_DataClasses> pathsArea = algoArea.getPathsAndFailedJobsOverviewData();
+
+                List<Job> subsetEdgeView = getJobsSubsetForIds(originalJobs, g.jobIds);
+                JobUtils.sortJobsByLargestEdgeDescending(subsetEdgeView);
+                MultiPlateIndividual_Algorithm algoEdgeView = new MultiPlateIndividual_Algorithm(java.util.Arrays.asList(currentPlate));
+                for (Job j : subsetEdgeView) algoEdgeView.placeJob(j, currentPlate.plateId);
+                List<MultiPlate_DataClasses> pathsEdgeView = algoEdgeView.getPathsAndFailedJobsOverviewData();
+
+                List<Integer> idsSorted = new ArrayList<>(g.jobIds); Collections.sort(idsSorted);
+                String setLabel = idsSorted.toString();
+
+                List<BenchmarkVisualizer.BenchmarkResult> resSetArea = buildBenchmarkResults(pathsArea, subset, java.util.Arrays.asList(currentPlate));
+                for (BenchmarkVisualizer.BenchmarkResult br : resSetArea) {
+                    br.sortLabel = "Set " + setLabel; br.jobSetLabel = setLabel; br.sortedBy = "Fläche"; br.rootSetId = g.rootSetId;
+                    if (br.perPlateSetLabels == null) br.perPlateSetLabels = new java.util.ArrayList<>();
+                    ensureSize(br.perPlateSetLabels, plateIdx + 1);
+                    br.perPlateSetLabels.set(0, g.rootSetId == null ? "-" : g.rootSetId);
+                    br.perPlateSetLabels.set(plateIdx, setLabel);
+                }
+                List<BenchmarkVisualizer.BenchmarkResult> resSetEdge = buildBenchmarkResults(pathsEdgeView, subset, java.util.Arrays.asList(currentPlate));
+                for (BenchmarkVisualizer.BenchmarkResult br : resSetEdge) {
+                    br.sortLabel = "Set " + setLabel; br.jobSetLabel = setLabel; br.sortedBy = "Kante"; br.rootSetId = g.rootSetId;
+                    if (br.perPlateSetLabels == null) br.perPlateSetLabels = new java.util.ArrayList<>();
+                    ensureSize(br.perPlateSetLabels, plateIdx + 1);
+                    br.perPlateSetLabels.set(0, g.rootSetId == null ? "-" : g.rootSetId);
+                    br.perPlateSetLabels.set(plateIdx, setLabel);
+                }
+
+                List<BenchmarkVisualizer.BenchmarkResult> combinedSet = new ArrayList<>(); combinedSet.addAll(resSetArea); combinedSet.addAll(resSetEdge);
+                BenchmarkVisualizer.showBenchmarkResults(combinedSet, "Platte " + (plateIdx + 1) + " - Job-Set: " + setLabel);
+
+                List<JobSetGroup> sub = buildUnplacedJobGroups(pathsArea, g.jobIds);
+                for (JobSetGroup sg : sub) {
+                    if (sg.jobIds.isEmpty()) continue;
+                    List<Integer> idsSortedSub = new ArrayList<>(sg.jobIds); Collections.sort(idsSortedSub);
+                    String key = idsSortedSub.toString();
+                    JobSetGroup dst = aggregatedForNextArea.computeIfAbsent(key, k -> new JobSetGroup(new LinkedHashSet<>(sg.jobIds)));
+                    dst.pathIds.addAll(sg.pathIds);
+                    if (dst.rootSetId == null) dst.rootSetId = g.rootSetId;
+                }
+            }
+
+            // B) Seed = Kante
+            for (JobSetGroup g : currentGroupsEdge) {
+                if (g.jobIds.isEmpty()) continue;
+                List<Job> subset = getJobsSubsetForIds(originalJobs, g.jobIds);
+                if (sortJobs) JobUtils.sortJobsBySizeDescending(subset);
+                MultiPlateIndividual_Algorithm algoArea = new MultiPlateIndividual_Algorithm(java.util.Arrays.asList(currentPlate));
+                for (Job j : subset) algoArea.placeJob(j, currentPlate.plateId);
+                List<MultiPlate_DataClasses> pathsArea = algoArea.getPathsAndFailedJobsOverviewData();
+
+                List<Job> subsetEdgeView = getJobsSubsetForIds(originalJobs, g.jobIds);
+                JobUtils.sortJobsByLargestEdgeDescending(subsetEdgeView);
+                MultiPlateIndividual_Algorithm algoEdgeView = new MultiPlateIndividual_Algorithm(java.util.Arrays.asList(currentPlate));
+                for (Job j : subsetEdgeView) algoEdgeView.placeJob(j, currentPlate.plateId);
+                List<MultiPlate_DataClasses> pathsEdgeView = algoEdgeView.getPathsAndFailedJobsOverviewData();
+
+                List<Integer> idsSorted = new ArrayList<>(g.jobIds); Collections.sort(idsSorted);
+                String setLabel = idsSorted.toString();
+
+                List<BenchmarkVisualizer.BenchmarkResult> resSetArea = buildBenchmarkResults(pathsArea, subset, java.util.Arrays.asList(currentPlate));
+                for (BenchmarkVisualizer.BenchmarkResult br : resSetArea) {
+                    br.sortLabel = "Set " + setLabel; br.jobSetLabel = setLabel; br.sortedBy = "Fläche"; br.rootSetId = g.rootSetId;
+                    if (br.perPlateSetLabels == null) br.perPlateSetLabels = new java.util.ArrayList<>();
+                    ensureSize(br.perPlateSetLabels, plateIdx + 1);
+                    br.perPlateSetLabels.set(0, g.rootSetId == null ? "-" : g.rootSetId);
+                    br.perPlateSetLabels.set(plateIdx, setLabel);
+                }
+                List<BenchmarkVisualizer.BenchmarkResult> resSetEdge = buildBenchmarkResults(pathsEdgeView, subset, java.util.Arrays.asList(currentPlate));
+                for (BenchmarkVisualizer.BenchmarkResult br : resSetEdge) {
+                    br.sortLabel = "Set " + setLabel; br.jobSetLabel = setLabel; br.sortedBy = "Kante"; br.rootSetId = g.rootSetId;
+                    if (br.perPlateSetLabels == null) br.perPlateSetLabels = new java.util.ArrayList<>();
+                    ensureSize(br.perPlateSetLabels, plateIdx + 1);
+                    br.perPlateSetLabels.set(0, g.rootSetId == null ? "-" : g.rootSetId);
+                    br.perPlateSetLabels.set(plateIdx, setLabel);
+                }
+
+                List<BenchmarkVisualizer.BenchmarkResult> combinedSet = new ArrayList<>(); combinedSet.addAll(resSetArea); combinedSet.addAll(resSetEdge);
+                BenchmarkVisualizer.showBenchmarkResults(combinedSet, "Platte " + (plateIdx + 1) + " - Job-Set: " + setLabel + " | Seed=P1-Kante");
+
+                List<JobSetGroup> subEdge = buildUnplacedJobGroups(pathsEdgeView, g.jobIds);
+                for (JobSetGroup sg : subEdge) {
+                    if (sg.jobIds.isEmpty()) continue;
+                    List<Integer> idsSortedSub = new ArrayList<>(sg.jobIds); Collections.sort(idsSortedSub);
+                    String key = idsSortedSub.toString();
+                    JobSetGroup dst = aggregatedForNextEdge.computeIfAbsent(key, k -> new JobSetGroup(new LinkedHashSet<>(sg.jobIds)));
+                    dst.pathIds.addAll(sg.pathIds);
+                    if (dst.rootSetId == null) dst.rootSetId = g.rootSetId;
+                }
+            }
+
+            List<JobSetGroup> nextArea = new ArrayList<>(aggregatedForNextArea.values());
+            currentGroupsArea = nextArea;
+            currentGroupsEdge = new ArrayList<>(aggregatedForNextEdge.values());
+            plateIdx++;
+        }
+    }
+
+    /*
+     * Gegebene Plattenmenge
      */
     public static void run_MaxRectBF_MultiPlate(List<Job> originalJobs, List<Plate> plateInfos, boolean sortJobs) {
         if (plateInfos == null || plateInfos.isEmpty() || originalJobs == null || originalJobs.isEmpty()) return;
@@ -215,7 +390,8 @@ public class MultiPlateIndividual_Controller {
     }
 
     /*
-     * Gruppenbildung für unplatzierte Jobs. Unterschiedliche Pfade, die aber die gleichen failed Jobs haben, gehören zur selben Gruppe.
+     * Gruppenbildung für unplatzierte Jobs. 
+     * Unterschiedliche Pfade, die aber die gleichen failed Jobs haben, gehören zur selben Gruppe.
      */
     private static List<JobSetGroup> buildUnplacedJobGroups(List<MultiPlate_DataClasses> paths, Set<Integer> allJobIds) {
         Map<String, JobSetGroup> map = new LinkedHashMap<>();
@@ -234,6 +410,9 @@ public class MultiPlateIndividual_Controller {
     }
 
 
+    /*
+     * Hilfsmethode: Filtert von originalJobs nur die mit den angegebenen IDs heraus
+     */
     private static List<Job> getJobsSubsetForIds(List<Job> originalJobs, Set<Integer> ids) {
         Map<Integer, Job> byId = new HashMap<>(); for (Job j : originalJobs) byId.put(j.id, j);
         List<Job> out = new ArrayList<>();
@@ -244,6 +423,9 @@ public class MultiPlateIndividual_Controller {
         return out;
     }
 
+    /*
+     * Nach jeder Platte werden alle failed Jobs in Job-Sets gruppiert
+     */
     private static class JobSetGroup {
         final Set<Integer> jobIds; 
         final List<String> pathIds = new ArrayList<>();
@@ -253,7 +435,9 @@ public class MultiPlateIndividual_Controller {
         }
     }
 
-    // Pfad-ID aus "Pfad X[.Y]" im algorithmName extrahieren
+    /*
+     * Für Debug-Konsole-Ausgabe
+     */
     private static String extractPathId(String algoName) {
         if (algoName == null) return null;
         int idx = algoName.indexOf("Pfad ");
@@ -329,104 +513,22 @@ public class MultiPlateIndividual_Controller {
 
 
     /*
-     * Schnittlinien-Berechnung
+     * PlateVisualizer ruft CutLineCalculator auf und bekommt die Schnittkoordianten zurück
      */
-    public static class CutLine {
-        public final int id;
-        public final boolean vertical;
-        public final double coord;
-        public final double start;
-        public final double end;
-        public CutLine(int id, boolean vertical, double coord, double start, double end) {
-            this.id = id; this.vertical = vertical; this.coord = coord; this.start = start; this.end = end;
-        }
+    public static java.util.List<CutLineCalculator.CutLine> computeCutLinesForPlate(Plate plate) {
+        return CutLineCalculator.calculateCutLinesForPlate(plate);
     }
 
-    public static java.util.List<CutLine> calculateCutLinesForPlate(Plate plate) {
-        java.util.List<CutLine> cuts = new java.util.ArrayList<>();
-        if (plate == null) return cuts;
-
-        final double EPS = 1e-6;
-        // Gruppiere vertikale Schnitte nach x und horizontale nach y, sammle Intervalle
-        java.util.Map<Double, java.util.List<double[]>> vertMap = new java.util.TreeMap<>();
-        java.util.Map<Double, java.util.List<double[]>> horizMap = new java.util.TreeMap<>();
-
-        for (Job j : plate.jobs) {
-            if (j == null || j.placedOn == null) continue;
-            double x1 = normalize(j.x);
-            double x2 = normalize(j.x + j.width);
-            double y1 = normalize(j.y);
-            double y2 = normalize(j.y + j.height);
-
-            vertMap.computeIfAbsent(x1, k -> new java.util.ArrayList<>()).add(new double[]{y1, y2});
-            vertMap.computeIfAbsent(x2, k -> new java.util.ArrayList<>()).add(new double[]{y1, y2});
-
-            horizMap.computeIfAbsent(y1, k -> new java.util.ArrayList<>()).add(new double[]{x1, x2});
-            horizMap.computeIfAbsent(y2, k -> new java.util.ArrayList<>()).add(new double[]{x1, x2});
-        }
-
-        // Hilfsfunktion: Intervalle zusammenführen
-        java.util.function.BiConsumer<java.util.Map<Double, java.util.List<double[]>>, Boolean> processMap = (map, isVertical) -> {
-            for (java.util.Map.Entry<Double, java.util.List<double[]>> entry : map.entrySet()) {
-                double coord = entry.getKey();
-                java.util.List<double[]> segs = entry.getValue();
-                if (segs == null || segs.isEmpty()) continue;
-                // sortiere nach Start
-                segs.sort((a, b) -> Double.compare(a[0], b[0]));
-                java.util.List<double[]> merged = new java.util.ArrayList<>();
-                for (double[] s : segs) {
-                    if (merged.isEmpty()) { merged.add(new double[]{s[0], s[1]}); continue; }
-                    double[] last = merged.get(merged.size() - 1);
-                    if (s[0] <= last[1] + EPS) {
-                        // überlappend oder angrenzend -> zusammenführen
-                        last[1] = Math.max(last[1], s[1]);
-                    } else {
-                        merged.add(new double[]{s[0], s[1]});
-                    }
-                }
-                // Erzeuge CutLine-Einträge für die zusammengeführten Segmente
-                for (double[] m : merged) {
-                    if (Math.abs(m[1] - m[0]) < EPS) continue; // vernachlässige Null-Länge
-                    if (isVertical) {
-                        cuts.add(new CutLine(0, true, coord, m[0], m[1]));
-                    } else {
-                        cuts.add(new CutLine(0, false, coord, m[0], m[1]));
-                    }
-                }
-            }
-        };
-
-        processMap.accept(vertMap, true);
-        processMap.accept(horizMap, false);
-
-        // Vergib eindeutige, fortlaufende IDs (1..N)
-        // (vorher war hier eine leere Schleife, die unbenutzte Variablen erzeugte)
-        // Baue neue Liste mit korrekten IDs in deterministischer Reihenfolge (zuerst vertikale nach x, dann horizontale nach y)
-        java.util.List<CutLine> finalCuts = new java.util.ArrayList<>();
-        // sortiere zunächst: vertikal vor horizontal, dann nach coord
-        cuts.sort((a, b) -> {
-            if (a.vertical == b.vertical) return Double.compare(a.coord, b.coord);
-            return a.vertical ? -1 : 1;
-        });
-        int nextId = 1;
-        for (CutLine c : cuts) {
-            finalCuts.add(new CutLine(nextId++, c.vertical, c.coord, c.start, c.end));
-        }
-
-        return finalCuts;
-    }
-
-    private static double normalize(double v) { 
-        return Math.round(v * 1000.0) / 1000.0; 
-    }
-
+    /*
+     * Konsolenausgabe: CutLineCalculator aufrufen und Schnitte auf Konsole ausgeben (wenn ENABLE_CONSOLE_OUTPUT_CUTS true ist)
+     */
     public static void printCutsAndIntersections(Plate plate, boolean force) {
         if (plate == null) return;
-        java.util.List<CutLine> cuts = calculateCutLinesForPlate(plate);
+        java.util.List<CutLineCalculator.CutLine> cuts = CutLineCalculator.calculateCutLinesForPlate(plate);
         if (cuts == null || cuts.isEmpty()) return;
         // Ausgabe: pro Cut die Endpunkte, aber nur wenn ENABLE_CONSOLE_OUTPUT_CUTS true ist
         if (ENABLE_CONSOLE_OUTPUT_CUTS) {
-            for (CutLine c : cuts) {
+            for (CutLineCalculator.CutLine c : cuts) {
                 String orient = c.vertical ? "V" : "H";
                 String p1, p2;
                 if (c.vertical) {
@@ -442,14 +544,11 @@ public class MultiPlateIndividual_Controller {
         }
         // Schnittpunkte ermitteln (vertikal x horizontal)
         for (int i = 0; i < cuts.size(); i++) {
-            CutLine ci = cuts.get(i);
+            CutLineCalculator.CutLine ci = cuts.get(i);
             if (!ci.vertical) continue;
             for (int j = 0; j < cuts.size(); j++) {
-                CutLine cj = cuts.get(j);
+                CutLineCalculator.CutLine cj = cuts.get(j);
                 if (cj.vertical) continue;
-                if (ci.coord >= cj.start && ci.coord <= cj.end && cj.coord >= ci.start && cj.coord <= ci.end) {
-                    // Intersection-Ausgabe optional
-                }
             }
         }
     }
@@ -476,185 +575,10 @@ public class MultiPlateIndividual_Controller {
         }
     }
 
-    // Hilfsfunktion: Liste auf Zielgröße auffüllen und mit "-" vorbelegen
     private static void ensureSize(java.util.List<String> list, int size) {
         while (list.size() < size) list.add("-");
     }
 
-    // Unendlicher Plattenmodus (Template wird pro Stufe neu geklont, bis keine Gruppen mehr offen sind)
-    public static void run_MaxRectBF_MultiPlate_Unlimited(List<Job> originalJobs, Plate plateTemplate, boolean sortJobs) {
-        if (plateTemplate == null || originalJobs == null || originalJobs.isEmpty()) return;
-
-        // Platte 1 (Fläche)
-        List<Job> jobs = JobUtils.createJobCopies(originalJobs);
-        if (sortJobs) JobUtils.sortJobsBySizeDescending(jobs);
-        MultiPlateIndividual_Algorithm firstPlateAlgorithm = new MultiPlateIndividual_Algorithm(java.util.Arrays.asList(clonePlate(plateTemplate)));
-        for (Job job : jobs) firstPlateAlgorithm.placeJob(job, plateTemplate.plateId);
-        List<MultiPlate_DataClasses> firstPlatePaths = firstPlateAlgorithm.getPathsAndFailedJobsOverviewData();
-
-        // Gruppenbildung P1 (Fläche)
-        Set<Integer> allJobIds = new LinkedHashSet<>(); for (Job j : originalJobs) allJobIds.add(j.id);
-        List<JobSetGroup> groups = buildUnplacedJobGroups(firstPlatePaths, allJobIds);
-        printJobSetGroups(groups, 1, "Fläche");
-
-        // Benchmarks P1 (Fläche)
-        List<BenchmarkVisualizer.BenchmarkResult> resP1 = buildBenchmarkResults(firstPlatePaths, jobs, java.util.Arrays.asList(plateTemplate));
-        for (BenchmarkVisualizer.BenchmarkResult br : resP1) { br.sortLabel = "Platte 1"; br.sortedBy = "Fläche"; }
-        Map<String,String> rootByPathArea = new HashMap<>();
-        for (JobSetGroup g : groups) for (String pid : g.pathIds) rootByPathArea.put(pid, g.rootSetId);
-        for (BenchmarkVisualizer.BenchmarkResult br : resP1) {
-            String pid = extractPathId(br.algorithmName);
-            br.rootSetId = pid != null ? rootByPathArea.getOrDefault(pid, "-") : "-";
-        }
-
-        // Platte 1 (Kante)
-        List<Job> jobsEdge = JobUtils.createJobCopies(originalJobs);
-        if (sortJobs) JobUtils.sortJobsByLargestEdgeDescending(jobsEdge);
-        MultiPlateIndividual_Algorithm algoEdge = new MultiPlateIndividual_Algorithm(java.util.Arrays.asList(clonePlate(plateTemplate)));
-        for (Job job : jobsEdge) algoEdge.placeJob(job, plateTemplate.plateId);
-        List<MultiPlate_DataClasses> pathsEdgeP1 = algoEdge.getPathsAndFailedJobsOverviewData();
-
-        // Gruppenbildung/Benchmark P1 (Kante)
-        List<JobSetGroup> groupsEdge = buildUnplacedJobGroups(pathsEdgeP1, allJobIds);
-        printJobSetGroups(groupsEdge, 1, "Kante");
-        List<BenchmarkVisualizer.BenchmarkResult> resP1Edge = buildBenchmarkResults(pathsEdgeP1, originalJobs, java.util.Arrays.asList(plateTemplate));
-        for (BenchmarkVisualizer.BenchmarkResult br : resP1Edge) { br.sortLabel = "Platte 1"; br.sortedBy = "Kante"; }
-        Map<String,String> rootByPathEdge = new HashMap<>();
-        for (JobSetGroup g : groupsEdge) for (String pid : g.pathIds) rootByPathEdge.put(pid, g.rootSetId);
-        for (BenchmarkVisualizer.BenchmarkResult br : resP1Edge) {
-            String pid = extractPathId(br.algorithmName);
-            br.rootSetId = pid != null ? rootByPathEdge.getOrDefault(pid, "-") : "-";
-        }
-
-        // Matrix-Ausgabe für Platte 1
-        {
-            List<Integer> orderArea = new ArrayList<>(); for (Job j : jobs) orderArea.add(j.id);
-            printStrategyCodeMatrix(firstPlatePaths, "Platte 1 - Strategie-Matrix (Fläche)", orderArea);
-            List<Integer> orderEdge = new ArrayList<>(); for (Job j : jobsEdge) orderEdge.add(j.id);
-            printStrategyCodeMatrix(pathsEdgeP1,   "Platte 1 - Strategie-Matrix (Kante)", orderEdge);
-        }
-
-        // P1 anzeigen
-        List<BenchmarkVisualizer.BenchmarkResult> combinedP1 = new ArrayList<>();
-        combinedP1.addAll(resP1); combinedP1.addAll(resP1Edge);
-        BenchmarkVisualizer.showBenchmarkResults(combinedP1, "Platte 1 - Gesamtlauf");
-
-        // Folgeplatten: solange Gruppen existieren, pro Stufe eine neue Platte aus Template erzeugen
-        List<JobSetGroup> currentGroupsArea = groups;
-        List<JobSetGroup> currentGroupsEdge = groupsEdge;
-        int plateIdx = 1; // nächste Platte ist P2
-        while (true) {
-            if (currentGroupsArea.isEmpty() && currentGroupsEdge.isEmpty()) break;
-            Plate currentPlate = clonePlate(plateTemplate);
-            Map<String, JobSetGroup> aggregatedForNextArea = new LinkedHashMap<>();
-            Map<String, JobSetGroup> aggregatedForNextEdge = new LinkedHashMap<>();
-
-            // A) Seed = Fläche
-            for (JobSetGroup g : currentGroupsArea) {
-                if (g.jobIds.isEmpty()) continue;
-                List<Job> subset = getJobsSubsetForIds(originalJobs, g.jobIds);
-                if (sortJobs) JobUtils.sortJobsBySizeDescending(subset);
-                MultiPlateIndividual_Algorithm algoArea = new MultiPlateIndividual_Algorithm(java.util.Arrays.asList(currentPlate));
-                for (Job j : subset) algoArea.placeJob(j, currentPlate.plateId);
-                List<MultiPlate_DataClasses> pathsArea = algoArea.getPathsAndFailedJobsOverviewData();
-
-                List<Job> subsetEdgeView = getJobsSubsetForIds(originalJobs, g.jobIds);
-                JobUtils.sortJobsByLargestEdgeDescending(subsetEdgeView);
-                MultiPlateIndividual_Algorithm algoEdgeView = new MultiPlateIndividual_Algorithm(java.util.Arrays.asList(currentPlate));
-                for (Job j : subsetEdgeView) algoEdgeView.placeJob(j, currentPlate.plateId);
-                List<MultiPlate_DataClasses> pathsEdgeView = algoEdgeView.getPathsAndFailedJobsOverviewData();
-
-                List<Integer> idsSorted = new ArrayList<>(g.jobIds); Collections.sort(idsSorted);
-                String setLabel = idsSorted.toString();
-
-                List<BenchmarkVisualizer.BenchmarkResult> resSetArea = buildBenchmarkResults(pathsArea, subset, java.util.Arrays.asList(currentPlate));
-                for (BenchmarkVisualizer.BenchmarkResult br : resSetArea) {
-                    br.sortLabel = "Set " + setLabel; br.jobSetLabel = setLabel; br.sortedBy = "Fläche"; br.rootSetId = g.rootSetId;
-                    if (br.perPlateSetLabels == null) br.perPlateSetLabels = new java.util.ArrayList<>();
-                    ensureSize(br.perPlateSetLabels, plateIdx + 1);
-                    br.perPlateSetLabels.set(0, g.rootSetId == null ? "-" : g.rootSetId);
-                    br.perPlateSetLabels.set(plateIdx, setLabel);
-                }
-                List<BenchmarkVisualizer.BenchmarkResult> resSetEdge = buildBenchmarkResults(pathsEdgeView, subset, java.util.Arrays.asList(currentPlate));
-                for (BenchmarkVisualizer.BenchmarkResult br : resSetEdge) {
-                    br.sortLabel = "Set " + setLabel; br.jobSetLabel = setLabel; br.sortedBy = "Kante"; br.rootSetId = g.rootSetId;
-                    if (br.perPlateSetLabels == null) br.perPlateSetLabels = new java.util.ArrayList<>();
-                    ensureSize(br.perPlateSetLabels, plateIdx + 1);
-                    br.perPlateSetLabels.set(0, g.rootSetId == null ? "-" : g.rootSetId);
-                    br.perPlateSetLabels.set(plateIdx, setLabel);
-                }
-
-                List<BenchmarkVisualizer.BenchmarkResult> combinedSet = new ArrayList<>(); combinedSet.addAll(resSetArea); combinedSet.addAll(resSetEdge);
-                BenchmarkVisualizer.showBenchmarkResults(combinedSet, "Platte " + (plateIdx + 1) + " - Job-Set: " + setLabel);
-
-                List<JobSetGroup> sub = buildUnplacedJobGroups(pathsArea, g.jobIds);
-                for (JobSetGroup sg : sub) {
-                    if (sg.jobIds.isEmpty()) continue;
-                    List<Integer> idsSortedSub = new ArrayList<>(sg.jobIds); Collections.sort(idsSortedSub);
-                    String key = idsSortedSub.toString();
-                    JobSetGroup dst = aggregatedForNextArea.computeIfAbsent(key, k -> new JobSetGroup(new LinkedHashSet<>(sg.jobIds)));
-                    dst.pathIds.addAll(sg.pathIds);
-                    if (dst.rootSetId == null) dst.rootSetId = g.rootSetId;
-                }
-            }
-
-            // B) Seed = Kante
-            for (JobSetGroup g : currentGroupsEdge) {
-                if (g.jobIds.isEmpty()) continue;
-                List<Job> subset = getJobsSubsetForIds(originalJobs, g.jobIds);
-                if (sortJobs) JobUtils.sortJobsBySizeDescending(subset);
-                MultiPlateIndividual_Algorithm algoArea = new MultiPlateIndividual_Algorithm(java.util.Arrays.asList(currentPlate));
-                for (Job j : subset) algoArea.placeJob(j, currentPlate.plateId);
-                List<MultiPlate_DataClasses> pathsArea = algoArea.getPathsAndFailedJobsOverviewData();
-
-                List<Job> subsetEdgeView = getJobsSubsetForIds(originalJobs, g.jobIds);
-                JobUtils.sortJobsByLargestEdgeDescending(subsetEdgeView);
-                MultiPlateIndividual_Algorithm algoEdgeView = new MultiPlateIndividual_Algorithm(java.util.Arrays.asList(currentPlate));
-                for (Job j : subsetEdgeView) algoEdgeView.placeJob(j, currentPlate.plateId);
-                List<MultiPlate_DataClasses> pathsEdgeView = algoEdgeView.getPathsAndFailedJobsOverviewData();
-
-                List<Integer> idsSorted = new ArrayList<>(g.jobIds); Collections.sort(idsSorted);
-                String setLabel = idsSorted.toString();
-
-                List<BenchmarkVisualizer.BenchmarkResult> resSetArea = buildBenchmarkResults(pathsArea, subset, java.util.Arrays.asList(currentPlate));
-                for (BenchmarkVisualizer.BenchmarkResult br : resSetArea) {
-                    br.sortLabel = "Set " + setLabel; br.jobSetLabel = setLabel; br.sortedBy = "Fläche"; br.rootSetId = g.rootSetId;
-                    if (br.perPlateSetLabels == null) br.perPlateSetLabels = new java.util.ArrayList<>();
-                    ensureSize(br.perPlateSetLabels, plateIdx + 1);
-                    br.perPlateSetLabels.set(0, g.rootSetId == null ? "-" : g.rootSetId);
-                    br.perPlateSetLabels.set(plateIdx, setLabel);
-                }
-                List<BenchmarkVisualizer.BenchmarkResult> resSetEdge = buildBenchmarkResults(pathsEdgeView, subset, java.util.Arrays.asList(currentPlate));
-                for (BenchmarkVisualizer.BenchmarkResult br : resSetEdge) {
-                    br.sortLabel = "Set " + setLabel; br.jobSetLabel = setLabel; br.sortedBy = "Kante"; br.rootSetId = g.rootSetId;
-                    if (br.perPlateSetLabels == null) br.perPlateSetLabels = new java.util.ArrayList<>();
-                    ensureSize(br.perPlateSetLabels, plateIdx + 1);
-                    br.perPlateSetLabels.set(0, g.rootSetId == null ? "-" : g.rootSetId);
-                    br.perPlateSetLabels.set(plateIdx, setLabel);
-                }
-
-                List<BenchmarkVisualizer.BenchmarkResult> combinedSet = new ArrayList<>(); combinedSet.addAll(resSetArea); combinedSet.addAll(resSetEdge);
-                BenchmarkVisualizer.showBenchmarkResults(combinedSet, "Platte " + (plateIdx + 1) + " - Job-Set: " + setLabel + " | Seed=P1-Kante");
-
-                List<JobSetGroup> subEdge = buildUnplacedJobGroups(pathsEdgeView, g.jobIds);
-                for (JobSetGroup sg : subEdge) {
-                    if (sg.jobIds.isEmpty()) continue;
-                    List<Integer> idsSortedSub = new ArrayList<>(sg.jobIds); Collections.sort(idsSortedSub);
-                    String key = idsSortedSub.toString();
-                    JobSetGroup dst = aggregatedForNextEdge.computeIfAbsent(key, k -> new JobSetGroup(new LinkedHashSet<>(sg.jobIds)));
-                    dst.pathIds.addAll(sg.pathIds);
-                    if (dst.rootSetId == null) dst.rootSetId = g.rootSetId;
-                }
-            }
-
-            List<JobSetGroup> nextArea = new ArrayList<>(aggregatedForNextArea.values());
-            currentGroupsArea = nextArea;
-            currentGroupsEdge = new ArrayList<>(aggregatedForNextEdge.values());
-            plateIdx++;
-        }
-    }
-
-    // Hilfsfunktion: geklonte Platte (Template)
     private static Plate clonePlate(Plate base) {
         Plate p = new Plate(base.name, base.width, base.height, base.plateId);
         p.name = base.name;
@@ -663,9 +587,6 @@ public class MultiPlateIndividual_Controller {
 
     /**
      * Gibt eine Strategie-Code-Matrix auf die Konsole aus.
-     * - Spalten = ALLE Jobs (globale Reihenfolge): zuerst wie im repräsentativen Pfad platziert, restliche Job-IDs numerisch.
-     * - Zellen: W/H (+r für rotiert) oder "--" wenn im Pfad nicht platziert.
-     * - Herkunft: nur am Fork-Job des Pfads "P<parentPathId>", vorherige (vererbte) Jobs bleiben "--".
      */
     private static void printStrategyCodeMatrix(List<MultiPlate_DataClasses> allPaths, String title, List<Integer> desiredOrder) {
         if (allPaths == null || allPaths.isEmpty()) return;
@@ -844,5 +765,4 @@ public class MultiPlateIndividual_Controller {
         return null;
     }
 
-    // ...existing code...
 }

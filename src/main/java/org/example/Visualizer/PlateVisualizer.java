@@ -10,7 +10,8 @@ import org.example.DataClasses.Plate;
 import org.example.DataClasses.MultiPlate_DataClasses; // neu
 import org.example.SinglePlate.MaxRectBF_MultiPath;
 import org.example.SinglePlate.MultiPlateMultiPath;
-import org.example.MultiPlate.MultiPlate_Controller; // CutLine + computeCutLinesForPlate
+import org.example.MultiPlateIndividual.CutLineCalculator;
+import org.example.MultiPlateIndividual.MultiPlateIndividual_Controller;
 
 /**
  * PlateVisualizer
@@ -48,9 +49,9 @@ public class PlateVisualizer extends JPanel {
 
 
     /** Optional: vordefinierte, nummerierte Schnittlinien, von außen gesetzt */
-    private java.util.List<MultiPlate_Controller.CutLine> externalCuts;
+    private java.util.List<CutLineCalculator.CutLine> externalCuts;
 
-    public void setExternalCuts(java.util.List<MultiPlate_Controller.CutLine> cuts) { this.externalCuts = cuts; }
+    public void setExternalCuts(java.util.List<CutLineCalculator.CutLine> cuts) { this.externalCuts = cuts; }
 
     // ------------------------------------------------------
     // Konstruktoren
@@ -148,7 +149,7 @@ public class PlateVisualizer extends JPanel {
         // --------------------------------------------------
         // Schnittlinien zeichnen und nummerieren (grün gestrichelt)
         // --------------------------------------------------
-        java.util.List<MultiPlate_Controller.CutLine> cuts = (externalCuts != null) ? externalCuts : MultiPlate_Controller.computeCutLinesForPlate(plate);
+        java.util.List<CutLineCalculator.CutLine> cuts = (externalCuts != null) ? externalCuts : MultiPlateIndividual_Controller.computeCutLinesForPlate(plate);
         if (cuts != null && !cuts.isEmpty()) {
             Stroke oldStroke = g2d.getStroke();
             g2d.setColor(new Color(0, 150, 0));
@@ -158,7 +159,7 @@ public class PlateVisualizer extends JPanel {
             int over = 30; // Überhang-Länge außerhalb der Platte
             final double EPS = 1e-6;
 
-            for (MultiPlate_Controller.CutLine cl : cuts) {
+            for (CutLineCalculator.CutLine cl : cuts) {
                 int idx = cl.id; // Verwende die von computeCutLinesForPlate vergebene ID
                 if (cl.vertical) {
                     int x = (int) Math.round(cl.coord);
@@ -337,7 +338,7 @@ public class PlateVisualizer extends JPanel {
         });
     }
 
-    public static void showPlateWithCutsAndTitleAndInfo(Plate plate, String mode, java.util.List<MultiPlate_Controller.CutLine> cuts, List<?> specificFreeRects, String customTitle, String algorithmInfo, String jobListInfo) {
+    public static void showPlateWithCutsAndTitleAndInfo(Plate plate, String mode, java.util.List<CutLineCalculator.CutLine> cuts, List<?> specificFreeRects, String customTitle, String algorithmInfo, String jobListInfo) {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Plate Visualizer - " + customTitle);
             frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);

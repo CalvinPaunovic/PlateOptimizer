@@ -6,6 +6,7 @@ import org.example.DataClasses.Plate;
 import org.example.HelperClasses.JobUtils;
 import org.example.Visualizer.PlateVisualizer; // hinzugefügt
 import org.example.Visualizer.BenchmarkVisualizer; // hinzugefügt
+import org.example.MultiPlateIndividual.CutLineCalculator;
 
 import java.util.*;
 
@@ -207,7 +208,7 @@ public class MultiPlate_Controller {
                 Job lastPlaced = sortedJobs.get(step - 1);
                 // Druck für Zwischenschritt (zentrale Funktion) - erzwungene Ausgabe
                 printPlateInfo(partial, true);
-                java.util.List<CutLine> partialCuts = computeCutLinesForPlate(partial);
+                java.util.List<CutLineCalculator.CutLine> partialCuts = computeCutLinesForPlate(partial);
                 PlateVisualizer.showPlateWithCutsAndTitleAndInfo(partial, "7", partialCuts, snapshot, "Pfad " + path.pathId + " - Step " + step + " (Job " + lastPlaced.id + ")", null, null);
             }
         }
@@ -445,99 +446,16 @@ public class MultiPlate_Controller {
     }
 
     // ---------------------------------------------
-    // Schnittlinien-Berechnung (DTO + Logik)
+    // Schnittlinien-Berechnung
     // ---------------------------------------------
     /**
      * Repräsentiert eine Schnittlinie (entweder vertikal oder horizontal).
      * coord = x (bei vertical=true) bzw. y (bei vertical=false).
      * start/end definieren den Bereich entlang der Linie (in mm).
      */
-    public static class CutLine {
-        public final int id;
-        public final boolean vertical;
-        public final double coord;
-        public final double start;
-        public final double end;
-        public CutLine(int id, boolean vertical, double coord, double start, double end) {
-            this.id = id; this.vertical = vertical; this.coord = coord; this.start = start; this.end = end;
-        }
+    public static java.util.List<CutLineCalculator.CutLine> computeCutLinesForPlate(Plate plate) {
+        return CutLineCalculator.calculateCutLinesForPlate(plate);
     }
-
-    public static java.util.List<CutLine> computeCutLinesForPlate(Plate plate) {
-        java.util.List<CutLine> cuts = new java.util.ArrayList<>();
-        if (plate == null) return cuts;
-
-        final double EPS = 1e-6;
-        // Gruppiere vertikale Schnitte nach x und horizontale nach y, sammle Intervalle
-        java.util.Map<Double, java.util.List<double[]>> vertMap = new java.util.TreeMap<>();
-        java.util.Map<Double, java.util.List<double[]>> horizMap = new java.util.TreeMap<>();
-
-        for (Job j : plate.jobs) {
-            if (j == null || j.placedOn == null) continue;
-            double x1 = normalize(j.x);
-            double x2 = normalize(j.x + j.width);
-            double y1 = normalize(j.y);
-            double y2 = normalize(j.y + j.height);
-
-            vertMap.computeIfAbsent(x1, k -> new java.util.ArrayList<>()).add(new double[]{y1, y2});
-            vertMap.computeIfAbsent(x2, k -> new java.util.ArrayList<>()).add(new double[]{y1, y2});
-
-            horizMap.computeIfAbsent(y1, k -> new java.util.ArrayList<>()).add(new double[]{x1, x2});
-            horizMap.computeIfAbsent(y2, k -> new java.util.ArrayList<>()).add(new double[]{x1, x2});
-        }
-
-        // Hilfsfunktion: Intervalle zusammenführen
-        java.util.function.BiConsumer<java.util.Map<Double, java.util.List<double[]>>, Boolean> processMap = (map, isVertical) -> {
-            for (java.util.Map.Entry<Double, java.util.List<double[]>> entry : map.entrySet()) {
-                double coord = entry.getKey();
-                java.util.List<double[]> segs = entry.getValue();
-                if (segs == null || segs.isEmpty()) continue;
-                // sortiere nach Start
-                segs.sort((a, b) -> Double.compare(a[0], b[0]));
-                java.util.List<double[]> merged = new java.util.ArrayList<>();
-                for (double[] s : segs) {
-                    if (merged.isEmpty()) { merged.add(new double[]{s[0], s[1]}); continue; }
-                    double[] last = merged.get(merged.size() - 1);
-                    if (s[0] <= last[1] + EPS) {
-                        // überlappend oder angrenzend -> zusammenführen
-                        last[1] = Math.max(last[1], s[1]);
-                    } else {
-                        merged.add(new double[]{s[0], s[1]});
-                    }
-                }
-                // Erzeuge CutLine-Einträge für die zusammengeführten Segmente
-                for (double[] m : merged) {
-                    if (Math.abs(m[1] - m[0]) < EPS) continue; // vernachlässige Null-Länge
-                    if (isVertical) {
-                        cuts.add(new CutLine(0, true, coord, m[0], m[1]));
-                    } else {
-                        cuts.add(new CutLine(0, false, coord, m[0], m[1]));
-                    }
-                }
-            }
-        };
-
-        processMap.accept(vertMap, true);
-        processMap.accept(horizMap, false);
-
-        // Vergib eindeutige, fortlaufende IDs (1..N)
-        // (vorher war hier eine leere Schleife, die unbenutzte Variablen erzeugte)
-        // Baue neue Liste mit korrekten IDs in deterministischer Reihenfolge (zuerst vertikale nach x, dann horizontale nach y)
-        java.util.List<CutLine> finalCuts = new java.util.ArrayList<>();
-        // sortiere zunächst: vertikal vor horizontal, dann nach coord
-        cuts.sort((a, b) -> {
-            if (a.vertical == b.vertical) return Double.compare(a.coord, b.coord);
-            return a.vertical ? -1 : 1;
-        });
-        int nextId = 1;
-        for (CutLine c : cuts) {
-            finalCuts.add(new CutLine(nextId++, c.vertical, c.coord, c.start, c.end));
-        }
-
-        return finalCuts;
-    }
-
-    private static double normalize(double v) { return Math.round(v * 1000.0) / 1000.0; }
 
     /**
      * Druckt Job-Koordinaten sowie Cuts und Schnittpunkte auf die ORIGINAL_OUT-Konsole.
@@ -565,11 +483,11 @@ public class MultiPlate_Controller {
     public static void printCutsAndIntersections(Plate plate) { printCutsAndIntersections(plate, false); }
     public static void printCutsAndIntersections(Plate plate, boolean force) {
         if (plate == null) return;
-        java.util.List<CutLine> cuts = computeCutLinesForPlate(plate);
+        java.util.List<CutLineCalculator.CutLine> cuts = computeCutLinesForPlate(plate);
         if (cuts == null || cuts.isEmpty()) return;
         // Ausgabe: pro Cut die Endpunkte, aber nur wenn ENABLE_CONSOLE_OUTPUT_CUTS true ist
         if (ENABLE_CONSOLE_OUTPUT_CUTS) {
-            for (CutLine c : cuts) {
+            for (CutLineCalculator.CutLine c : cuts) {
                 String orient = c.vertical ? "V" : "H";
                 String p1, p2;
                 if (c.vertical) {
@@ -585,14 +503,13 @@ public class MultiPlate_Controller {
         }
         // Schnittpunkte ermitteln (vertikal x horizontal)
         for (int i = 0; i < cuts.size(); i++) {
-            CutLine ci = cuts.get(i);
+            CutLineCalculator.CutLine ci = cuts.get(i);
             if (!ci.vertical) continue;
             for (int j = 0; j < cuts.size(); j++) {
-                CutLine cj = cuts.get(j);
+                CutLineCalculator.CutLine cj = cuts.get(j);
                 if (cj.vertical) continue;
                 if (ci.coord >= cj.start && ci.coord <= cj.end && cj.coord >= ci.start && cj.coord <= ci.end) {
                     // Intersection-Ausgabe optional
-                    //System.out.println(String.format("[Intersection] Cut #%d (V) x Cut #%d (H) at (%.3f, %.3f)", ci.id, cj.id, ci.coord, cj.coord));
                 }
             }
         }
