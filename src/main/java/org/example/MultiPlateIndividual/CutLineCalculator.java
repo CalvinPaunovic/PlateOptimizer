@@ -28,10 +28,14 @@ public class CutLineCalculator {
         Region root = new Region(0.0, 0.0, plate.width, plate.height, jobs);
         java.util.List<CutLine> seq = new java.util.ArrayList<>();
         computeGuillotineCutsRecursive(root, seq);
+        // trim cuts so they only span along job-edge ranges at that coordinate (avoid extending across free rectangles)
+        java.util.List<CutLine> trimmed = trimCutsAgainstJobs(jobs, seq);
+        // merge collinear/adjacent cuts to remove redundancy
+        java.util.List<CutLine> merged = mergeCollinearCuts(trimmed);
         // assign ids in order
         java.util.List<CutLine> finalCuts = new java.util.ArrayList<>();
         int id = 1;
-        for (CutLine c : seq) finalCuts.add(new CutLine(id++, c.vertical, c.coord, c.start, c.end));
+        for (CutLine c : merged) finalCuts.add(new CutLine(id++, c.vertical, c.coord, c.start, c.end));
         return finalCuts;
     }
 
@@ -118,6 +122,115 @@ public class CutLineCalculator {
         }
         if (bottom < region.y1 - EPS) {
             out.add(new CutLine(0, false, normalize(bottom), normalize(region.x0), normalize(region.x1)));
+        }
+    }
+
+    // Trim each cut to only the union of job-edge spans at that coordinate (avoids extending across free rectangles)
+    private static java.util.List<CutLine> trimCutsAgainstJobs(java.util.List<Job> jobs, java.util.List<CutLine> cuts) {
+        // group original cuts by (orientation, coord)
+        java.util.Map<String, java.util.List<CutLine>> original = new java.util.LinkedHashMap<>();
+        for (CutLine c : cuts) {
+            String key = (c.vertical ? "V:" : "H:") + normalize(c.coord);
+            original.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(c);
+        }
+        java.util.List<CutLine> out = new java.util.ArrayList<>();
+        for (java.util.Map.Entry<String, java.util.List<CutLine>> e : original.entrySet()) {
+            String key = e.getKey();
+            boolean vertical = key.charAt(0) == 'V';
+            double coord = Double.parseDouble(key.substring(2));
+
+            // Collect intervals from job edges at this coordinate
+            LineGroup jobIntervals = new LineGroup(vertical, coord);
+            if (vertical) {
+                for (Job j : jobs) {
+                    boolean onLeft = Math.abs(j.x - coord) < EPS;
+                    boolean onRight = Math.abs((j.x + j.width) - coord) < EPS;
+                    if (onLeft || onRight) jobIntervals.addInterval(j.y, j.y + j.height);
+                }
+            } else {
+                for (Job j : jobs) {
+                    boolean onTop = Math.abs(j.y - coord) < EPS;
+                    boolean onBottom = Math.abs((j.y + j.height) - coord) < EPS;
+                    if (onTop || onBottom) jobIntervals.addInterval(j.x, j.x + j.width);
+                }
+            }
+
+            java.util.List<Interval> resultIntervals;
+            if (!jobIntervals.intervals.isEmpty()) {
+                // Use only job-driven spans
+                resultIntervals = jobIntervals.merge(EPS);
+            } else {
+                // Fallback: keep the original spans for this key
+                LineGroup orig = new LineGroup(vertical, coord);
+                for (CutLine c : e.getValue()) orig.addInterval(c.start, c.end);
+                resultIntervals = orig.merge(EPS);
+            }
+
+            for (Interval in : resultIntervals) {
+                out.add(new CutLine(0, vertical, normalize(coord), normalize(in.start), normalize(in.end)));
+            }
+        }
+        return out;
+    }
+
+    // Merge collinear cuts with same coordinate by unifying overlapping or touching intervals
+    private static java.util.List<CutLine> mergeCollinearCuts(java.util.List<CutLine> cuts) {
+        java.util.Map<String, LineGroup> groups = new java.util.LinkedHashMap<>();
+        for (CutLine c : cuts) {
+            boolean v = c.vertical;
+            double coord = normalize(c.coord);
+            double a = Math.min(c.start, c.end);
+            double b = Math.max(c.start, c.end);
+            String key = (v ? "V:" : "H:") + coord;
+            LineGroup g = groups.get(key);
+            if (g == null) {
+                g = new LineGroup(v, coord);
+                groups.put(key, g);
+            }
+            g.addInterval(a, b);
+        }
+        java.util.List<CutLine> out = new java.util.ArrayList<>();
+        for (LineGroup g : groups.values()) {
+            java.util.List<Interval> merged = g.merge(EPS);
+            for (Interval in : merged) {
+                out.add(new CutLine(0, g.vertical, normalize(g.coord), normalize(in.start), normalize(in.end)));
+            }
+        }
+        return out;
+    }
+
+    private static class Interval {
+        final double start, end;
+        Interval(double s, double e) { this.start = s; this.end = e; }
+    }
+
+    private static class LineGroup {
+        final boolean vertical;
+        final double coord;
+        final java.util.List<Interval> intervals = new java.util.ArrayList<>();
+        LineGroup(boolean v, double c) { this.vertical = v; this.coord = c; }
+        void addInterval(double s, double e) {
+            if (e < s) { double t = s; s = e; e = t; }
+            intervals.add(new Interval(s, e));
+        }
+        java.util.List<Interval> merge(double tol) {
+            java.util.List<Interval> list = new java.util.ArrayList<>(intervals);
+            list.sort((i1, i2) -> Double.compare(i1.start, i2.start));
+            java.util.List<Interval> res = new java.util.ArrayList<>();
+            for (Interval in : list) {
+                if (res.isEmpty()) {
+                    res.add(new Interval(in.start, in.end));
+                } else {
+                    Interval last = res.get(res.size() - 1);
+                    if (in.start <= last.end + tol) {
+                        double newEnd = Math.max(last.end, in.end);
+                        res.set(res.size() - 1, new Interval(last.start, newEnd));
+                    } else {
+                        res.add(new Interval(in.start, in.end));
+                    }
+                }
+            }
+            return res;
         }
     }
 
