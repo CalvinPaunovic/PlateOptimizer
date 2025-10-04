@@ -3,16 +3,15 @@ package org.example.DataClasses;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MultiPlate_DataClasses {
+public class PlatePath {
     public String pathId ;
     public Plate plate;
     public String plateId;
-    public List<MultiPlate_DataClasses.FreeRectangle> freeRects;
-    // pathDescription entfernt; pathId alleine reicht
+    public List<PlatePath.FreeRectangle> freeRects;
     public Integer parentPathIndex;
-    public List<List<MultiPlate_DataClasses.FreeRectangle>> freeRectsPerStep = new ArrayList<>();
+    public List<List<PlatePath.FreeRectangle>> freeRectsPerStep = new ArrayList<>();
     public int placementCounter;
-    public List<MultiPlate_DataClasses.FreeRectangle> lastAddedRects;
+    public List<PlatePath.FreeRectangle> lastAddedRects;
     public boolean isActive;
     public Strategy strategy;
     public List<Integer> failedJobs;
@@ -28,11 +27,10 @@ public class MultiPlate_DataClasses {
         FULL_WIDTH
     }
 
-    // Konstruktor für Startpfade
-    public MultiPlate_DataClasses(Plate originalPlate, String pathId, Strategy strategy, int totalPathCount) {
+    public PlatePath(Plate originalPlate, String pathId, Strategy strategy, int totalPathCount) {
         this.plate = new Plate(originalPlate.name, originalPlate.width, originalPlate.height);
         this.freeRects = new ArrayList<>();
-        this.freeRects.add(new MultiPlate_DataClasses.FreeRectangle(0, 0, plate.width, plate.height));
+        this.freeRects.add(new PlatePath.FreeRectangle(0, 0, plate.width, plate.height));
         this.lastAddedRects = new ArrayList<>();
         this.strategy = strategy;
         this.pathId = pathId;
@@ -44,8 +42,7 @@ public class MultiPlate_DataClasses {
         this.totalPathCount = totalPathCount;
     }
     
-    // Konstruktor für Kinderpfade
-    public MultiPlate_DataClasses(MultiPlate_DataClasses original, String pathId, Strategy strategy, String splitFromPathId, int splitFromJobId, int totalPathCount) {
+    public PlatePath(PlatePath original, String pathId, Strategy strategy, String splitFromPathId, int splitFromJobId, int totalPathCount) {
         this.plate = new Plate(original.plate.name, original.plate.width, original.plate.height, original.plate.plateId);
         for (int i = 0; i < original.plate.jobs.size(); i++) {
             Job originalJob = original.plate.jobs.get(i);
@@ -60,13 +57,13 @@ public class MultiPlate_DataClasses {
         }
         this.freeRects = new ArrayList<>();
         for (int i = 0; i < original.freeRects.size(); i++) {
-            MultiPlate_DataClasses.FreeRectangle rect = original.freeRects.get(i);
-            this.freeRects.add(new MultiPlate_DataClasses.FreeRectangle(rect.x, rect.y, rect.width, rect.height));
+            PlatePath.FreeRectangle rect = original.freeRects.get(i);
+            this.freeRects.add(new PlatePath.FreeRectangle(rect.x, rect.y, rect.width, rect.height));
         }
         this.lastAddedRects = new ArrayList<>();
         for (int i = 0; i < original.lastAddedRects.size(); i++) {
-            MultiPlate_DataClasses.FreeRectangle rect = original.lastAddedRects.get(i);
-            this.lastAddedRects.add(new MultiPlate_DataClasses.FreeRectangle(rect.x, rect.y, rect.width, rect.height));
+            PlatePath.FreeRectangle rect = original.lastAddedRects.get(i);
+            this.lastAddedRects.add(new PlatePath.FreeRectangle(rect.x, rect.y, rect.width, rect.height));
         }
         this.strategy = original.strategy;
         this.placementCounter = original.placementCounter;

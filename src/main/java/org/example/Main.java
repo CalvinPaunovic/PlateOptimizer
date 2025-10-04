@@ -2,95 +2,28 @@ package org.example;
 
 import java.util.*;
 
+import org.example.Algorithms.Controller;
 import org.example.DataClasses.Job;
-import org.example.HelperClasses.JobUtils;
-import org.example.MultiPlate.MultiPlate_Controller;
 import org.example.Provider.JobListProvider;
-import org.example.SinglePlate.MaxRectBF_MultiPath_Controller;
-import org.example.MultiPlateIndividual.MultiPlateIndividual_Controller; // neu: individueller MultiPlate-Controller
 
 
 public class Main {
-    public static final boolean DEBUG = false;
-    public static final boolean DEBUG_MultiPath = true;
-    public static final boolean DEBUG_MultiPlateMultiPath = true;
 
     public static final boolean rotateJobs = true;
     public static final boolean sortJobs = true;
     
-    // Schnittbreite in mm wird zu jeder Job-Dimension hinzugefügt
-    public static final int KERF_WIDTH = 0;  // 0mm Schnittbreite pro Seite
+    public static final int KERF_WIDTH = 0;
 
-    public static final int Visualize_MultiPlateMultiPath_PathIndex = 1; // Nur dieser Pfad wird visualisiert für MultiPlateMultiPath
-
-
-    /**
-     * Haupteinstiegspunkt des Programms. Fragt nach Jobliste und Algorithmus und startet die Berechnung.
-     */
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        List<org.example.DataClasses.Plate> plates;
-        System.out.println("Plattenmodus wählen:");
-        System.out.println("0 = Großplatte");
-        System.out.println("1 = Standardplatte");
-        System.out.println("2 = Zwei Standardplatten");
-        System.out.println("3 = Drei Standardplatten");
-        System.out.println("4 = Vier Standardplatten");
-        System.out.println("5 = N Standardplatten (gleich groß)");
-        System.out.println("6 = Unendliche Standardplatten");
-        System.out.print("Bitte wählen: ");
-        String plateModeInput = scanner.nextLine().trim();
-        switch (plateModeInput) {
-            case "0":
-                plates = Arrays.asList(org.example.Provider.PlateProvider.getLargePlate());
-                break;
-            case "1":
-                plates = Arrays.asList(org.example.Provider.PlateProvider.getStandardPlate());
-                break;
-            case "2":
-                plates = org.example.Provider.PlateProvider.getTwoStandardPlates();
-                break;
-            case "3":
-                plates = org.example.Provider.PlateProvider.getThreeStandardPlates();
-                break;
-            case "4":
-                plates = org.example.Provider.PlateProvider.getFourStandardPlates();
-                break;
-            case "5":
-                System.out.print("Anzahl N eingeben: ");
-                String nStr = scanner.nextLine().trim();
-                int n;
-                try { n = Integer.parseInt(nStr); } catch (NumberFormatException e) { n = 2; }
-                if (n < 1) n = 1;
-                plates = org.example.Provider.PlateProvider.getNStandardPlates(n);
-                break;
-            case "6": // Unendlich viele Standardplatten
-                plates = Arrays.asList(org.example.Provider.PlateProvider.getStandardPlate());
-                break;
-            default:
-                plates = Arrays.asList(org.example.Provider.PlateProvider.getStandardPlate());
-                break;
-        }
-
         JobListProvider.NamedJobList selection = getUserJobListChoiceWithScanner(scanner);
         List<Job> originalJobs = selection.jobs;
-        String jobListInfo = selection.name;
-        String mode = getUserAlgorithmChoice(scanner);
-
-        // Bei Modus 9 und Plattenmodus 6 direkt Unlimited-Variante aufrufen
-        if ("9".equals(mode) && "6".equals(plateModeInput)) {
-            MultiPlateIndividual_Controller.run_MaxRectBF_MultiPlate_Unlimited(originalJobs, plates.get(0), sortJobs);
-        } else {
-            runMode(originalJobs, mode, jobListInfo, plates);
-        }
-
+        org.example.DataClasses.Plate standardPlate = org.example.Provider.PlateProvider.getStandardPlate();
+        Controller.run_MaxRectBF_MultiPlate_Unlimited(originalJobs, standardPlate, sortJobs);
         scanner.close();
     }
 
 
-    /**
-     * Zeigt dem Nutzer eine Auswahl aller vordefinierten Joblisten und gibt die gewählte zurück.
-     */
     private static JobListProvider.NamedJobList getUserJobListChoiceWithScanner(Scanner scanner) {
         java.util.List<JobListProvider.NamedJobList> lists = JobListProvider.getAllListsInMenuOrder();
         System.out.println("Welche Jobliste möchten Sie verwenden?");
@@ -104,71 +37,4 @@ public class Main {
         return lists.get(0);
     }
 
-    /**
-     * Führt das gewählte Platzierungsverfahren aus.
-     */
-    private static void runMode(List<Job> originalJobs, String mode, String jobListInfo, List<org.example.DataClasses.Plate> plates) {
-        // MaxRectsBF_MultiPath Benchmark
-        if ("0".equals(mode)) {
-            runBenchmark(originalJobs, jobListInfo, plates.get(0));
-        } else if ("4".equals(mode)) {
-            MaxRectBF_MultiPath_Controller.run_MaxRectBF_MultiPath(originalJobs, plates.get(0), sortJobs);
-        } else if ("5".equals(mode)) {
-            MultiPlateMultiPath(originalJobs, plates.get(0), plates);
-        } else if ("7".equals(mode)) {
-            MultiPlate_Controller.run_MaxRectBF_MultiPlate(originalJobs, plates, sortJobs); // Plattenliste übergeben
-        } else if ("8".equals(mode)) {
-            MultiPlate_Controller.run_MaxRectBF_MultiPlate_BenchmarkOnly(originalJobs, plates, sortJobs);
-        } else if ("9".equals(mode)) {
-            // Standard (begrenzte) Variante
-            MultiPlateIndividual_Controller.run_MaxRectBF_MultiPlate(originalJobs, plates, sortJobs);
-        }
-    }
-
-    /**
-     * Führt den MaxRectBF_MultiPath Algorithmus für eine oder mehrere Platten aus.
-     */
-    private static void MultiPlateMultiPath(List<Job> originalJobs, org.example.DataClasses.Plate selectedPlate, List<org.example.DataClasses.Plate> selectedPlates) {
-        System.out.println("\n=== MaxRectBF_MultiPath ===\n");
-        org.example.SinglePlate.MultiPlateMultiPath multiplatemultipath = new org.example.SinglePlate.MultiPlateMultiPath();
-        List<Job> jobs = JobUtils.createJobCopies(originalJobs);
-        if (sortJobs) JobUtils.sortJobsBySizeDescending(jobs);
-        String jobListInfo = selectedPlates.size() > 1 ? selectedPlate.name + " + weitere" : selectedPlate.name;
-        multiplatemultipath.placeJobsOnPlates(selectedPlates, jobs, jobListInfo);
-        org.example.Visualizer.PlateVisualizer.showBenchmarkResults(multiplatemultipath, jobListInfo);
-    }
-
-  
-
-    /**
-     * Führt den Benchmark für die aktuelle Jobliste aus.
-     */
-    private static void runBenchmark(List<Job> originalJobs, String jobListInfo, org.example.DataClasses.Plate plateInfo) {
-        System.out.println("=== BENCHMARK ===");
-        System.out.println("Jobliste: " + jobListInfo);
-        List<org.example.Visualizer.BenchmarkVisualizer.BenchmarkResult> results = new ArrayList<>();
-        results.addAll(MaxRectBF_MultiPath_Controller.benchmarkMaxRectBF_MultiPath_AllPaths(
-            originalJobs, JobUtils::sortJobsBySizeDescending, "MultiPath (nach Fläche)", plateInfo));
-        results.addAll(MaxRectBF_MultiPath_Controller.benchmarkMaxRectBF_MultiPath_AllPaths(
-            originalJobs, JobUtils::sortJobsByLargestEdgeDescending, "MultiPath (nach Kante)", plateInfo));
-        results.sort((a, b) -> Double.compare(b.coverageRate, a.coverageRate));
-        System.out.printf("Benchmark abgeschlossen für Jobliste: %s (%d Jobs)\n", jobListInfo, originalJobs.size());
-        org.example.Visualizer.BenchmarkVisualizer.showBenchmarkResults(results, jobListInfo);
-    }
-
-
-    /**
-     * Fragt den Nutzer nach dem gewünschten Algorithmus.
-     */
-    private static String getUserAlgorithmChoice(Scanner scanner) {
-        System.out.println("Algorithmus wählen:");
-        System.out.println("0 = MaxRectsBF_MultiPath (Benchmark)");
-        System.out.println("4 = MaxRectsBF_MultiPath (ohne Benchmark, nur nach Size sortiert)");
-        System.out.println("5 = MultiPlateMultiPath (Präsentation)");
-        System.out.println("7 = MultiPlate (Platzierung + Matrix + Visualisierung)");
-        System.out.println("8 = MultiPlate (Benchmark aller Pfade)");
-        System.out.println("9 = MultiPlateIndividual (Benchmark)");
-        System.out.print("Bitte wählen: ");
-        return scanner.nextLine().trim();
-    }
 }

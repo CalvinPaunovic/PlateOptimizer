@@ -1,4 +1,4 @@
-package org.example.MultiPlateIndividual;
+package org.example.Algorithms;
 
 import org.example.DataClasses.Job;
 import org.example.DataClasses.Plate;
