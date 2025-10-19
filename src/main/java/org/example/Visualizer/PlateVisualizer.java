@@ -12,6 +12,7 @@ import org.example.DataClasses.Plate;
 import org.example.DataClasses.PlatePath;
 
 public class PlateVisualizer extends JPanel {
+    private JButton cutButton;
 
     private Plate plate;
     private final String mode;
@@ -22,9 +23,11 @@ public class PlateVisualizer extends JPanel {
 
     public void setExternalCuts(java.util.List<CutLineCalculator.CutLine> cuts) { this.externalCuts = cuts; }
 
+
     public PlateVisualizer(Plate plate, String mode, Object ignoredAlgorithm) {
         this(plate, mode, null, null);
     }
+
 
     public PlateVisualizer(Plate plate, String mode, Object ignoredAlgorithm, String jobListInfo) {
         this(plate, mode, null, null, jobListInfo, null);
@@ -41,6 +44,50 @@ public class PlateVisualizer extends JPanel {
         if ("4".equals(mode)) extraHeight = 280;
 
         setPreferredSize(new Dimension((int) Math.round(plate.width) + 100, (int) Math.round(plate.height) + extraHeight + 80));
+
+        // Button für Schnitt 1 setzen (Hinzufügen ins Layout erfolgt in show*-Methode)
+        cutButton = new JButton("Schnitt setzen");
+        cutButton.addActionListener(e -> handleFirstCut());
+    }
+
+    // Methode, die beim Klick auf den Button ausgeführt wird
+    private void handleFirstCut() {
+        java.util.List<org.example.Algorithms.CutLineCalculator.CutLine> cuts = org.example.Algorithms.CutLineCalculator.calculateSingleFullCut(plate);
+        if (cuts == null || cuts.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Kein gültiger vollständiger Schnitt mehr möglich.", "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        // Schnitt in aktueller Platte visuell darstellen
+        this.setExternalCuts(cuts);
+        this.repaint();
+        org.example.Algorithms.CutLineCalculator.CutLine cut = cuts.get(0);
+        // Zwei neue Platten erzeugen (links/rechts oder oben/unten)
+        Plate left = clonePlateWithBounds(plate, 0, 0, cut.vertical ? cut.coord : plate.width, cut.vertical ? plate.height : cut.coord);
+        Plate right = clonePlateWithBounds(plate, cut.vertical ? cut.coord : 0, cut.vertical ? 0 : cut.coord, plate.width, plate.height);
+        // Zeige beide Teilplatten in neuen Fenstern, ohne Schnitte zu visualisieren
+        java.util.List<CutLineCalculator.CutLine> noCuts = new java.util.ArrayList<>();
+        showPlateWithCutsAndTitleAndInfo(left, "cut1", noCuts, null, plate.name, null, null);
+        showPlateWithCutsAndTitleAndInfo(right, "cut1", noCuts, null, plate.name, null, null);
+    }
+
+    // Hilfsmethode: Erzeugt eine neue Platte mit Jobs, die im angegebenen Bereich liegen
+    private Plate clonePlateWithBounds(Plate original, double x0, double y0, double x1, double y1) {
+        Plate p = new Plate(original.name, x1 - x0, y1 - y0, original.plateId);
+        for (Job j : original.jobs) {
+            double cx = j.x + j.width / 2.0;
+            double cy = j.y + j.height / 2.0;
+            if (cx >= x0 && cx < x1 && cy >= y0 && cy < y1) {
+                Job nj = new Job(j.id, j.x - x0, j.y - y0, j.width, j.height);
+                nj.originalWidth = j.originalWidth;
+                nj.originalHeight = j.originalHeight;
+                nj.placementOrder = j.placementOrder;
+                nj.splittingMethod = j.splittingMethod;
+                nj.rotated = j.rotated;
+                nj.placedOn = p;
+                p.jobs.add(nj);
+            }
+        }
+        return p;
     }
 
 
@@ -83,11 +130,17 @@ public class PlateVisualizer extends JPanel {
             }
         }
 
-        if (specificFreeRects != null && ("4".equals(mode) || "5".equals(mode) || "7".equals(mode) || "9".equals(mode))) {
+        if (specificFreeRects != null && ("4".equals(mode) || "5".equals(mode) || "7".equals(mode) || "9".equals(mode) || "cut1".equals(mode))) {
             drawFreeRectangles(g2d, specificFreeRects);
         }
 
-        java.util.List<CutLineCalculator.CutLine> cuts = (externalCuts != null) ? externalCuts : Controller.computeCutLinesForPlate(plate);
+        java.util.List<CutLineCalculator.CutLine> cuts;
+        if ("cut1".equals(mode)) {
+            // In interaktivem Modus keine automatischen Schnitte berechnen
+            cuts = externalCuts;
+        } else {
+            cuts = (externalCuts != null) ? externalCuts : Controller.computeCutLinesForPlate(plate);
+        }
         if (cuts != null && !cuts.isEmpty()) {
             Stroke oldStroke = g2d.getStroke();
             g2d.setColor(new Color(0, 150, 0));
@@ -218,11 +271,27 @@ public class PlateVisualizer extends JPanel {
 
             PlateVisualizer visualizer = new PlateVisualizer(plate, mode, null, specificFreeRects, jobListInfo, algorithmInfo);
 
+            // In interaktivem Modus den geplanten ersten Schnitt sofort als Vorschau anzeigen
+            if ("cut1".equals(mode)) {
+                // Gesamte Sequenz visualisieren
+                java.util.List<CutLineCalculator.CutLine> preview = CutLineCalculator.calculateAllFullCuts(plate);
+                visualizer.setExternalCuts(preview);
+            }
+
             int extraHeight = 240;
             if ("4".equals(mode) && algorithmInfo != null) extraHeight = 280;
             visualizer.setPreferredSize(new Dimension((int) Math.round(plate.width) + 100, (int) Math.round(plate.height) + extraHeight + 80));
 
-            frame.getContentPane().add(visualizer);
+            // Wenn Modus "cut1", dann Button unterhalb anzeigen
+            if ("cut1".equals(mode)) {
+                JPanel panel = new JPanel(new BorderLayout());
+                panel.add(visualizer, BorderLayout.CENTER);
+                JButton cutButton = visualizer.cutButton;
+                if (cutButton != null) panel.add(cutButton, BorderLayout.SOUTH);
+                frame.getContentPane().add(panel);
+            } else {
+                frame.getContentPane().add(visualizer);
+            }
             frame.pack();
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
@@ -236,12 +305,26 @@ public class PlateVisualizer extends JPanel {
 
             PlateVisualizer visualizer = new PlateVisualizer(plate, mode, null, specificFreeRects, jobListInfo, algorithmInfo);
             visualizer.setExternalCuts(cuts);
+            // In interaktivem Modus komplette Sequenz als Vorschau anzeigen, falls keine expliziten Cuts übergeben
+            if ("cut1".equals(mode) && (cuts == null || cuts.isEmpty())) {
+                java.util.List<CutLineCalculator.CutLine> preview = CutLineCalculator.calculateAllFullCuts(plate);
+                visualizer.setExternalCuts(preview);
+            }
 
             int extraHeight = 240;
             if ("4".equals(mode) && algorithmInfo != null) extraHeight = 280;
             visualizer.setPreferredSize(new Dimension((int) Math.round(plate.width) + 100, (int) Math.round(plate.height) + extraHeight + 80));
 
-            frame.getContentPane().add(visualizer);
+            // Wenn Modus "cut1", dann Button unterhalb anzeigen
+            if ("cut1".equals(mode)) {
+                JPanel panel = new JPanel(new BorderLayout());
+                panel.add(visualizer, BorderLayout.CENTER);
+                JButton cutButton = visualizer.cutButton;
+                if (cutButton != null) panel.add(cutButton, BorderLayout.SOUTH);
+                frame.getContentPane().add(panel);
+            } else {
+                frame.getContentPane().add(visualizer);
+            }
             frame.pack();
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);

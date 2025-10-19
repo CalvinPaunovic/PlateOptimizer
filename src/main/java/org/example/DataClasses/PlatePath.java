@@ -15,7 +15,7 @@ public class PlatePath {
     public boolean isActive;
     public Strategy strategy;
     public List<Integer> failedJobs;
-    public String parentPath; // speichert die Parent-Pfad-ID
+    public String parentPath;
     public List<Job> placedJobs = new ArrayList<>();
     public List<Integer> jobIds = new ArrayList<>();
     public String splitFromPathId;

@@ -215,6 +215,21 @@ public class JobListProvider {
         ));
     }
 
+    public static NamedJobList getExtendedA1JobListTwoTypes() {
+        // Fläche pro Platte: 841 * 594 = 499_854 mm²
+        // Zwei Job-Typen, mehrfach vorkommend, Gesamtfläche > 1 Platte
+        return new NamedJobList(18, "A1 Zweityp-Liste", "Jobs für A1-Platte", Arrays.asList(
+            new Job(0, 400, 300),
+            new Job(1, 400, 300),
+            new Job(2, 400, 300),
+            new Job(4, 250, 200),
+            new Job(5, 250, 200),
+            new Job(6, 250, 200),
+            new Job(7, 250, 200),
+            new Job(8, 250, 200)
+        ));
+    }
+
 
     public static java.util.List<NamedJobList> getAllListsInMenuOrder() {
         return java.util.Arrays.asList(
@@ -234,7 +249,8 @@ public class JobListProvider {
             getDecimalJobsList(),
             getExtendedStandardJobListTwo(),
             getExtendedStandardJobListThree(),
-            getExtendedStandardJobListFour()
+            getExtendedStandardJobListFour(),
+            getExtendedA1JobListTwoTypes()
         );
     }
 

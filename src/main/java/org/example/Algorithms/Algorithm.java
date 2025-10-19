@@ -10,8 +10,8 @@ import org.example.DataClasses.Plate;
 
 public class Algorithm {
 
-    List<PlatePath> paths; // aktive Pfade der aktuell bearbeiteten Platte
-    Plate originalPlate; // erste Platte
+    List<PlatePath> paths;
+    Plate originalPlate;
     boolean debugEnabled = false;
     private int pathCounter = 0;
     private String pathIdPrefix = "";
@@ -23,7 +23,6 @@ public class Algorithm {
 
     public Algorithm() { }
 
-    // Konstruktor mit Flag für unendliche Platten
     public Algorithm(List<Plate> plateInfos, boolean unlimitedPlates) {
         if (plateInfos != null) this.plateSequence.addAll(plateInfos);
         this.paths = new ArrayList<>();
@@ -64,12 +63,21 @@ public class Algorithm {
         if (debugEnabled) System.out.println("[MPA] Initialisierte Platte " + (currentPlateIndex+1) + "/" + plateSequence.size() + ": " + basePlate.name + " prefix='" + pathIdPrefix + "'");
     }
 
+    // Speichert den Anfangszustand: Die komplette Platte ist am Anfang eine einzige freie Fläche
     private void addInitialSnapshot(PlatePath path) {
-        if (path.freeRectsPerStep == null) path.freeRectsPerStep = new java.util.ArrayList<>();
-        // Anfangszustand: eine freie Fläche = komplette Platte
-        java.util.List<PlatePath.FreeRectangle> init = new java.util.ArrayList<>();
-        init.add(new PlatePath.FreeRectangle(0,0,path.plate.width,path.plate.height));
-        path.freeRectsPerStep.add(init);
+        if (path.freeRectsPerStep == null) {
+            path.freeRectsPerStep = new ArrayList<>();
+        }
+        
+        // Erstelle eine neue Liste für den Anfangszustand
+        List<PlatePath.FreeRectangle> anfangszustand = new ArrayList<>();
+        
+        // Die komplette Platte ist am Anfang frei
+        PlatePath.FreeRectangle kompletteFlaeche = new PlatePath.FreeRectangle(0, 0, path.plate.width, path.plate.height);
+        anfangszustand.add(kompletteFlaeche);
+        
+        // Speichere diesen Anfangszustand
+        path.freeRectsPerStep.add(anfangszustand);
     }
 
     private void syncTotalPathCount() {
@@ -190,8 +198,18 @@ public class Algorithm {
         // Schleifendurchlauf abgearbeitet werden können, weil im Controller bereits die Jobliste durchlaufen wurde
         for (int newPathIndex = 0; newPathIndex < newBranchPaths.size(); newPathIndex++) {
             PlatePath newPath = newBranchPaths.get(newPathIndex);
-            boolean alreadyPlaced = newPath.plate.jobs.stream().anyMatch(j -> j.id == originalJob.id);
-            if (alreadyPlaced) {
+            
+            // Prüfe, ob der Job bereits in diesem Pfad platziert wurde
+            boolean bereitsPlatziert = false;
+            for (int i = 0; i < newPath.plate.jobs.size(); i++) {
+                Job job = newPath.plate.jobs.get(i);
+                if (job.id == originalJob.id) {
+                    bereitsPlatziert = true;
+                    break;
+                }
+            }
+            
+            if (bereitsPlatziert) {
                 if (debugEnabled) System.out.println("[MP] Job " + originalJob.id + " already placed in new path " + newPath.pathId + ", skipping attempt.");
                 continue;
             }
@@ -308,13 +326,22 @@ public class Algorithm {
         }
     }
 
+    // Prüft, ob ein Job in ein freies Rechteck passt und ob diese Platzierung besser ist als die bisherige beste
     public void testAndUpdateBestFit(double testWidth, double testHeight, PlatePath.FreeRectangle rect, boolean rotated, PlatePath.BestFitResult result) {
-        if (testWidth <= rect.width && testHeight <= rect.height) {
-            double leftoverHoriz = rect.width - testWidth;
-            double leftoverVert = rect.height - testHeight;
-            double shortSideFit = Math.min(leftoverHoriz, leftoverVert);
-            if (shortSideFit < result.bestScore) {
-                result.bestScore = shortSideFit;
+        // Prüfe, ob der Job in das Rechteck passt
+        boolean passtRein = (testWidth <= rect.width) && (testHeight <= rect.height);
+        
+        if (passtRein) {
+            // Berechne, wie viel Platz übrig bleibt (horizontal und vertikal)
+            double uebrigHorizontal = rect.width - testWidth;
+            double uebrigVertikal = rect.height - testHeight;
+            
+            // Wähle den kleineren der beiden Restwerte (Short Side Fit Heuristik)
+            double kuerzereSeite = Math.min(uebrigHorizontal, uebrigVertikal);
+            
+            // Ist diese Platzierung besser als die bisherige beste?
+            if (kuerzereSeite < result.bestScore) {
+                result.bestScore = kuerzereSeite;
                 result.bestRect = rect;
                 result.useRotated = rotated;
                 result.bestWidth = testWidth;
@@ -323,43 +350,85 @@ public class Algorithm {
         }
     }
 
+    // Teilt ein freies Rechteck nach dem FullWidth-Muster (Breite wird komplett genutzt)
     public void splitFreeRectFullWidth(PlatePath.FreeRectangle rect, Job job, PlatePath path) {
+        // Entferne das alte Rechteck, da es jetzt belegt ist
         path.freeRects.remove(rect);
         path.lastAddedRects.clear();
+        
+        // Wenn der Job schmaler ist als das Rechteck: erstelle neues Rechteck rechts davon
         if (job.width < rect.width) {
-            PlatePath.FreeRectangle newRectRight = new PlatePath.FreeRectangle(rect.x + job.width, rect.y, rect.width - job.width, job.height);
-            path.freeRects.add(newRectRight);
-            path.lastAddedRects.add(newRectRight);
+            double neueBreite = rect.width - job.width;
+            PlatePath.FreeRectangle rechtsRechteck = new PlatePath.FreeRectangle(
+                rect.x + job.width,  // X-Position: rechts vom Job
+                rect.y,              // Y-Position: gleiche Höhe wie Job
+                neueBreite,          // Breite: Restbreite
+                job.height           // Höhe: nur so hoch wie der Job
+            );
+            path.freeRects.add(rechtsRechteck);
+            path.lastAddedRects.add(rechtsRechteck);
         }
+        
+        // Wenn der Job niedriger ist als das Rechteck: erstelle neues Rechteck darunter
         if (job.height < rect.height) {
-            PlatePath.FreeRectangle newRectBelow = new PlatePath.FreeRectangle(rect.x, rect.y + job.height, rect.width, rect.height - job.height);
-            path.freeRects.add(newRectBelow);
-            path.lastAddedRects.add(newRectBelow);
+            double neueHoehe = rect.height - job.height;
+            PlatePath.FreeRectangle rechteckUnten = new PlatePath.FreeRectangle(
+                rect.x,                // X-Position: gleiche wie ursprüngliches Rechteck
+                rect.y + job.height,   // Y-Position: unterhalb des Jobs
+                rect.width,            // Breite: komplette ursprüngliche Breite
+                neueHoehe              // Höhe: Resthöhe
+            );
+            path.freeRects.add(rechteckUnten);
+            path.lastAddedRects.add(rechteckUnten);
         }
     }
 
+    // Teilt ein freies Rechteck nach dem FullHeight-Muster (Höhe wird komplett genutzt)
     public void splitFreeRectFullHeight(PlatePath.FreeRectangle rect, Job job, PlatePath path) {
+        // Entferne das alte Rechteck, da es jetzt belegt ist
         path.freeRects.remove(rect);
         path.lastAddedRects.clear();
+        
+        // Wenn der Job schmaler ist als das Rechteck: erstelle neues Rechteck rechts davon
         if (job.width < rect.width) {
-            PlatePath.FreeRectangle newRectRight = new PlatePath.FreeRectangle(rect.x + job.width, rect.y, rect.width - job.width, rect.height);
-            path.freeRects.add(newRectRight);
-            path.lastAddedRects.add(newRectRight);
+            double neueBreite = rect.width - job.width;
+            PlatePath.FreeRectangle rechtsRechteck = new PlatePath.FreeRectangle(
+                rect.x + job.width,  // X-Position: rechts vom Job
+                rect.y,              // Y-Position: gleiche wie ursprüngliches Rechteck
+                neueBreite,          // Breite: Restbreite
+                rect.height          // Höhe: komplette ursprüngliche Höhe
+            );
+            path.freeRects.add(rechtsRechteck);
+            path.lastAddedRects.add(rechtsRechteck);
         }
+        
+        // Wenn der Job niedriger ist als das Rechteck: erstelle neues Rechteck darunter
         if (job.height < rect.height) {
-            PlatePath.FreeRectangle newRectBelow = new PlatePath.FreeRectangle(rect.x, rect.y + job.height, job.width, rect.height - job.height);
-            path.freeRects.add(newRectBelow);
-            path.lastAddedRects.add(newRectBelow);
+            double neueHoehe = rect.height - job.height;
+            PlatePath.FreeRectangle rechteckUnten = new PlatePath.FreeRectangle(
+                rect.x,              // X-Position: gleiche wie Job
+                rect.y + job.height, // Y-Position: unterhalb des Jobs
+                job.width,           // Breite: nur so breit wie der Job
+                neueHoehe            // Höhe: Resthöhe
+            );
+            path.freeRects.add(rechteckUnten);
+            path.lastAddedRects.add(rechteckUnten);
         }
     }
 
-    // Getter der freien Rechtecke des ersten aktiven Pfads auf aktueller Platte
+    // Gibt die freien Rechtecke des ersten aktiven Pfads zurück
     public List<PlatePath.FreeRectangle> getFreeRects() {
-        for (PlatePath path : paths) {
+        // Gehe durch alle Pfade
+        for (int i = 0; i < paths.size(); i++) {
+            PlatePath path = paths.get(i);
+            
+            // Wenn dieser Pfad aktiv ist, gib seine freien Rechtecke zurück
             if (path.isActive) {
                 return path.freeRects;
             }
         }
+        
+        // Falls kein aktiver Pfad gefunden wurde, gib eine leere Liste zurück
         return new ArrayList<>();
     }
 
@@ -385,14 +454,24 @@ public class Algorithm {
         return all;
     }
 
+    // Bereitet alle Pfade für die Übersicht vor (sammelt Job-IDs)
     public List<PlatePath> getPathsAndFailedJobsOverviewData() {
-        // Alle Pfade (abgeschlossene + aktuelle) vorbereiten
-        List<PlatePath> all = getAllPaths();
-        for (PlatePath path : all) {
+        // Hole alle Pfade (abgeschlossene + aktuelle)
+        List<PlatePath> allePfade = getAllPaths();
+        
+        // Gehe durch alle Pfade und sammle die Job-IDs
+        for (int i = 0; i < allePfade.size(); i++) {
+            PlatePath path = allePfade.get(i);
             path.jobIds = new ArrayList<>();
-            for (Job job : path.plate.jobs) path.jobIds.add(job.id);
+            
+            // Sammle alle Job-IDs von den platzierten Jobs
+            for (int j = 0; j < path.plate.jobs.size(); j++) {
+                Job job = path.plate.jobs.get(j);
+                path.jobIds.add(job.id);
+            }
         }
-        return all;
+        
+        return allePfade;
     }
 
     public int getPathCounter() { return pathCounter; }
@@ -408,34 +487,56 @@ public class Algorithm {
         for (String n : forkNames) trySetIntField(pathObj, n, forkJobId);
     }
 
+    // Versucht, ein Text-Feld in einem Objekt zu setzen (per Reflection)
     private void trySetStringField(Object obj, String fieldName, String value) {
-        if (obj == null || fieldName == null || value == null) return;
+        // Prüfe, ob alle Parameter vorhanden sind
+        if (obj == null) return;
+        if (fieldName == null) return;
+        if (value == null) return;
+        
         try {
-            java.lang.reflect.Field f = obj.getClass().getDeclaredField(fieldName);
-            f.setAccessible(true);
-            f.set(obj, value);
-        } catch (NoSuchFieldException nsf) {
-            // Feld nicht vorhanden — ignorieren
-        } catch (Exception ex) {
-            // andere Fehler — ignorieren
+            // Hole das Feld mit dem angegebenen Namen
+            java.lang.reflect.Field feld = obj.getClass().getDeclaredField(fieldName);
+            // Mache das Feld zugänglich (auch wenn es private ist)
+            feld.setAccessible(true);
+            // Setze den neuen Wert
+            feld.set(obj, value);
+        } catch (NoSuchFieldException fehler) {
+            // Feld existiert nicht - ignorieren (ist ok, wir probieren mehrere Namen)
+        } catch (Exception andererFehler) {
+            // Anderer Fehler - ebenfalls ignorieren
         }
     }
 
+    // Versucht, ein Zahlen-Feld in einem Objekt zu setzen (per Reflection)
     private void trySetIntField(Object obj, String fieldName, Integer value) {
-        if (obj == null || fieldName == null || value == null) return;
+        // Prüfe, ob alle Parameter vorhanden sind
+        if (obj == null) return;
+        if (fieldName == null) return;
+        if (value == null) return;
+        
         try {
-            java.lang.reflect.Field f = obj.getClass().getDeclaredField(fieldName);
-            f.setAccessible(true);
-            Class<?> t = f.getType();
-            if (t == int.class || t == Integer.class) f.set(obj, value);
-            else {
-                // falls String erwartet wird, setze String-Repräsentation
-                f.set(obj, String.valueOf(value));
+            // Hole das Feld mit dem angegebenen Namen
+            java.lang.reflect.Field feld = obj.getClass().getDeclaredField(fieldName);
+            // Mache das Feld zugänglich (auch wenn es private ist)
+            feld.setAccessible(true);
+            
+            // Prüfe, welchen Typ das Feld hat
+            Class<?> feldTyp = feld.getType();
+            
+            // Wenn das Feld ein int oder Integer ist, setze die Zahl direkt
+            boolean istZahlTyp = (feldTyp == int.class) || (feldTyp == Integer.class);
+            if (istZahlTyp) {
+                feld.set(obj, value);
+            } else {
+                // Falls es ein String-Feld ist, wandle die Zahl in Text um
+                String textWert = String.valueOf(value);
+                feld.set(obj, textWert);
             }
-        } catch (NoSuchFieldException nsf) {
-            // Feld nicht vorhanden — ignorieren
-        } catch (Exception ex) {
-            // andere Fehler — ignorieren
+        } catch (NoSuchFieldException fehler) {
+            // Feld existiert nicht - ignorieren (ist ok, wir probieren mehrere Namen)
+        } catch (Exception andererFehler) {
+            // Anderer Fehler - ebenfalls ignorieren
         }
     }
 }

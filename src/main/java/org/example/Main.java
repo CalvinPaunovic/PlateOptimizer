@@ -18,7 +18,7 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         JobListProvider.NamedJobList selection = getUserJobListChoiceWithScanner(scanner);
         List<Job> originalJobs = selection.jobs;
-        org.example.DataClasses.Plate standardPlate = org.example.Provider.PlateProvider.getStandardPlate();
+        org.example.DataClasses.Plate standardPlate = org.example.Provider.PlateProvider.getA1Plate();
         Controller.run_MaxRectBF_MultiPlate_Unlimited(originalJobs, standardPlate, sortJobs);
         scanner.close();
     }

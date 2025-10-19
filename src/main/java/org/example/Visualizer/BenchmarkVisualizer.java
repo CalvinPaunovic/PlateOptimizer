@@ -2,12 +2,16 @@ package org.example.Visualizer;
 
 import org.example.DataClasses.Plate;
 import org.example.DataClasses.PlatePath;
+import org.example.Algorithms.Controller;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.event.ListSelectionEvent;
 import java.awt.*;
 import java.util.List;
+import org.example.Storage.LeftoverPlatesDb;
 
 public class BenchmarkVisualizer extends JFrame {
 
@@ -28,20 +32,25 @@ public class BenchmarkVisualizer extends JFrame {
         public String sortedBy = "-";
         public String jobSetLabel = "-";
         public java.util.List<String> perPlateSetLabels = new java.util.ArrayList<>();
+        public boolean isSubRow = false;
 
         public BenchmarkResult(String algorithmName, Plate plate, int placedJobs, double coverageRate, int totalJobs) {
-            this(algorithmName, plate, null, placedJobs, coverageRate, totalJobs, null);
+            this(algorithmName, plate, null, placedJobs, coverageRate, totalJobs, null, false);
         }
 
         public BenchmarkResult(String algorithmName, Plate plate, int placedJobs, double coverageRate, int totalJobs, List<PlatePath.FreeRectangle> specificFreeRects) {
-            this(algorithmName, plate, null, placedJobs, coverageRate, totalJobs, specificFreeRects);
+            this(algorithmName, plate, null, placedJobs, coverageRate, totalJobs, specificFreeRects, false);
         }
 
         public BenchmarkResult(String algorithmName, Plate plate, Object algorithm, int placedJobs, double coverageRate, int totalJobs) {
-            this(algorithmName, plate, algorithm, placedJobs, coverageRate, totalJobs, null);
+            this(algorithmName, plate, algorithm, placedJobs, coverageRate, totalJobs, null, false);
         }
 
         public BenchmarkResult(String algorithmName, Plate plate, Object algorithm, int placedJobs, double coverageRate, int totalJobs, List<PlatePath.FreeRectangle> specificFreeRects) {
+            this(algorithmName, plate, algorithm, placedJobs, coverageRate, totalJobs, specificFreeRects, false);
+        }
+
+        public BenchmarkResult(String algorithmName, Plate plate, Object algorithm, int placedJobs, double coverageRate, int totalJobs, List<PlatePath.FreeRectangle> specificFreeRects, boolean isSubRow) {
             this.algorithmName = algorithmName;
             this.plate = plate;
             this.algorithm = algorithm;
@@ -49,6 +58,7 @@ public class BenchmarkVisualizer extends JFrame {
             this.coverageRate = coverageRate;
             this.totalJobs = totalJobs;
             this.specificFreeRects = specificFreeRects;
+            this.isSubRow = isSubRow;
         }
     }
 
@@ -97,27 +107,65 @@ public class BenchmarkVisualizer extends JFrame {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder("Ergebnisse"));
 
-        String[] columns = {"Rang","Algorithmus","Platzierte Jobs","Gesamt Jobs","Erfolgsrate","Deckungsrate"};
+
+        String[] columns = {"Rang","Algorithmus","Sortierung","Job-Set","Platzierte Jobs","Gesamt Jobs","Erfolgsrate","Deckungsrate"};
         DefaultTableModel model = new DefaultTableModel(columns,0){
             @Override public boolean isCellEditable(int r,int c){return false;}
             @Override public Class<?> getColumnClass(int col){
-                if(col==0||col==2||col==3) return Integer.class;
-                if(col==4||col==5) return Double.class;
+                if(col==0||col==4||col==5) return Integer.class;
+                if(col==6||col==7) return Double.class;
                 return String.class;
             }
         };
 
+
+        boolean hasSubRows = false;
+        for (int i = 0; i < results.size(); i++) {
+            BenchmarkResult r = results.get(i);
+            if (r != null && r.isSubRow) { hasSubRows = true; break; }
+        }
+
+        int rankCounter = 0; // rank only main rows
         for(int i=0;i<results.size();i++){
             BenchmarkResult r=results.get(i);
             double success = r.totalJobs==0?0.0:(double)r.placedJobs/r.totalJobs*100.0;
-            model.addRow(new Object[]{i+1,r.algorithmName,r.placedJobs,r.totalJobs,success,r.coverageRate});
+            String jobSet = (r.jobSetLabel != null && !"-".equals(r.jobSetLabel)) ? r.jobSetLabel : "-";
+            Integer rankVal = r.isSubRow ? null : (++rankCounter);
+            model.addRow(new Object[]{rankVal,r.algorithmName,r.sortedBy,jobSet,r.placedJobs,r.totalJobs,success,r.coverageRate});
         }
 
         table = new JTable(model);
-        javax.swing.table.TableRowSorter<DefaultTableModel> sorter = new javax.swing.table.TableRowSorter<>(model);
-        table.setRowSorter(sorter);
-        sorter.toggleSortOrder(4); // sort by Erfolgsrate
+        // Preserve insertion order if we detect grouped job-set subrows or the title signals a job-set summary view
+        boolean preserveOrder = hasSubRows || (jobListInfo != null && jobListInfo.toLowerCase().contains("job-set"));
+        if (!preserveOrder) {
+            javax.swing.table.TableRowSorter<DefaultTableModel> sorter = new javax.swing.table.TableRowSorter<>(model);
+            table.setRowSorter(sorter);
+            sorter.toggleSortOrder(6); // sort by Erfolgsrate
+        }
         customizeTable();
+
+        // Verhindere Auswahl von Unterzeilen: wenn eine Unterzeile angeklickt wird, springe auf die Hauptzeile
+        table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            @Override public void valueChanged(ListSelectionEvent e) {
+                if (e.getValueIsAdjusting()) return;
+                int viewRow = table.getSelectedRow();
+                if (viewRow < 0) return;
+                int modelRow = table.getRowSorter()==null ? viewRow : table.convertRowIndexToModel(viewRow);
+                if (modelRow < 0 || modelRow >= results.size()) return;
+                BenchmarkResult r = results.get(modelRow);
+                if (r != null && r.isSubRow) {
+                    // finde vorherige Hauptzeile
+                    int prev = modelRow - 1;
+                    while (prev >= 0 && results.get(prev) != null && results.get(prev).isSubRow) prev--;
+                    if (prev >= 0) {
+                        int viewPrev = table.getRowSorter()==null ? prev : table.convertRowIndexToView(prev);
+                        table.getSelectionModel().setSelectionInterval(viewPrev, viewPrev);
+                    } else {
+                        table.clearSelection();
+                    }
+                }
+            }
+        });
         panel.add(new JScrollPane(table), BorderLayout.CENTER);
         return panel;
     }
@@ -128,13 +176,35 @@ public class BenchmarkVisualizer extends JFrame {
         table.getTableHeader().setFont(new Font("Arial",Font.BOLD,12));
         table.setDefaultRenderer(Object.class, new TableCellRenderer(){
             @Override public Component getTableCellRendererComponent(JTable table,Object value,boolean isSelected,boolean hasFocus,int row,int column){
+                // Resolve model row (for styling even when a sorter is active)
+                int modelRow = table.getRowSorter()==null ? row : table.convertRowIndexToModel(row);
+                BenchmarkResult r = (modelRow>=0 && modelRow<results.size()) ? results.get(modelRow) : null;
+                boolean isSub = r != null && r.isSubRow;
+
                 String text;
-                if(value instanceof Number && (column==4||column==5)) text=String.format("%.2f%%", ((Number)value).doubleValue());
+                if(value instanceof Number && (column==6||column==7)) text=String.format("%.2f%%", ((Number)value).doubleValue());
                 else text=value==null?"-":value.toString();
+
+                // Prettify subrow algorithm text with an arrow indicator
+                if (isSub && column==1) {
+                    String trimmed = text == null ? "" : text.trim();
+                    if (!trimmed.startsWith("↳")) text = "↳ " + trimmed;
+                }
+
                 JLabel l=new JLabel(text);
                 l.setOpaque(true);
                 l.setBorder(BorderFactory.createEmptyBorder(4,6,4,6));
-                if(isSelected) l.setBackground(new Color(184,207,229)); else if(row==0) l.setBackground(new Color(255,215,0,60)); else l.setBackground(Color.WHITE);
+                if(isSelected) {
+                    l.setBackground(new Color(184,207,229));
+                } else if (isSub) {
+                    l.setBackground(new Color(245,245,245));
+                    l.setFont(l.getFont().deriveFont(Font.ITALIC));
+                } else if (row==0 && table.getRowSorter()==null) {
+                    // Only highlight first row when preserving order (summary view)
+                    l.setBackground(new Color(255,215,0,60));
+                } else {
+                    l.setBackground(Color.WHITE);
+                }
                 l.setHorizontalAlignment(column==0||column>=2?JLabel.CENTER:JLabel.LEFT);
                 return l;
             }
@@ -164,8 +234,17 @@ public class BenchmarkVisualizer extends JFrame {
         p.setBorder(BorderFactory.createTitledBorder("Aktionen"));
         JButton btn=new JButton("Visualisieren");
         btn.addActionListener(e->visualizeSelectedSolution());
+        // Nur in der Zusammenfassungsansicht: Button zum Akzeptieren der Lösung anzeigen
+        boolean isBestPerSetView = jobListInfo != null && jobListInfo.contains("Die besten Ergebnisse pro Job-Set");
+        JButton btnAccept = null;
+        if (isBestPerSetView) {
+            btnAccept = new JButton("Lösung akzeptieren");
+            btnAccept.addActionListener(e -> acceptSelectedSolution());
+        }
         p.add(Box.createVerticalStrut(8));
         p.add(btn);
+        p.add(Box.createVerticalStrut(8));
+        if (btnAccept != null) p.add(btnAccept);
         p.add(Box.createVerticalGlue());
         return p;
     }
@@ -179,16 +258,111 @@ public class BenchmarkVisualizer extends JFrame {
 
     private void showPlateVisualization(BenchmarkResult r){
         String algoInfo = r.sortLabel!=null && !"-".equals(r.sortLabel)?("Sortierung: "+r.sortLabel):null;
+        String mode = "cut1"; // Modus für interaktiven Schnitt-Button
         if(r.platesRefs!=null && !r.platesRefs.isEmpty()){
             for(int i=0;i<r.platesRefs.size();i++){
                 Plate p=r.platesRefs.get(i);
                 java.util.List<?> free = (r.platesFreeRects!=null && i<r.platesFreeRects.size())? r.platesFreeRects.get(i):null;
                 String title=r.algorithmName+" | Platte "+(i+1);
-                PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(p,"9",free,title,algoInfo,jobListInfo);
+                // Konsole: Schnitte und Restplatten für diese Ursprungplatte ausgeben
+                try { Controller.printCutsAndIntersections(p, true); } catch (Throwable t) { t.printStackTrace(); }
+                PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(p,mode,free,title,algoInfo,jobListInfo);
             }
             return;
         }
-        PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(r.plate,"9",r.specificFreeRects,r.algorithmName,algoInfo,jobListInfo);
+        // Einzelfall: direkte Platte
+        try { Controller.printCutsAndIntersections(r.plate, true); } catch (Throwable t) { t.printStackTrace(); }
+        PlateVisualizer.showPlateWithSpecificFreeRectsAndTitleAndInfo(r.plate,mode,r.specificFreeRects,r.algorithmName,algoInfo,jobListInfo);
+    }
+
+    // Akzeptiert die ausgewählte Hauptzeile (mitsamt ihren Unterzeilen) als Lösung und informiert den Nutzer.
+    private void acceptSelectedSolution(){
+        int viewRow = table.getSelectedRow();
+        if(viewRow<0){
+            JOptionPane.showMessageDialog(this,"Bitte Zeile auswählen","Hinweis",JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        int modelRow = table.getRowSorter()==null ? viewRow : table.convertRowIndexToModel(viewRow);
+        if (modelRow < 0 || modelRow >= results.size()) return;
+        BenchmarkResult main = results.get(modelRow);
+        if (main == null) return;
+        if (main.isSubRow) {
+            JOptionPane.showMessageDialog(this,"Unterzeilen dürfen nicht ausgewählt werden.","Hinweis",JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Sammle Unterzeilen bis zur nächsten Hauptzeile
+        java.util.List<BenchmarkResult> bundle = new java.util.ArrayList<>();
+        bundle.add(main);
+        int idx = modelRow + 1;
+        while (idx < results.size()) {
+            BenchmarkResult r = results.get(idx);
+            if (r == null || !r.isSubRow) break;
+            bundle.add(r);
+            idx++;
+        }
+
+        // In SQLite speichern (alle freien Rechtecke als einzelne Zeilen)
+        try {
+            String dbPath = System.getProperty("user.home") + java.io.File.separator + "leftover_plates.sqlite";
+            LeftoverPlatesDb db = new LeftoverPlatesDb(dbPath);
+            for (BenchmarkResult br : bundle) {
+                String solutionLabel = (br.algorithmName==null?"(ohne Name)":br.algorithmName);
+                if (br.platesRefs != null && !br.platesRefs.isEmpty()) {
+                    for (int i = 0; i < br.platesRefs.size(); i++) {
+                        java.util.List<?> frList = (br.platesFreeRects!=null && i<br.platesFreeRects.size()) ? br.platesFreeRects.get(i) : null;
+                        if (frList == null) continue;
+                        for (Object o : frList) {
+                            if (o instanceof PlatePath.FreeRectangle) {
+                                PlatePath.FreeRectangle fr = (PlatePath.FreeRectangle)o;
+                                db.insertFreeRect(solutionLabel, i, fr.x, fr.y, fr.width, fr.height);
+                            } else {
+                                Double x = tryGetDoubleField(o, "x");
+                                Double y = tryGetDoubleField(o, "y");
+                                Double w = tryGetDoubleField(o, "width");
+                                Double h = tryGetDoubleField(o, "height");
+                                if (x!=null && y!=null && w!=null && h!=null) db.insertFreeRect(solutionLabel, i, x, y, w, h);
+                            }
+                        }
+                    }
+                } else if (br.plate != null && br.specificFreeRects != null) {
+                    int i = 0;
+                    for (PlatePath.FreeRectangle fr : br.specificFreeRects) {
+                        db.insertFreeRect(solutionLabel, i, fr.x, fr.y, fr.width, fr.height);
+                    }
+                }
+            }
+        } catch (Throwable ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Fehler beim Speichern in SQLite: " + ex.getMessage(), "Fehler", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Meldung an den Nutzer
+        String message = String.format("Die Lösung '%s' (inkl. %d Unterzeile(n)) wird nun belichtet.",
+                main.algorithmName, Math.max(0, bundle.size()-1));
+        JOptionPane.showMessageDialog(this, message, "Lösung akzeptiert", JOptionPane.INFORMATION_MESSAGE);
+
+        // Optional: weitere Verarbeitung (Persistenz, Übergabe an Controller) könnte hier erfolgen
+        // z.B. Controller.acceptSolution(bundle);
+    }
+
+    // Reflection helper to fetch doubles from generic rectangle objects
+    private static Double tryGetDoubleField(Object obj, String fieldName) {
+        try {
+            if (obj == null || fieldName == null || fieldName.isEmpty()) return null;
+            java.lang.reflect.Field f = null;
+            Class<?> c = obj.getClass();
+            while (c != null) {
+                try { f = c.getDeclaredField(fieldName); break; } catch (NoSuchFieldException ignore) { c = c.getSuperclass(); }
+            }
+            if (f == null) return null;
+            f.setAccessible(true);
+            Object v = f.get(obj);
+            if (v instanceof Number) return ((Number)v).doubleValue();
+            if (v != null) return Double.parseDouble(String.valueOf(v));
+        } catch (Exception ignore) {}
+        return null;
     }
 
     public static void showBenchmarkResults(java.util.List<BenchmarkResult> results,String jobListInfo){
