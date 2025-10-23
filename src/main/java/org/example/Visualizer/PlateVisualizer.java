@@ -1,12 +1,16 @@
 package org.example.Visualizer;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 import org.example.Main;
-import org.example.Algorithms.CutLineCalculator;
-import org.example.Algorithms.Controller;
+import org.example.Algorithm.Controller;
+import org.example.Algorithm.CutLineCalculator;
 import org.example.DataClasses.Job;
 import org.example.DataClasses.Plate;
 import org.example.DataClasses.PlatePath;
@@ -45,32 +49,26 @@ public class PlateVisualizer extends JPanel {
 
         setPreferredSize(new Dimension((int) Math.round(plate.width) + 100, (int) Math.round(plate.height) + extraHeight + 80));
 
-        // Button für Schnitt 1 setzen (Hinzufügen ins Layout erfolgt in show*-Methode)
         cutButton = new JButton("Schnitt setzen");
         cutButton.addActionListener(e -> handleFirstCut());
     }
 
-    // Methode, die beim Klick auf den Button ausgeführt wird
     private void handleFirstCut() {
-        java.util.List<org.example.Algorithms.CutLineCalculator.CutLine> cuts = org.example.Algorithms.CutLineCalculator.calculateSingleFullCut(plate);
+        java.util.List<org.example.Algorithm.CutLineCalculator.CutLine> cuts = org.example.Algorithm.CutLineCalculator.calculateSingleFullCut(plate);
         if (cuts == null || cuts.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Kein gültiger vollständiger Schnitt mehr möglich.", "Info", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        // Schnitt in aktueller Platte visuell darstellen
         this.setExternalCuts(cuts);
         this.repaint();
-        org.example.Algorithms.CutLineCalculator.CutLine cut = cuts.get(0);
-        // Zwei neue Platten erzeugen (links/rechts oder oben/unten)
+        org.example.Algorithm.CutLineCalculator.CutLine cut = cuts.get(0);
         Plate left = clonePlateWithBounds(plate, 0, 0, cut.vertical ? cut.coord : plate.width, cut.vertical ? plate.height : cut.coord);
         Plate right = clonePlateWithBounds(plate, cut.vertical ? cut.coord : 0, cut.vertical ? 0 : cut.coord, plate.width, plate.height);
-        // Zeige beide Teilplatten in neuen Fenstern, ohne Schnitte zu visualisieren
         java.util.List<CutLineCalculator.CutLine> noCuts = new java.util.ArrayList<>();
         showPlateWithCutsAndTitleAndInfo(left, "cut1", noCuts, null, plate.name, null, null);
         showPlateWithCutsAndTitleAndInfo(right, "cut1", noCuts, null, plate.name, null, null);
     }
 
-    // Hilfsmethode: Erzeugt eine neue Platte mit Jobs, die im angegebenen Bereich liegen
     private Plate clonePlateWithBounds(Plate original, double x0, double y0, double x1, double y1) {
         Plate p = new Plate(original.name, x1 - x0, y1 - y0, original.plateId);
         for (Job j : original.jobs) {
@@ -271,9 +269,7 @@ public class PlateVisualizer extends JPanel {
 
             PlateVisualizer visualizer = new PlateVisualizer(plate, mode, null, specificFreeRects, jobListInfo, algorithmInfo);
 
-            // In interaktivem Modus den geplanten ersten Schnitt sofort als Vorschau anzeigen
             if ("cut1".equals(mode)) {
-                // Gesamte Sequenz visualisieren
                 java.util.List<CutLineCalculator.CutLine> preview = CutLineCalculator.calculateAllFullCuts(plate);
                 visualizer.setExternalCuts(preview);
             }
@@ -282,7 +278,6 @@ public class PlateVisualizer extends JPanel {
             if ("4".equals(mode) && algorithmInfo != null) extraHeight = 280;
             visualizer.setPreferredSize(new Dimension((int) Math.round(plate.width) + 100, (int) Math.round(plate.height) + extraHeight + 80));
 
-            // Wenn Modus "cut1", dann Button unterhalb anzeigen
             if ("cut1".equals(mode)) {
                 JPanel panel = new JPanel(new BorderLayout());
                 panel.add(visualizer, BorderLayout.CENTER);
@@ -305,7 +300,6 @@ public class PlateVisualizer extends JPanel {
 
             PlateVisualizer visualizer = new PlateVisualizer(plate, mode, null, specificFreeRects, jobListInfo, algorithmInfo);
             visualizer.setExternalCuts(cuts);
-            // In interaktivem Modus komplette Sequenz als Vorschau anzeigen, falls keine expliziten Cuts übergeben
             if ("cut1".equals(mode) && (cuts == null || cuts.isEmpty())) {
                 java.util.List<CutLineCalculator.CutLine> preview = CutLineCalculator.calculateAllFullCuts(plate);
                 visualizer.setExternalCuts(preview);
@@ -315,7 +309,6 @@ public class PlateVisualizer extends JPanel {
             if ("4".equals(mode) && algorithmInfo != null) extraHeight = 280;
             visualizer.setPreferredSize(new Dimension((int) Math.round(plate.width) + 100, (int) Math.round(plate.height) + extraHeight + 80));
 
-            // Wenn Modus "cut1", dann Button unterhalb anzeigen
             if ("cut1".equals(mode)) {
                 JPanel panel = new JPanel(new BorderLayout());
                 panel.add(visualizer, BorderLayout.CENTER);
@@ -334,6 +327,51 @@ public class PlateVisualizer extends JPanel {
 
     public static void showMultiPlatePath(PlatePath path, String titleSuffix) {
         showPlateWithSpecificFreeRectsAndTitleAndInfo(path.plate, "7", path.freeRects, "MultiPlate Pfad " + path.pathId + (titleSuffix == null ? "" : " " + titleSuffix), null, null);
+    }
+
+    /**
+     * Rendert eine Platte wie im Visualizer und speichert sie als BMP-Datei.
+     *
+     * @param plate Die zu visualisierende Platte
+     * @param mode Visualisierungsmodus (z. B. "cut1")
+     * @param specificFreeRects optionale freien Rechtecke, können null sein
+     * @param algorithmInfo optionale Zusatzinfo, kann null sein
+     * @param jobListInfo optionale Joblisten-Info, kann null sein
+     * @param outputPath Ausgabedatei-Pfad (z. B. "src/main/IOFiles/exports/plate1.bmp")
+     */
+    public static void savePlateAsBmp(Plate plate, String mode, List<?> specificFreeRects,
+                                      String algorithmInfo, String jobListInfo, String outputPath) throws IOException {
+        // Visualizer-Panel vorbereiten
+        PlateVisualizer visualizer = new PlateVisualizer(plate, mode, null, specificFreeRects, jobListInfo, algorithmInfo);
+        if ("cut1".equals(mode)) {
+            java.util.List<CutLineCalculator.CutLine> preview = CutLineCalculator.calculateAllFullCuts(plate);
+            visualizer.setExternalCuts(preview);
+        }
+
+        int extraHeight = 240;
+        if ("4".equals(mode) && algorithmInfo != null) extraHeight = 280;
+        int w = (int) Math.round(plate.width) + 100;
+        int h = (int) Math.round(plate.height) + extraHeight + 80;
+
+        // Bild anlegen und weiß füllen
+        BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2 = img.createGraphics();
+        g2.setColor(Color.WHITE);
+        g2.fillRect(0, 0, w, h);
+
+        // Panel rendern
+        visualizer.setSize(w, h);
+        visualizer.doLayout();
+        visualizer.paint(g2);
+        g2.dispose();
+
+        // Zielordner sicherstellen
+        File outFile = new File(outputPath);
+        File parent = outFile.getParentFile();
+        if (parent != null && !parent.exists()) parent.mkdirs();
+
+        // Schreiben als BMP
+        ImageIO.write(img, "bmp", outFile);
     }
 
 }

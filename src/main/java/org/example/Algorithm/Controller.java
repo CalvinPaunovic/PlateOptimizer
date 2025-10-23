@@ -1,4 +1,4 @@
-package org.example.Algorithms;
+package org.example.Algorithm;
 
 import org.example.DataClasses.Job;
 import org.example.DataClasses.PlatePath;

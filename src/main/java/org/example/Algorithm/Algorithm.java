@@ -1,4 +1,4 @@
-package org.example.Algorithms;
+package org.example.Algorithm;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -27,8 +27,9 @@ public class PlatePath {
         FULL_WIDTH
     }
 
+    // Konstruktor für die beiden Initialpfade fullWidthPath und fullHeightPath
     public PlatePath(Plate originalPlate, String pathId, Strategy strategy, int totalPathCount) {
-        this.plate = new Plate(originalPlate.name, originalPlate.width, originalPlate.height);
+        this.plate = new Plate(originalPlate.name, originalPlate.width, originalPlate.height, plateId);
         this.freeRects = new ArrayList<>();
         this.freeRects.add(new PlatePath.FreeRectangle(0, 0, plate.width, plate.height));
         this.lastAddedRects = new ArrayList<>();
@@ -42,6 +43,7 @@ public class PlatePath {
         this.totalPathCount = totalPathCount;
     }
     
+    // Konstruktor für Kinderpfade
     public PlatePath(PlatePath original, String pathId, Strategy strategy, String splitFromPathId, int splitFromJobId, int totalPathCount) {
         this.plate = new Plate(original.plate.name, original.plate.width, original.plate.height, original.plate.plateId);
         for (int i = 0; i < original.plate.jobs.size(); i++) {

@@ -1,8 +1,9 @@
 package org.example.Visualizer;
 
+import org.example.Algorithm.Controller;
 import org.example.DataClasses.Plate;
 import org.example.DataClasses.PlatePath;
-import org.example.Algorithms.Controller;
+import org.example.IOClasses.JsonOutputWriter;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -117,7 +118,6 @@ public class BenchmarkVisualizer extends JFrame {
                 return String.class;
             }
         };
-
 
         boolean hasSubRows = false;
         for (int i = 0; i < results.size(); i++) {
@@ -253,7 +253,38 @@ public class BenchmarkVisualizer extends JFrame {
         int sel=table.getSelectedRow();
         if(sel<0){JOptionPane.showMessageDialog(this,"Bitte Zeile auswählen","Hinweis",JOptionPane.INFORMATION_MESSAGE);return;}
         int modelRow=table.convertRowIndexToModel(sel);
-        if(modelRow>=0 && modelRow<results.size()) showPlateVisualization(results.get(modelRow));
+        if(modelRow<0 || modelRow>=results.size()) return;
+        
+        BenchmarkResult selected = results.get(modelRow);
+        if(selected == null) return;
+        
+        // Prüfe, ob es eine Unterzeile ist - wenn ja, springe zur Hauptzeile
+        if(selected.isSubRow) {
+            int mainRow = modelRow - 1;
+            while (mainRow >= 0 && results.get(mainRow) != null && results.get(mainRow).isSubRow) {
+                mainRow--;
+            }
+            if(mainRow >= 0) {
+                modelRow = mainRow;
+                selected = results.get(modelRow);
+            }
+        }
+        
+        // Sammle Hauptzeile und alle zugehörigen Unterzeilen
+        java.util.List<BenchmarkResult> bundle = new java.util.ArrayList<>();
+        bundle.add(selected);
+        int idx = modelRow + 1;
+        while (idx < results.size()) {
+            BenchmarkResult r = results.get(idx);
+            if (r == null || !r.isSubRow) break;
+            bundle.add(r);
+            idx++;
+        }
+        
+        // Visualisiere alle gesammelten Ergebnisse (Hauptzeile + Unterzeilen)
+        for(BenchmarkResult br : bundle) {
+            showPlateVisualization(br);
+        }
     }
 
     private void showPlateVisualization(BenchmarkResult r){
@@ -276,7 +307,19 @@ public class BenchmarkVisualizer extends JFrame {
     }
 
     // Akzeptiert die ausgewählte Hauptzeile (mitsamt ihren Unterzeilen) als Lösung und informiert den Nutzer.
-    private void acceptSelectedSolution(){
+    private void acceptSelectedSolution() {
+        try {
+            acceptSelectedSolutionInternal();
+        } catch (java.io.IOException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Fehler beim Erstellen der JSON-Datei: " + ex.getMessage(), 
+                "Fehler", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void acceptSelectedSolutionInternal() throws java.io.IOException {
         int viewRow = table.getSelectedRow();
         if(viewRow<0){
             JOptionPane.showMessageDialog(this,"Bitte Zeile auswählen","Hinweis",JOptionPane.INFORMATION_MESSAGE);
@@ -302,12 +345,51 @@ public class BenchmarkVisualizer extends JFrame {
             idx++;
         }
 
+        // Sammle alle Platten für die JSON-Ausgabe
+        java.util.List<Plate> allPlates = new java.util.ArrayList<>();
+        for (BenchmarkResult br : bundle) {
+            if (br.platesRefs != null && !br.platesRefs.isEmpty()) {
+                allPlates.addAll(br.platesRefs);
+            } else if (br.plate != null) {
+                allPlates.add(br.plate);
+            }
+        }
+
+        // JSON-Datei erstellen mit den Konsolenausgaben (Schnitte und Restplatten)
+        String solutionLabel = (main.algorithmName == null ? "Lösung" : main.algorithmName);
+        String jsonPath = "src/main/IOFiles/output.json";
+        JsonOutputWriter.writePlatesToJson(solutionLabel, allPlates, jsonPath);
+        System.out.println("\nLösung wurde in JSON-Datei gespeichert: " + jsonPath);
+
+        // BMP-Export: Alle Platten als Bilder speichern
+        String exportDir = "src/main/IOFiles";
+        java.io.File dir = new java.io.File(exportDir);
+        if (!dir.exists()) dir.mkdirs();
+
+        int plateCounter = 0;
+        for (BenchmarkResult br : bundle) {
+            if (br.platesRefs != null && !br.platesRefs.isEmpty()) {
+                for (int i = 0; i < br.platesRefs.size(); i++) {
+                    Plate p = br.platesRefs.get(i);
+                    java.util.List<?> free = (br.platesFreeRects!=null && i<br.platesFreeRects.size())? br.platesFreeRects.get(i):null;
+                    String fileName = sanitize(solutionLabel) + "_plate" + (++plateCounter) + ".bmp";
+                    String outPath = exportDir + "/" + fileName;
+                    PlateVisualizer.savePlateAsBmp(p, "cut1", free, br.algorithmName, jobListInfo, outPath);
+                }
+            } else if (br.plate != null) {
+                String fileName = sanitize(solutionLabel) + "_plate" + (++plateCounter) + ".bmp";
+                String outPath = exportDir + "/" + fileName;
+                PlateVisualizer.savePlateAsBmp(br.plate, "cut1", br.specificFreeRects, br.algorithmName, jobListInfo, outPath);
+            }
+        }
+        System.out.println("BMP-Export abgeschlossen: " + plateCounter + " Datei(en) unter " + exportDir);
+
         // In SQLite speichern (alle freien Rechtecke als einzelne Zeilen)
-        try {
-            String dbPath = System.getProperty("user.home") + java.io.File.separator + "leftover_plates.sqlite";
+       try {
+            String dbPath = "C:\\Users\\cpaun\\VisualStudioProjects\\PlateOptimizer\\src\\main\\java\\org\\example\\Storage\\leftover_plates.sqlite";
             LeftoverPlatesDb db = new LeftoverPlatesDb(dbPath);
             for (BenchmarkResult br : bundle) {
-                String solutionLabel = (br.algorithmName==null?"(ohne Name)":br.algorithmName);
+                String sqliteSolutionLabel = (br.algorithmName==null?"(ohne Name)":br.algorithmName);
                 if (br.platesRefs != null && !br.platesRefs.isEmpty()) {
                     for (int i = 0; i < br.platesRefs.size(); i++) {
                         java.util.List<?> frList = (br.platesFreeRects!=null && i<br.platesFreeRects.size()) ? br.platesFreeRects.get(i) : null;
@@ -315,20 +397,20 @@ public class BenchmarkVisualizer extends JFrame {
                         for (Object o : frList) {
                             if (o instanceof PlatePath.FreeRectangle) {
                                 PlatePath.FreeRectangle fr = (PlatePath.FreeRectangle)o;
-                                db.insertFreeRect(solutionLabel, i, fr.x, fr.y, fr.width, fr.height);
+                                db.insertFreeRect(sqliteSolutionLabel, i, fr.x, fr.y, fr.width, fr.height);
                             } else {
                                 Double x = tryGetDoubleField(o, "x");
                                 Double y = tryGetDoubleField(o, "y");
                                 Double w = tryGetDoubleField(o, "width");
                                 Double h = tryGetDoubleField(o, "height");
-                                if (x!=null && y!=null && w!=null && h!=null) db.insertFreeRect(solutionLabel, i, x, y, w, h);
+                                if (x!=null && y!=null && w!=null && h!=null) db.insertFreeRect(sqliteSolutionLabel, i, x, y, w, h);
                             }
                         }
                     }
                 } else if (br.plate != null && br.specificFreeRects != null) {
                     int i = 0;
                     for (PlatePath.FreeRectangle fr : br.specificFreeRects) {
-                        db.insertFreeRect(solutionLabel, i, fr.x, fr.y, fr.width, fr.height);
+                        db.insertFreeRect(sqliteSolutionLabel, i, fr.x, fr.y, fr.width, fr.height);
                     }
                 }
             }
@@ -339,15 +421,12 @@ public class BenchmarkVisualizer extends JFrame {
         }
 
         // Meldung an den Nutzer
-        String message = String.format("Die Lösung '%s' (inkl. %d Unterzeile(n)) wird nun belichtet.",
+    String message = String.format("Die Lösung '%s' (inkl. %d Unterzeile(n)) wurde gespeichert:\n- JSON: output.json\n- BMP: IOFiles/exports/*.bmp\n- SQLite: leftover_plates.sqlite",
                 main.algorithmName, Math.max(0, bundle.size()-1));
         JOptionPane.showMessageDialog(this, message, "Lösung akzeptiert", JOptionPane.INFORMATION_MESSAGE);
-
-        // Optional: weitere Verarbeitung (Persistenz, Übergabe an Controller) könnte hier erfolgen
-        // z.B. Controller.acceptSolution(bundle);
+        
     }
 
-    // Reflection helper to fetch doubles from generic rectangle objects
     private static Double tryGetDoubleField(Object obj, String fieldName) {
         try {
             if (obj == null || fieldName == null || fieldName.isEmpty()) return null;
@@ -363,6 +442,12 @@ public class BenchmarkVisualizer extends JFrame {
             if (v != null) return Double.parseDouble(String.valueOf(v));
         } catch (Exception ignore) {}
         return null;
+    }
+
+    // Dateinamen von unerlaubten Zeichen säubern
+    private static String sanitize(String s) {
+        if (s == null) return "solution";
+    return s.replaceAll("[^a-zA-Z0-9-_\\. ]", "_").trim().replaceAll(" +", "_");
     }
 
     public static void showBenchmarkResults(java.util.List<BenchmarkResult> results,String jobListInfo){

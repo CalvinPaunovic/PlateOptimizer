@@ -2,12 +2,8 @@ package org.example.Storage;
 
 import java.sql.*;
 
-/**
- * Leftover plates management - simple SQLite storage for free rectangles.
- * Table: free_rects(id INTEGER PK, solution_label TEXT, plate_index INTEGER, x REAL, y REAL, width REAL, height REAL)
- */
 public class LeftoverPlatesDb {
-    private final String url; // jdbc:sqlite:<path>
+    private final String url;
 
     public LeftoverPlatesDb(String filePath) {
         this.url = "jdbc:sqlite:" + filePath;
@@ -15,7 +11,6 @@ public class LeftoverPlatesDb {
     }
 
     private void init() {
-        // Ensure the SQLite JDBC driver is loaded (some environments require explicit load)
         try {
             Class.forName("org.sqlite.JDBC");
         } catch (ClassNotFoundException e) {

@@ -1,29 +1,45 @@
 package org.example;
 
 import java.util.*;
+import java.io.IOException;
 
-import org.example.Algorithms.Controller;
+import org.example.Algorithm.Controller;
 import org.example.DataClasses.Job;
-import org.example.Provider.JobListProvider;
+import org.example.DataClasses.Plate;
+import org.example.IOClasses.JsonInputReader;
 
 
 public class Main {
 
     public static final boolean rotateJobs = true;
     public static final boolean sortJobs = true;
-    
-    public static final int KERF_WIDTH = 0;
 
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
+    public static final int KERF_WIDTH = 0;
+    
+    public static void main(String[] args) throws IOException {
+        
+        List<Job> originalJobs;
+        Plate standardPlate;
+        
+        // Über PlateProvider und JobListProvider
+        /*
         JobListProvider.NamedJobList selection = getUserJobListChoiceWithScanner(scanner);
-        List<Job> originalJobs = selection.jobs;
-        org.example.DataClasses.Plate standardPlate = org.example.Provider.PlateProvider.getA1Plate();
+        originalJobs = selection.jobs;
+        standardPlate = PlateProvider.getA1Plate();
+        */
+        
+        // Über JSONInputReader
+        String jsonPath = "src/main/IOFiles/input.json";
+        JsonInputReader.InputData inputData = JsonInputReader.readFromJson(jsonPath);
+        originalJobs = inputData.jobs;
+        standardPlate = inputData.plate;
+
+        // Algorithmus ausführen
         Controller.run_MaxRectBF_MultiPlate_Unlimited(originalJobs, standardPlate, sortJobs);
-        scanner.close();
     }
 
 
+    /* 
     private static JobListProvider.NamedJobList getUserJobListChoiceWithScanner(Scanner scanner) {
         java.util.List<JobListProvider.NamedJobList> lists = JobListProvider.getAllListsInMenuOrder();
         System.out.println("Welche Jobliste möchten Sie verwenden?");
@@ -36,5 +52,6 @@ public class Main {
         for (JobListProvider.NamedJobList l : lists) if (l.id == id) return l;
         return lists.get(0);
     }
+    */
 
 }
