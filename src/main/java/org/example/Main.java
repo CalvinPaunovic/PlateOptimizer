@@ -12,11 +12,6 @@ import org.example.IOClasses.JsonInputReader;
 
 public class Main {
 
-    public static final boolean rotateJobs = true;
-    public static final boolean sortJobs = true;
-
-    public static final int KERF_WIDTH = 0;
-
     // Datatype 'Path' to get the platform-independent file paths
     // 'System.getProperty("user.dir")' containsPath up to project folder "PlateOptimizer"
     public static final Path BASE_DIRECTORY = Path.of(System.getProperty("user.dir"));
@@ -33,15 +28,15 @@ public class Main {
 
 
         List<Job> originalJobs;
-        Plate standardPlate;
+        Plate originPlate;
         
         // With JSONInputReader
         JsonInputReader.InputData inputData = JsonInputReader.readFromJson(Main.INPUT_FILE.toString());
         originalJobs = inputData.jobs;
-        standardPlate = inputData.plate;
+        originPlate = inputData.plate;
 
         // Execute Algorithm
-        Controller.run_MaxRectBF_MultiPlate_Unlimited(originalJobs, standardPlate, sortJobs);
+        Controller.runAlgorithm(originalJobs, originPlate);
     }
 
 }

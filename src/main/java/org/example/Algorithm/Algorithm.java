@@ -3,7 +3,6 @@ package org.example.Algorithm;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.example.Main;
 import org.example.DataClasses.Job;
 import org.example.DataClasses.PlatePath;
 import org.example.DataClasses.Plate;
@@ -114,7 +113,7 @@ public class Algorithm {
             for (int j = 0; j < currentPath.freeRects.size(); j++) {
                 PlatePath.FreeRectangle rect = currentPath.freeRects.get(j);
                 testAndUpdateBestFit(jobCandidate.width, jobCandidate.height, rect, false, result);
-                if (Main.rotateJobs) testAndUpdateBestFit(jobCandidate.height, jobCandidate.width, rect, true, result);
+                testAndUpdateBestFit(jobCandidate.height, jobCandidate.width, rect, true, result);
             }
 
             // Falls kein Platz gefunden wurde:
@@ -226,7 +225,7 @@ public class Algorithm {
             for (int j = 0; j < newPath.freeRects.size(); j++) {
                 PlatePath.FreeRectangle rect = newPath.freeRects.get(j);
                 testAndUpdateBestFit(job.width, job.height, rect, false, newPathResult);
-                if (Main.rotateJobs) testAndUpdateBestFit(job.height, job.width, rect, true, newPathResult);
+                testAndUpdateBestFit(job.height, job.width, rect, true, newPathResult);
             }
             // Falls ein passendes Rechteck gefunden wurde, platziere den Job im neuen Pfad
             if (newPathResult.bestRect != null) {

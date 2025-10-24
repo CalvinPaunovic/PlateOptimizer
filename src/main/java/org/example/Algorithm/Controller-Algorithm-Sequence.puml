@@ -1,0 +1,14 @@
+@startuml Controller-Algorithm-Sequence
+actor User
+
+User -> Main: start()
+Main -> Controller: runAlgorithm(originalJobs, originPlate)
+
+activate Controller
+    Controller -> Controller: runPlateWithSorting(originalJobs, originalPlate, sortByArea, allJobIds)
+    Controller -> Controller: runPlateWithSorting(originalJobs, originalPlate, sortByEdge, allJobIds)
+
+
+deactivate Controller
+
+@enduml

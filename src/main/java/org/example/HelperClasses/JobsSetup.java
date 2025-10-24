@@ -2,7 +2,6 @@ package org.example.HelperClasses;
 
 import java.util.*;
 
-import org.example.Main;
 import org.example.DataClasses.Job;
 
 public class JobsSetup {
@@ -19,8 +18,8 @@ public class JobsSetup {
     public static List<Job> createJobCopies(List<Job> originalJobs) {
         List<Job> copies = new ArrayList<>();
         for (Job original : originalJobs) {
-            double widthWithKerf = original.width + Main.KERF_WIDTH;
-            double heightWithKerf = original.height + Main.KERF_WIDTH;
+            double widthWithKerf = original.width;
+            double heightWithKerf = original.height;
 
             Job copy = new Job(original.id, widthWithKerf, heightWithKerf);
             copy.originalWidth = original.width;

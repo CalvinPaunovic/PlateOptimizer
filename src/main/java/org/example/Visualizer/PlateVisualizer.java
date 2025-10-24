@@ -8,7 +8,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-import org.example.Main;
 import org.example.Algorithm.Controller;
 import org.example.Algorithm.CutLineCalculator;
 import org.example.DataClasses.Job;
@@ -111,7 +110,7 @@ public class PlateVisualizer extends JPanel {
             g2d.drawString("Job " + job.id, (int) Math.round(job.x) + 5, (int) Math.round(job.y) + 15);
 
             String dimensionText = (job.originalWidth > 0 && job.originalHeight > 0)
-                    ? String.format("%.2fx%.2f (+%dmm)", job.originalWidth, job.originalHeight, Main.KERF_WIDTH)
+                    ? String.format("%.2fx%.2f (+%dmm)", job.originalWidth, job.originalHeight)
                     : String.format("%.2fx%.2f", job.width, job.height);
 
             g2d.drawString(dimensionText, (int) Math.round(job.x) + 5, (int) Math.round(job.y) + 30);

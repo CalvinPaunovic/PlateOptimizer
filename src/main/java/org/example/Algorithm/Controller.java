@@ -16,22 +16,23 @@ public class Controller {
     private static final Map<String, BenchmarkVisualizer.BenchmarkResult> BEST_PLATE2_BY_JOBSET = new LinkedHashMap<>();
 
     /*
-     * Unendlicher Plattenmodus: Platte wird immer wieder neu geklont, bis keine Job-Sets mehr offen sind
+     * Infinity Plate Algorithm: The plate is cloned infinitely until all jobs are placed.
      */
-    public static void run_MaxRectBF_MultiPlate_Unlimited(List<Job> originalJobs, Plate plateTemplate, boolean sortJobs) {
-        if (plateTemplate == null || originalJobs == null || originalJobs.isEmpty()) return;
+    public static void runAlgorithm(List<Job> originalJobs, Plate originalPlate) {
+        if (originalPlate == null || originalJobs == null || originalJobs.isEmpty()) return;
 
         // Reset state for a fresh run
         BEST_PLATE2_BY_JOBSET.clear();
 
+        // Collect all job IDs: [1, 2, 3, 4, 5, ...]
         Set<Integer> allJobIds = new LinkedHashSet<>();
         for (Job j : originalJobs) allJobIds.add(j.id);
 
-        // Platte 1: Beide Sortierungen (Fläche und Kante)
-        PlateRunResult resultArea = runPlateWithSorting(originalJobs, plateTemplate, sortJobs, true, allJobIds);
-        PlateRunResult resultEdge = runPlateWithSorting(originalJobs, plateTemplate, sortJobs, false, allJobIds);
+        // Plate 1: Both Sortings (Area and Edge)
+        PlateRunResult resultArea = runPlateWithSorting(originalJobs, originalPlate, "Fläche", allJobIds);
+        PlateRunResult resultEdge = runPlateWithSorting(originalJobs, originalPlate, "Kante", allJobIds);
 
-        // Matrix-Ausgabe für Platte 1
+        // #region Strategy-Code-Matrix-output
         List<Integer> orderArea = new ArrayList<>();
         for (Job j : resultArea.sortedJobs) orderArea.add(j.id);
         printStrategyCodeMatrix(resultArea.paths, "Platte 1 - Strategie-Matrix (Fläche)", orderArea);
@@ -39,6 +40,7 @@ public class Controller {
         List<Integer> orderEdge = new ArrayList<>();
         for (Job j : resultEdge.sortedJobs) orderEdge.add(j.id);
         printStrategyCodeMatrix(resultEdge.paths, "Platte 1 - Strategie-Matrix (Kante)", orderEdge);
+        // #endregion
 
         // P1 anzeigen
         List<BenchmarkVisualizer.BenchmarkResult> combinedP1 = new ArrayList<>();
@@ -51,30 +53,23 @@ public class Controller {
         BenchmarkVisualizer.showBenchmarkResults(combinedP1, "Platte 1 - Gesamtlauf");
 
         // Folgeplatten
-        processFollowUpPlates(originalJobs, plateTemplate, sortJobs, resultArea.groups, resultEdge.groups, 1);
+        processFollowUpPlates(originalJobs, originalPlate, resultArea.groups, resultEdge.groups, 1);
 
         // Zusammenfassung
         showSummaryOfJobSets(resultArea, resultEdge);
     }
 
-    // Helper: Führt einen kompletten Plattenlauf mit einer Sortierung durch
     private static PlateRunResult runPlateWithSorting(List<Job> originalJobs, Plate plate, 
-                                                       boolean sortJobs, boolean byArea, 
-                                                       Set<Integer> allJobIds) {
-        String variant = byArea ? "Fläche" : "Kante";
-        
+                                                     String sortType, Set<Integer> allJobIds) {
+
         List<Job> jobs = JobsSetup.createJobCopies(originalJobs);
-        if (sortJobs) {
-            if (byArea) JobsSetup.sortJobsBySizeDescending(jobs);
-            else JobsSetup.sortJobsByLargestEdgeDescending(jobs);
-        }
 
         Algorithm algo = new Algorithm(Arrays.asList(clonePlate(plate)));
         for (Job job : jobs) algo.placeJob(job, plate.plateId);
         List<PlatePath> paths = algo.getPathsAndFailedJobsOverviewData();
 
         List<JobSetGroup> groups = buildUnplacedJobGroups(paths, allJobIds);
-        printJobSetGroups(groups, 1, variant);
+        printJobSetGroups(groups, 1, sortType);
 
         List<BenchmarkVisualizer.BenchmarkResult> benchmarks = buildBenchmarkResults(paths, jobs, Arrays.asList(plate));
         
@@ -87,7 +82,7 @@ public class Controller {
         for (int i = 0; i < benchmarks.size(); i++) {
             BenchmarkVisualizer.BenchmarkResult br = benchmarks.get(i);
             br.sortLabel = "Platte 1";
-            br.sortedBy = variant;
+            br.sortedBy = sortType;
             
             PlatePath path = findPathById(paths, br.algorithmName);
             if (path != null && path.failedJobs != null) {
@@ -110,7 +105,7 @@ public class Controller {
     }
 
     // Helper: Verarbeitet Folgeplatten
-    private static void processFollowUpPlates(List<Job> originalJobs, Plate plateTemplate, boolean sortJobs,
+    private static void processFollowUpPlates(List<Job> originalJobs, Plate plateTemplate,
                                               List<JobSetGroup> initialGroupsArea, List<JobSetGroup> initialGroupsEdge,
                                               int startPlateIdx) {
         List<JobSetGroup> currentGroupsArea = initialGroupsArea;
@@ -121,7 +116,7 @@ public class Controller {
             if (currentGroupsArea.isEmpty() && currentGroupsEdge.isEmpty()) break;
             
             Plate currentPlate = clonePlate(plateTemplate);
-            FollowUpResult result = processFollowUpPlate(originalJobs, currentPlate, sortJobs,
+            FollowUpResult result = processFollowUpPlate(originalJobs, currentPlate,
                                                          currentGroupsArea, currentGroupsEdge, plateIdx);
             
             currentGroupsArea = result.nextGroupsArea;
@@ -131,15 +126,15 @@ public class Controller {
     }
 
     // Helper: Verarbeitet eine einzelne Folgeplatte
-    private static FollowUpResult processFollowUpPlate(List<Job> originalJobs, Plate currentPlate, boolean sortJobs,
+    private static FollowUpResult processFollowUpPlate(List<Job> originalJobs, Plate currentPlate,
                                                         List<JobSetGroup> groupsArea, List<JobSetGroup> groupsEdge,
                                                         int plateIdx) {
         Map<String, JobSetGroup> aggregatedForNextArea = new LinkedHashMap<>();
         Map<String, JobSetGroup> aggregatedForNextEdge = new LinkedHashMap<>();
 
         // Verarbeite beide Sortierungen
-        processJobSetGroups(originalJobs, currentPlate, sortJobs, groupsArea, true, plateIdx, aggregatedForNextArea);
-        processJobSetGroups(originalJobs, currentPlate, sortJobs, groupsEdge, false, plateIdx, aggregatedForNextEdge);
+        processJobSetGroups(originalJobs, currentPlate, groupsArea, true, plateIdx, aggregatedForNextArea);
+        processJobSetGroups(originalJobs, currentPlate, groupsEdge, false, plateIdx, aggregatedForNextEdge);
 
         List<JobSetGroup> nextArea = new ArrayList<>(aggregatedForNextArea.values());
         List<JobSetGroup> nextEdge = new ArrayList<>(aggregatedForNextEdge.values());
@@ -148,7 +143,7 @@ public class Controller {
     }
 
     // Helper: Verarbeitet Job-Set-Gruppen für eine Sortierung
-    private static void processJobSetGroups(List<Job> originalJobs, Plate currentPlate, boolean sortJobs,
+    private static void processJobSetGroups(List<Job> originalJobs, Plate currentPlate,
                                              List<JobSetGroup> groups, boolean byArea, int plateIdx,
                                              Map<String, JobSetGroup> aggregatedForNext) {
         String seedSuffix = byArea ? "" : " | Seed=P1-Kante";
@@ -161,8 +156,8 @@ public class Controller {
             String setLabel = idsSorted.toString();
 
             // Beide Sortierungen durchführen
-            JobSetRunResult areaResult = runJobSetWithSorting(originalJobs, currentPlate, sortJobs, g, true);
-            JobSetRunResult edgeResult = runJobSetWithSorting(originalJobs, currentPlate, sortJobs, g, false);
+            JobSetRunResult areaResult = runJobSetWithSorting(originalJobs, currentPlate, g, true);
+            JobSetRunResult edgeResult = runJobSetWithSorting(originalJobs, currentPlate, g, false);
 
             // Benchmarks aktualisieren
             updateBenchmarksForJobSet(areaResult.benchmarks, setLabel, "Fläche", g.rootSetId, plateIdx);
@@ -215,12 +210,8 @@ public class Controller {
 
     // Helper: Führt einen Job-Set-Lauf mit einer Sortierung durch
     private static JobSetRunResult runJobSetWithSorting(List<Job> originalJobs, Plate currentPlate, 
-                                                         boolean sortJobs, JobSetGroup group, boolean byArea) {
+                                                         JobSetGroup group, boolean byArea) {
         List<Job> subset = getJobsSubsetForIds(originalJobs, group.jobIds);
-        if (sortJobs) {
-            if (byArea) JobsSetup.sortJobsBySizeDescending(subset);
-            else JobsSetup.sortJobsByLargestEdgeDescending(subset);
-        }
 
         Algorithm algo = new Algorithm(Arrays.asList(currentPlate));
         for (Job j : subset) algo.placeJob(j, currentPlate.plateId);
