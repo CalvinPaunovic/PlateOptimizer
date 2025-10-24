@@ -1,39 +1,56 @@
 package org.example.Algorithm;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.Collections;
+import java.util.Comparator;
+
 import org.example.DataClasses.Job;
 import org.example.DataClasses.Plate;
+
 
 public class CutLineCalculator {
     public static class CutLine {
         public final int id;
-        public final boolean vertical; // true = vertical (x = const), false = horizontal (y = const)
-        public final double coord;     // x for vertical, y for horizontal
-        public final double start;     // start coordinate along the cut (y for vertical, x for horizontal)
-        public final double end;       // end coordinate along the cut (y for vertical, x for horizontal)
+        public final boolean vertical;
+        public final double coord;
+        public final double start;
+        public final double end;
         public CutLine(int id, boolean vertical, double coord, double start, double end) {
             this.id = id; this.vertical = vertical; this.coord = coord; this.start = start; this.end = end;
         }
     }
+    
+    private static class SplitCandidate {
+        boolean vertical;
+        double coord;
+        List<Job> leftJobs;
+        List<Job> rightJobs;
+        List<Job> topJobs;
+        List<Job> bottomJobs;
+    }
 
-    private static final double EPS = 1e-6;
+    private static final double EPS = 1e-6; // Tolerance for floating-point comparisons
 
     /**
      * Berechnet einen einzigen vollständigen Schnitt durch die gesamte Platte (entweder vertikal oder horizontal).
      * Gibt eine Liste mit genau einer CutLine zurück, die die Platte komplett teilt.
      * Der Schnitt wird mittig gesetzt oder an einer sinnvollen Stelle zwischen den Jobs.
      */
-    public static java.util.List<CutLine> calculateSingleFullCut(Plate plate) {
-        java.util.List<CutLine> cuts = new java.util.ArrayList<>();
+    public static List<CutLine> calculateCut(Plate plate) {
+        List<CutLine> cuts = new ArrayList<>();
         if (plate == null) return cuts;
-        // Jobs aufnehmen, nur platzierte berücksichtigen
-        java.util.List<Job> jobs = new java.util.ArrayList<>();
+        // Collect placed jobs
+        List<Job> jobs = new ArrayList<>();
         for (Job j : plate.jobs) if (j != null && j.placedOn != null) jobs.add(j);
         if (jobs.isEmpty()) return cuts;
 
-        // Region für die ganze Platte
+        // Region for the whole plate
         Region root = new Region(0.0, 0.0, plate.width, plate.height, jobs);
 
-        // 0) Versuche zuerst, den größten freien Rand-Strip abzuschneiden (Restplatte bleibt sicher übrig)
+        // 0) Try to cut out the largest free strip first
         SplitCandidate freeStrip = findLargestFreeStripCut(root);
         if (freeStrip != null) {
             if (freeStrip.vertical) {
@@ -82,6 +99,7 @@ public class CutLineCalculator {
         if (r.jobs == null || r.jobs.isEmpty()) return null;
         double minX = Double.POSITIVE_INFINITY, maxR = Double.NEGATIVE_INFINITY;
         double minY = Double.POSITIVE_INFINITY, maxB = Double.NEGATIVE_INFINITY;
+        // Find coordinates of each corner of all jobs
         for (Job j : r.jobs) {
             if (j.x < minX) minX = j.x;
             double right = j.x + j.width;
@@ -94,11 +112,11 @@ public class CutLineCalculator {
         SplitCandidate best = null;
         double bestArea = -1.0;
 
-        // Linker Strip: [r.x0, minX]
+        // Left Strip: [r.x0, minX]
         if (minX > r.x0 + EPS && isVerticalLineClear(r.jobs, minX)) {
             double area = (minX - r.x0) * (r.y1 - r.y0);
             if (area > bestArea) {
-                java.util.List<Job> left = new java.util.ArrayList<>(), right = new java.util.ArrayList<>();
+                List<Job> left = new ArrayList<>(), right = new ArrayList<>();
                 partitionVertical(r.jobs, minX, left, right);
                 if (!right.isEmpty()) { // Restplatte enthält Jobs
                     SplitCandidate c = new SplitCandidate();
@@ -112,7 +130,7 @@ public class CutLineCalculator {
         if (maxR < r.x1 - EPS && isVerticalLineClear(r.jobs, maxR)) {
             double area = (r.x1 - maxR) * (r.y1 - r.y0);
             if (area > bestArea) {
-                java.util.List<Job> left = new java.util.ArrayList<>(), right = new java.util.ArrayList<>();
+                List<Job> left = new ArrayList<>(), right = new ArrayList<>();
                 partitionVertical(r.jobs, maxR, left, right);
                 if (!left.isEmpty()) {
                     SplitCandidate c = new SplitCandidate();
@@ -126,7 +144,7 @@ public class CutLineCalculator {
         if (minY > r.y0 + EPS && isHorizontalLineClear(r.jobs, minY)) {
             double area = (minY - r.y0) * (r.x1 - r.x0);
             if (area > bestArea) {
-                java.util.List<Job> top = new java.util.ArrayList<>(), bottom = new java.util.ArrayList<>();
+                List<Job> top = new ArrayList<>(), bottom = new ArrayList<>();
                 partitionHorizontal(r.jobs, minY, top, bottom);
                 if (!bottom.isEmpty()) {
                     SplitCandidate c = new SplitCandidate();
@@ -140,7 +158,7 @@ public class CutLineCalculator {
         if (maxB < r.y1 - EPS && isHorizontalLineClear(r.jobs, maxB)) {
             double area = (r.y1 - maxB) * (r.x1 - r.x0);
             if (area > bestArea) {
-                java.util.List<Job> top = new java.util.ArrayList<>(), bottom = new java.util.ArrayList<>();
+                List<Job> top = new ArrayList<>(), bottom = new ArrayList<>();
                 partitionHorizontal(r.jobs, maxB, top, bottom);
                 if (!top.isEmpty()) {
                     SplitCandidate c = new SplitCandidate();
@@ -153,33 +171,31 @@ public class CutLineCalculator {
         return best;
     }
 
-    // Die alte Methode bleibt erhalten, kann aber für spätere Rekursion/Komplettlösung angepasst werden
-    public static java.util.List<CutLine> calculateCutLinesForPlate(Plate plate) {
-        // Für den Probelauf: nur einen vollständigen Schnitt machen
-        return calculateSingleFullCut(plate);
+    public static List<CutLine> calculateCutLinesForPlate(Plate plate) {
+        return calculateCut(plate);
     }
 
     /**
      * Berechnet eine vollständige Sequenz an Schnitten, wobei jeder Schnitt einmal durch die gesamte Platte läuft
      * und keine Jobs schneidet. Es wird rekursiv gesplittet, bis Regionen nur noch 1 Job enthalten.
      */
-    public static java.util.List<CutLine> calculateAllFullCuts(Plate plate) {
-        java.util.List<CutLine> out = new java.util.ArrayList<>();
+    public static List<CutLine> calculateAllFullCuts(Plate plate) {
+        List<CutLine> out = new ArrayList<>();
         if (plate == null) return out;
-        java.util.List<Job> jobs = new java.util.ArrayList<>();
+        List<Job> jobs = new ArrayList<>();
         for (Job j : plate.jobs) if (j != null && j.placedOn != null) jobs.add(j);
         if (jobs.isEmpty()) return out;
 
         Region root = new Region(0.0, 0.0, plate.width, plate.height, jobs);
         computeFullCutsRecursive(root, 0.0, 0.0, plate.width, plate.height, out);
         // IDs zuweisen
-        java.util.List<CutLine> withIds = new java.util.ArrayList<>(out.size());
+        List<CutLine> withIds = new ArrayList<>(out.size());
         int id = 1;
         for (CutLine c : out) withIds.add(new CutLine(id++, c.vertical, c.coord, c.start, c.end));
         return withIds;
     }
 
-    private static void computeFullCutsRecursive(Region region, double gX0, double gY0, double gX1, double gY1, java.util.List<CutLine> out) {
+    private static void computeFullCutsRecursive(Region region, double gX0, double gY0, double gX1, double gY1, List<CutLine> out) {
         if (region == null || region.jobs == null || region.jobs.size() <= 1) return;
 
         // Priorität: größter freier Rand-Strip, dann Edge-Peeling, dann balanciert
@@ -198,14 +214,14 @@ public class CutLineCalculator {
 
         if (chosen.vertical) {
             out.add(new CutLine(0, true, normalize(chosen.coord), normalize(gY0), normalize(gY1)));
-            Region left = region.subLeft(chosen.coord); left.jobs = new java.util.ArrayList<>(chosen.leftJobs);
-            Region right = region.subRight(chosen.coord); right.jobs = new java.util.ArrayList<>(chosen.rightJobs);
+            Region left = region.subLeft(chosen.coord); left.jobs = new ArrayList<>(chosen.leftJobs);
+            Region right = region.subRight(chosen.coord); right.jobs = new ArrayList<>(chosen.rightJobs);
             computeFullCutsRecursive(left, gX0, gY0, chosen.coord, gY1, out);
             computeFullCutsRecursive(right, chosen.coord, gY0, gX1, gY1, out);
         } else {
             out.add(new CutLine(0, false, normalize(chosen.coord), normalize(gX0), normalize(gX1)));
-            Region top = region.subTop(chosen.coord); top.jobs = new java.util.ArrayList<>(chosen.topJobs);
-            Region bottom = region.subBottom(chosen.coord); bottom.jobs = new java.util.ArrayList<>(chosen.bottomJobs);
+            Region top = region.subTop(chosen.coord); top.jobs = new ArrayList<>(chosen.topJobs);
+            Region bottom = region.subBottom(chosen.coord); bottom.jobs = new ArrayList<>(chosen.bottomJobs);
             computeFullCutsRecursive(top, gX0, gY0, gX1, chosen.coord, out);
             computeFullCutsRecursive(bottom, gX0, chosen.coord, gX1, gY1, out);
         }
@@ -214,7 +230,7 @@ public class CutLineCalculator {
     // Findet einen vertikalen Schnitt am Rand (Edge-Peeling)
     // Ein Job, der den linken oder rechten Rand berührt, wird abgeschnitten
     private static SplitCandidate findEdgePeelVertical(Region r) {
-        java.util.List<SplitCandidate> kandidaten = new java.util.ArrayList<>();
+        List<SplitCandidate> kandidaten = new ArrayList<>();
         
         // Gehe durch alle Jobs in der Region
         for (int i = 0; i < r.jobs.size(); i++) {
@@ -244,8 +260,8 @@ public class CutLineCalculator {
             }
             
             // Teile die Jobs in links und rechts
-            java.util.List<Job> links = new java.util.ArrayList<>();
-            java.util.List<Job> rechts = new java.util.ArrayList<>();
+            List<Job> links = new ArrayList<>();
+            List<Job> rechts = new ArrayList<>();
             partitionVertical(r.jobs, xSchnitt, links, rechts);
             
             // Beide Seiten müssen Jobs enthalten
@@ -268,7 +284,7 @@ public class CutLineCalculator {
         }
         
         // Sortiere die Kandidaten: bevorzuge den dünnsten Streifen
-        kandidaten.sort(new java.util.Comparator<SplitCandidate>() {
+        kandidaten.sort(new Comparator<SplitCandidate>() {
             public int compare(SplitCandidate a, SplitCandidate b) {
                 // Berechne die Breite des abgeschnittenen Streifens
                 double breiteA = Math.min(Math.abs(a.coord - r.x0), Math.abs(r.x1 - a.coord));
@@ -294,7 +310,7 @@ public class CutLineCalculator {
     // Findet einen horizontalen Schnitt am Rand (Edge-Peeling)
     // Ein Job, der den oberen oder unteren Rand berührt, wird abgeschnitten
     private static SplitCandidate findEdgePeelHorizontal(Region r) {
-        java.util.List<SplitCandidate> kandidaten = new java.util.ArrayList<>();
+        List<SplitCandidate> kandidaten = new ArrayList<>();
         
         // Gehe durch alle Jobs in der Region
         for (int i = 0; i < r.jobs.size(); i++) {
@@ -324,8 +340,8 @@ public class CutLineCalculator {
             }
             
             // Teile die Jobs in oben und unten
-            java.util.List<Job> oben = new java.util.ArrayList<>();
-            java.util.List<Job> unten = new java.util.ArrayList<>();
+            List<Job> oben = new ArrayList<>();
+            List<Job> unten = new ArrayList<>();
             partitionHorizontal(r.jobs, ySchnitt, oben, unten);
             
             // Beide Seiten müssen Jobs enthalten
@@ -348,7 +364,7 @@ public class CutLineCalculator {
         }
         
         // Sortiere die Kandidaten: bevorzuge den dünnsten Streifen
-        kandidaten.sort(new java.util.Comparator<SplitCandidate>() {
+        kandidaten.sort(new Comparator<SplitCandidate>() {
             public int compare(SplitCandidate a, SplitCandidate b) {
                 // Berechne die Höhe des abgeschnittenen Streifens
                 double hoeheA = Math.min(Math.abs(a.coord - r.y0), Math.abs(r.y1 - a.coord));
@@ -383,7 +399,7 @@ public class CutLineCalculator {
     }
 
     private static SplitCandidate findVerticalCut(Region r) {
-        java.util.Set<Double> candidates = new java.util.TreeSet<>();
+        Set<Double> candidates = new TreeSet<>();
         for (Job j : r.jobs) {
             double xL = clampToRegion(j.x, r.x0, r.x1);
             double xR = clampToRegion(j.x + j.width, r.x0, r.x1);
@@ -393,8 +409,8 @@ public class CutLineCalculator {
         SplitCandidate best = null;
         for (double x : candidates) {
             if (!isVerticalLineClear(r.jobs, x)) continue;
-            java.util.List<Job> left = new java.util.ArrayList<>();
-            java.util.List<Job> right = new java.util.ArrayList<>();
+            List<Job> left = new ArrayList<>();
+            List<Job> right = new ArrayList<>();
             partitionVertical(r.jobs, x, left, right);
             if (left.isEmpty() || right.isEmpty()) continue; // must split into two non-empty sets
             SplitCandidate cand = new SplitCandidate();
@@ -405,7 +421,7 @@ public class CutLineCalculator {
     }
 
     private static SplitCandidate findHorizontalCut(Region r) {
-        java.util.Set<Double> candidates = new java.util.TreeSet<>();
+        Set<Double> candidates = new TreeSet<>();
         for (Job j : r.jobs) {
             double yT = clampToRegion(j.y, r.y0, r.y1);
             double yB = clampToRegion(j.y + j.height, r.y0, r.y1);
@@ -415,8 +431,8 @@ public class CutLineCalculator {
         SplitCandidate best = null;
         for (double y : candidates) {
             if (!isHorizontalLineClear(r.jobs, y)) continue;
-            java.util.List<Job> top = new java.util.ArrayList<>();
-            java.util.List<Job> bottom = new java.util.ArrayList<>();
+            List<Job> top = new ArrayList<>();
+            List<Job> bottom = new ArrayList<>();
             partitionHorizontal(r.jobs, y, top, bottom);
             if (top.isEmpty() || bottom.isEmpty()) continue;
             SplitCandidate cand = new SplitCandidate();
@@ -430,28 +446,28 @@ public class CutLineCalculator {
         return Math.abs(c - d) < Math.abs(a - b);
     }
 
-    private static void partitionVertical(java.util.List<Job> jobs, double x, java.util.List<Job> left, java.util.List<Job> right) {
+    private static void partitionVertical(List<Job> jobs, double x, List<Job> left, List<Job> right) {
         for (Job j : jobs) {
             double center = j.x + j.width * 0.5;
             if (center <= x) left.add(j); else right.add(j);
         }
     }
 
-    private static void partitionHorizontal(java.util.List<Job> jobs, double y, java.util.List<Job> top, java.util.List<Job> bottom) {
+    private static void partitionHorizontal(List<Job> jobs, double y, List<Job> top, List<Job> bottom) {
         for (Job j : jobs) {
             double center = j.y + j.height * 0.5;
             if (center <= y) top.add(j); else bottom.add(j);
         }
     }
 
-    private static boolean isVerticalLineClear(java.util.List<Job> jobs, double x) {
+    private static boolean isVerticalLineClear(List<Job> jobs, double x) {
         for (Job j : jobs) {
             if (j.x + EPS < x && x < j.x + j.width - EPS) return false; // would cross interior
         }
         return true;
     }
 
-    private static boolean isHorizontalLineClear(java.util.List<Job> jobs, double y) {
+    private static boolean isHorizontalLineClear(List<Job> jobs, double y) {
         for (Job j : jobs) {
             if (j.y + EPS < y && y < j.y + j.height - EPS) return false; // would cross interior
         }
@@ -468,23 +484,14 @@ public class CutLineCalculator {
 
     private static class Region {
         final double x0, y0, x1, y1;
-        java.util.List<Job> jobs;
-        Region(double x0, double y0, double x1, double y1, java.util.List<Job> jobs) {
-            this.x0 = x0; this.y0 = y0; this.x1 = x1; this.y1 = y1; this.jobs = new java.util.ArrayList<>(jobs);
+        List<Job> jobs;
+        Region(double x0, double y0, double x1, double y1, List<Job> jobs) {
+            this.x0 = x0; this.y0 = y0; this.x1 = x1; this.y1 = y1; this.jobs = new ArrayList<>(jobs);
         }
-        Region subLeft(double x) { return new Region(x0, y0, x, y1, java.util.Collections.emptyList()); }
-        Region subRight(double x) { return new Region(x, y0, x1, y1, java.util.Collections.emptyList()); }
-        Region subTop(double y) { return new Region(x0, y0, x1, y, java.util.Collections.emptyList()); }
-        Region subBottom(double y) { return new Region(x0, y, x1, y1, java.util.Collections.emptyList()); }
-    }
-
-    private static class SplitCandidate {
-        boolean vertical;
-        double coord;
-        java.util.List<Job> leftJobs;
-        java.util.List<Job> rightJobs;
-        java.util.List<Job> topJobs;
-        java.util.List<Job> bottomJobs;
+        Region subLeft(double x) { return new Region(x0, y0, x, y1, Collections.emptyList()); }
+        Region subRight(double x) { return new Region(x, y0, x1, y1, Collections.emptyList()); }
+        Region subTop(double y) { return new Region(x0, y0, x1, y, Collections.emptyList()); }
+        Region subBottom(double y) { return new Region(x0, y, x1, y1, Collections.emptyList()); }
     }
 
     // Beschreibt eine Restplatte (Teilregion) nach vollständiger Schnittsequenz
@@ -503,10 +510,10 @@ public class CutLineCalculator {
      * Liefert die endgültigen Restplatten (rechteckige Teilbereiche), die nach Anwendung aller vollständigen Schnitte
      * entstehen würden. Schneidet rekursiv, bis Regionen <= 1 Job enthalten, und sammelt dann deren Bounds.
      */
-    public static java.util.List<ResidualPlate> calculateResidualPlates(Plate plate) {
-        java.util.List<ResidualPlate> out = new java.util.ArrayList<>();
+    public static List<ResidualPlate> calculateResidualPlates(Plate plate) {
+        List<ResidualPlate> out = new ArrayList<>();
         if (plate == null) return out;
-        java.util.List<Job> jobs = new java.util.ArrayList<>();
+        List<Job> jobs = new ArrayList<>();
         for (Job j : plate.jobs) if (j != null && j.placedOn != null) jobs.add(j);
         if (jobs.isEmpty()) {
             out.add(new ResidualPlate(0.0, 0.0, plate.width, plate.height, 0));
@@ -518,7 +525,7 @@ public class CutLineCalculator {
     }
 
     private static void collectResidualRegions(Region region, double gX0, double gY0, double gX1, double gY1,
-                                               java.util.List<ResidualPlate> out) {
+                                               List<ResidualPlate> out) {
         if (region == null || region.jobs == null || region.jobs.size() <= 1) {
             int count = (region == null || region.jobs == null) ? 0 : region.jobs.size();
             out.add(new ResidualPlate(normalize(gX0), normalize(gY0), normalize(gX1), normalize(gY1), count));
@@ -543,13 +550,13 @@ public class CutLineCalculator {
         }
 
         if (chosen.vertical) {
-            Region left = region.subLeft(chosen.coord); left.jobs = new java.util.ArrayList<>(chosen.leftJobs);
-            Region right = region.subRight(chosen.coord); right.jobs = new java.util.ArrayList<>(chosen.rightJobs);
+            Region left = region.subLeft(chosen.coord); left.jobs = new ArrayList<>(chosen.leftJobs);
+            Region right = region.subRight(chosen.coord); right.jobs = new ArrayList<>(chosen.rightJobs);
             collectResidualRegions(left, gX0, gY0, chosen.coord, gY1, out);
             collectResidualRegions(right, chosen.coord, gY0, gX1, gY1, out);
         } else {
-            Region top = region.subTop(chosen.coord); top.jobs = new java.util.ArrayList<>(chosen.topJobs);
-            Region bottom = region.subBottom(chosen.coord); bottom.jobs = new java.util.ArrayList<>(chosen.bottomJobs);
+            Region top = region.subTop(chosen.coord); top.jobs = new ArrayList<>(chosen.topJobs);
+            Region bottom = region.subBottom(chosen.coord); bottom.jobs = new ArrayList<>(chosen.bottomJobs);
             collectResidualRegions(top, gX0, gY0, gX1, chosen.coord, out);
             collectResidualRegions(bottom, gX0, chosen.coord, gX1, gY1, out);
         }

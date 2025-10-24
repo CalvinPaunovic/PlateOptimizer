@@ -463,8 +463,7 @@ public class Controller {
         java.util.List<CutLineCalculator.CutLine> cuts = CutLineCalculator.calculateAllFullCuts(plate);
         java.util.List<CutLineCalculator.ResidualPlate> residuals = CutLineCalculator.calculateResidualPlates(plate);
 
-    // Ausgabe aktiv: immer drucken (Anforderung: alle relevanten Daten in Konsole)
-
+        // Ausgabe aktiv: immer drucken (Anforderung: alle relevanten Daten in Konsole)
         System.out.println("=== Schnitte und Restplatten für Ursprung '" + plate.name + "' (" + plate.width + " x " + plate.height + ") ===");
 
         // Schnittkoordinaten der Ursprungsplatte ausgeben

@@ -27,11 +27,9 @@ public class PlateVisualizer extends JPanel {
 
     public void setExternalCuts(java.util.List<CutLineCalculator.CutLine> cuts) { this.externalCuts = cuts; }
 
-
     public PlateVisualizer(Plate plate, String mode, Object ignoredAlgorithm) {
         this(plate, mode, null, null);
     }
-
 
     public PlateVisualizer(Plate plate, String mode, Object ignoredAlgorithm, String jobListInfo) {
         this(plate, mode, null, null, jobListInfo, null);
@@ -54,7 +52,7 @@ public class PlateVisualizer extends JPanel {
     }
 
     private void handleFirstCut() {
-        java.util.List<org.example.Algorithm.CutLineCalculator.CutLine> cuts = org.example.Algorithm.CutLineCalculator.calculateSingleFullCut(plate);
+        java.util.List<org.example.Algorithm.CutLineCalculator.CutLine> cuts = org.example.Algorithm.CutLineCalculator.calculateCut(plate);
         if (cuts == null || cuts.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Kein gültiger vollständiger Schnitt mehr möglich.", "Info", JOptionPane.INFORMATION_MESSAGE);
             return;
@@ -337,7 +335,7 @@ public class PlateVisualizer extends JPanel {
      * @param specificFreeRects optionale freien Rechtecke, können null sein
      * @param algorithmInfo optionale Zusatzinfo, kann null sein
      * @param jobListInfo optionale Joblisten-Info, kann null sein
-     * @param outputPath Ausgabedatei-Pfad (z. B. "src/main/IOFiles/exports/plate1.bmp")
+     * @param outputPath Ausgabedatei-Pfad
      */
     public static void savePlateAsBmp(Plate plate, String mode, List<?> specificFreeRects,
                                       String algorithmInfo, String jobListInfo, String outputPath) throws IOException {

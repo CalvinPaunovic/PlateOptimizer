@@ -4,6 +4,7 @@ import org.example.Algorithm.Controller;
 import org.example.DataClasses.Plate;
 import org.example.DataClasses.PlatePath;
 import org.example.IOClasses.JsonOutputWriter;
+import org.example.Main;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -357,12 +358,12 @@ public class BenchmarkVisualizer extends JFrame {
 
         // JSON-Datei erstellen mit den Konsolenausgaben (Schnitte und Restplatten)
         String solutionLabel = (main.algorithmName == null ? "Lösung" : main.algorithmName);
-        String jsonPath = "src/main/IOFiles/output.json";
+        String jsonPath = Main.IO_DIRECTORY.resolve("output.json").toString();
         JsonOutputWriter.writePlatesToJson(solutionLabel, allPlates, jsonPath);
         System.out.println("\nLösung wurde in JSON-Datei gespeichert: " + jsonPath);
 
         // BMP-Export: Alle Platten als Bilder speichern
-        String exportDir = "src/main/IOFiles";
+        String exportDir = Main.IMAGES_DIRECTORY.toString();
         java.io.File dir = new java.io.File(exportDir);
         if (!dir.exists()) dir.mkdirs();
 
@@ -386,7 +387,7 @@ public class BenchmarkVisualizer extends JFrame {
 
         // In SQLite speichern (alle freien Rechtecke als einzelne Zeilen)
        try {
-            String dbPath = "C:\\Users\\cpaun\\VisualStudioProjects\\PlateOptimizer\\src\\main\\java\\org\\example\\Storage\\leftover_plates.sqlite";
+            String dbPath = Main.IO_DIRECTORY.resolve("leftover_plates.sqlite").toString();
             LeftoverPlatesDb db = new LeftoverPlatesDb(dbPath);
             for (BenchmarkResult br : bundle) {
                 String sqliteSolutionLabel = (br.algorithmName==null?"(ohne Name)":br.algorithmName);
@@ -421,8 +422,9 @@ public class BenchmarkVisualizer extends JFrame {
         }
 
         // Meldung an den Nutzer
-    String message = String.format("Die Lösung '%s' (inkl. %d Unterzeile(n)) wurde gespeichert:\n- JSON: output.json\n- BMP: IOFiles/exports/*.bmp\n- SQLite: leftover_plates.sqlite",
-                main.algorithmName, Math.max(0, bundle.size()-1));
+        String message = String.format
+                ("Die Lösung '%s' (inkl. %d Unterzeile(n)) wurde gespeichert:\n- JSON: output.json\n- BMP: %s/exports/*.bmp\n- SQLite: leftover_plates.sqlite",
+                main.algorithmName, Math.max(0, bundle.size()-1), Main.IO_DIRECTORY);
         JOptionPane.showMessageDialog(this, message, "Lösung akzeptiert", JOptionPane.INFORMATION_MESSAGE);
         
     }

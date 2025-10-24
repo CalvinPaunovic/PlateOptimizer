@@ -2,6 +2,7 @@ package org.example;
 
 import java.util.*;
 import java.io.IOException;
+import java.nio.file.Path;
 
 import org.example.Algorithm.Controller;
 import org.example.DataClasses.Job;
@@ -15,43 +16,32 @@ public class Main {
     public static final boolean sortJobs = true;
 
     public static final int KERF_WIDTH = 0;
-    
+
+    // Datatype 'Path' to get the platform-independent file paths
+    // 'System.getProperty("user.dir")' containsPath up to project folder "PlateOptimizer"
+    public static final Path BASE_DIRECTORY = Path.of(System.getProperty("user.dir"));
+
+    public static final Path IO_DIRECTORY = BASE_DIRECTORY.resolve("IOFiles");
+    public static final Path IMAGES_DIRECTORY = BASE_DIRECTORY.resolve("IOFiles/Images");
+
+    public static final Path OUTPUT_FILE = IO_DIRECTORY.resolve("output.json");
+    public static final Path INPUT_FILE = IO_DIRECTORY.resolve("input.json");
+    public static final Path OUTPUT_SQLITE_FILE = IO_DIRECTORY.resolve("leftover_plates.sqlite");
+
+
     public static void main(String[] args) throws IOException {
-        
+
+
         List<Job> originalJobs;
         Plate standardPlate;
         
-        // Über PlateProvider und JobListProvider
-        /*
-        JobListProvider.NamedJobList selection = getUserJobListChoiceWithScanner(scanner);
-        originalJobs = selection.jobs;
-        standardPlate = PlateProvider.getA1Plate();
-        */
-        
-        // Über JSONInputReader
-        String jsonPath = "src/main/IOFiles/input.json";
-        JsonInputReader.InputData inputData = JsonInputReader.readFromJson(jsonPath);
+        // With JSONInputReader
+        JsonInputReader.InputData inputData = JsonInputReader.readFromJson(Main.INPUT_FILE.toString());
         originalJobs = inputData.jobs;
         standardPlate = inputData.plate;
 
-        // Algorithmus ausführen
+        // Execute Algorithm
         Controller.run_MaxRectBF_MultiPlate_Unlimited(originalJobs, standardPlate, sortJobs);
     }
-
-
-    /* 
-    private static JobListProvider.NamedJobList getUserJobListChoiceWithScanner(Scanner scanner) {
-        java.util.List<JobListProvider.NamedJobList> lists = JobListProvider.getAllListsInMenuOrder();
-        System.out.println("Welche Jobliste möchten Sie verwenden?");
-        for (JobListProvider.NamedJobList l : lists) {
-            System.out.printf("%d = %s\n   -> %s\n", l.id, l.name, (l.description==null?"":l.description));
-        }
-        System.out.print("Bitte wählen: ");
-        String input = scanner.nextLine().trim();
-        int id = Integer.parseInt(input);
-        for (JobListProvider.NamedJobList l : lists) if (l.id == id) return l;
-        return lists.get(0);
-    }
-    */
 
 }
