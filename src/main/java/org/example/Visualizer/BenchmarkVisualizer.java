@@ -78,7 +78,7 @@ public class BenchmarkVisualizer extends JFrame {
     }
 
     private void initializeGUI() {
-        setTitle("Benchmark Ergebnisse - " + jobListInfo);
+        setTitle("Benchmark results ___ " + jobListInfo);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
         add(createHeaderPanel(), BorderLayout.NORTH);
@@ -110,12 +110,12 @@ public class BenchmarkVisualizer extends JFrame {
         panel.setBorder(BorderFactory.createTitledBorder("Ergebnisse"));
 
 
-        String[] columns = {"Rang","Algorithmus","Sortierung","Job-Set","Platzierte Jobs","Gesamt Jobs","Erfolgsrate","Deckungsrate"};
+        String[] columns = {"Rang","Algorithmus","Sortierung","Job-Set","Root-Set-ID","Platzierte Jobs","Gesamt Jobs","Erfolgsrate","Deckungsrate"};
         DefaultTableModel model = new DefaultTableModel(columns,0){
             @Override public boolean isCellEditable(int r,int c){return false;}
             @Override public Class<?> getColumnClass(int col){
-                if(col==0||col==4||col==5) return Integer.class;
-                if(col==6||col==7) return Double.class;
+                if(col==0||col==5||col==6) return Integer.class;
+                if(col==7||col==8) return Double.class;
                 return String.class;
             }
         };
@@ -131,8 +131,9 @@ public class BenchmarkVisualizer extends JFrame {
             BenchmarkResult r=results.get(i);
             double success = r.totalJobs==0?0.0:(double)r.placedJobs/r.totalJobs*100.0;
             String jobSet = (r.jobSetLabel != null && !"-".equals(r.jobSetLabel)) ? r.jobSetLabel : "-";
+            String rootSet = (r.rootSetId != null && !"-".equals(r.rootSetId)) ? r.rootSetId : "-";
             Integer rankVal = r.isSubRow ? null : (++rankCounter);
-            model.addRow(new Object[]{rankVal,r.algorithmName,r.sortedBy,jobSet,r.placedJobs,r.totalJobs,success,r.coverageRate});
+            model.addRow(new Object[]{rankVal,r.algorithmName,r.sortedBy,jobSet,rootSet,r.placedJobs,r.totalJobs,success,r.coverageRate});
         }
 
         table = new JTable(model);
@@ -141,7 +142,7 @@ public class BenchmarkVisualizer extends JFrame {
         if (!preserveOrder) {
             javax.swing.table.TableRowSorter<DefaultTableModel> sorter = new javax.swing.table.TableRowSorter<>(model);
             table.setRowSorter(sorter);
-            sorter.toggleSortOrder(6); // sort by Erfolgsrate
+            sorter.toggleSortOrder(7); // sort by Erfolgsrate (column index 7 after adding Root-Set-ID)
         }
         customizeTable();
 
@@ -183,7 +184,7 @@ public class BenchmarkVisualizer extends JFrame {
                 boolean isSub = r != null && r.isSubRow;
 
                 String text;
-                if(value instanceof Number && (column==6||column==7)) text=String.format("%.2f%%", ((Number)value).doubleValue());
+                if(value instanceof Number && (column==7||column==8)) text=String.format("%.2f%%", ((Number)value).doubleValue());
                 else text=value==null?"-":value.toString();
 
                 // Prettify subrow algorithm text with an arrow indicator
@@ -236,7 +237,7 @@ public class BenchmarkVisualizer extends JFrame {
         JButton btn=new JButton("Visualisieren");
         btn.addActionListener(e->visualizeSelectedSolution());
         // Nur in der Zusammenfassungsansicht: Button zum Akzeptieren der Lösung anzeigen
-        boolean isBestPerSetView = jobListInfo != null && jobListInfo.contains("Die besten Ergebnisse pro Job-Set");
+        boolean isBestPerSetView = jobListInfo != null && jobListInfo.toLowerCase().contains("best results per job-set");
         JButton btnAccept = null;
         if (isBestPerSetView) {
             btnAccept = new JButton("Lösung akzeptieren");

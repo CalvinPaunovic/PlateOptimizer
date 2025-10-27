@@ -22,12 +22,6 @@ public class Algorithm {
 
     public Algorithm() { }
 
-    public Algorithm(List<Plate> plateInfos, boolean unlimitedPlates) {
-        if (plateInfos != null) this.plateSequence.addAll(plateInfos);
-        this.paths = new ArrayList<>();
-        if (!plateSequence.isEmpty()) initializePathsForPlate(plateSequence.get(0));
-    }
-
     public Algorithm(List<Plate> plateInfos, String pathIdPrefix) {
         if (plateInfos != null) this.plateSequence.addAll(plateInfos);
         this.pathIdPrefix = pathIdPrefix == null ? "" : pathIdPrefix;
