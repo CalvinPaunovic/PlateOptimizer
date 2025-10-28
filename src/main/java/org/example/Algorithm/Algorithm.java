@@ -91,12 +91,14 @@ public class Algorithm {
             PlatePath currentPath = paths.get(pathIndex);
             int jobsBeforePlacement = currentPath.plate.jobs.size();
 
+            //#region Debug-output
             // Debug-Ausgabe: Pfad-Info
             if (debugEnabled) {
                 System.out.println("\n--- [Pfad " + (pathIndex+1) + ": " + currentPath.pathId + " | Platte=" + currentPath.plate.name + "] ---");
                 System.out.println("Strategie: " + (currentPath.strategy == PlatePath.Strategy.FULL_HEIGHT ? "FullHeight" : "FullWidth"));
                 System.out.println("Freie Rechtecke: " + currentPath.freeRects.size());
             }
+            //#endregion
 
             // Erzeuge eine Kopie des Jobs für diesen Pfad
             Job jobCandidate = new Job(originalJob.id, originalJob.width, originalJob.height);
@@ -234,10 +236,12 @@ public class Algorithm {
             }
         }
 
+        //#region Debug-output
         if (debugEnabled) {
             System.out.println("\nFüge " + newBranchPaths.size() + " neue Pfade hinzu. Gesamtpfade: " + (paths.size() + newBranchPaths.size()));
             System.out.println("Job " + originalJob.id + (anySuccess ? " wurde mindestens einmal platziert." : " konnte nicht platziert werden."));
         }
+        //#endregion
         // Füge alle neuen Pfade zur Pfadliste hinzu
         paths.addAll(newBranchPaths);
         // Nach Hinzufügen aller neuen Pfade erneut synchronisieren
@@ -250,16 +254,20 @@ public class Algorithm {
         if (currentPlateIndex + 1 >= plateSequence.size()) {
             return false; // keine weitere Platte im aktuellen Algorithmus
         }
+        //#region
         // Zusammenfassung aktuelle Platte
         if (debugEnabled) {
             int jobsTotal = 0; int failedTotal = 0;
             for (PlatePath p : paths) { jobsTotal += p.plate.jobs.size(); failedTotal += p.failedJobs.size(); }
             System.out.println("\n[MP] >>> Abschluss Platte#" + (currentPlateIndex+1) + " '" + plateSequence.get(currentPlateIndex).name + "' : placedJobs=" + jobsTotal + " failedMarked=" + failedTotal + " Pfade=" + paths.size());
         }
+        //#endregion
         completedPlatePaths.addAll(paths);
         currentPlateIndex++;
         initializePathsForPlate(plateSequence.get(currentPlateIndex));
+        //#region Debug-output
         if (debugEnabled) System.out.println("[MP] >>> Wechsel zu Platte#" + (currentPlateIndex+1) + " '" + plateSequence.get(currentPlateIndex).name + "'");
+        //#endregion
         return true;
     }
 
@@ -275,8 +283,10 @@ public class Algorithm {
             if (!advanced) break; // keine weitere Platte
             placed = attemptPlaceOnCurrentPlate(originalJob, plateSequence.get(currentPlateIndex).plateId);
         }
+        //#region Debug-output
         if (debugEnabled && placed) System.out.println("[MP] Job " + originalJob.id + " FINAL platziert auf Platte#" + (currentPlateIndex+1));
         if (debugEnabled && !placed) System.out.println("[MP] Job " + originalJob.id + " konnte auf keiner Platte platziert werden.");
+        //#endregion
         return placed;
     }
 

@@ -55,7 +55,8 @@ public class Controller {
 
         // Set all rows in Plate 1 as main rows
         for (BenchmarkVisualizer.BenchmarkResult br : plateOneBenchmark) if (br != null) br.isSubRow = false;
-        BenchmarkVisualizer.showBenchmarkResults(plateOneBenchmark, "Platte 1 - Gesamtlauf");
+        // Show benchmark results for Plate 1
+        BenchmarkVisualizer.showBenchmarkResults(plateOneBenchmark, "Plate 1 __ First run");
 
         // Process follow-up plates
         generateFollowUpPlates(originalJobs, originalPlate, resultArea.groups, resultEdge.groups);
@@ -75,7 +76,7 @@ public class Controller {
         List<Job> jobs = JobsSetup.createJobCopies(originalJobs);
 
         Algorithm algo = new Algorithm(Arrays.asList(clonePlate(plate)));
-        // Algorithm-class call
+        // Algorithm.placeJob call
         for (Job job : jobs) {
             algo.placeJob(job, plate.plateId);
         }
@@ -85,10 +86,10 @@ public class Controller {
         // #endregion
 
         // Build the job-set groups for unplaced jobs
-        List<JobSetGroup> groups = buildUnplacedJobGroups(paths, allJobIds);
+        List<JobSetGroup> unplacedJobSetGroups = buildUnplacedJobGroups(paths, allJobIds);
         
         // Set rootSetIds for groups. The left over job list (after Plate 1 placements) is the root ID.
-        for (JobSetGroup g : groups) {
+        for (JobSetGroup g : unplacedJobSetGroups) {
             if (g.rootSetId == null) {
                 List<Integer> sorted = new ArrayList<>(g.jobIds);
                 Collections.sort(sorted);
@@ -97,13 +98,21 @@ public class Controller {
         }
 
         //#region Debug-Output of job-sets
-        printJobSetGroups(groups, 1, sortType);
+        printJobSetGroups(unplacedJobSetGroups, 1, sortType);
         //#endregion
 
-        // Build the benchmark results
-        List<BenchmarkVisualizer.BenchmarkResult> benchmarks = buildBenchmarkResults(paths, jobs, Arrays.asList(plate));
+        // Build the benchmark results (Plate 1: all jobs were attempted)
+        // For Plate 1, we pass all jobs since that's what we attempted to place
+        List<BenchmarkVisualizer.BenchmarkResult> benchmarks = buildBenchmarkResults(paths, jobs, Arrays.asList(plate), "eins", "zwei");
 
-        return new PlateRunResult(jobs, paths, groups, benchmarks);
+        // Set sortedBy for all Plate 1 benchmarks
+        for (BenchmarkVisualizer.BenchmarkResult br : benchmarks) {
+            if (br != null) {
+                br.sortedBy = sortType;
+            }
+        }
+
+        return new PlateRunResult(jobs, paths, unplacedJobSetGroups, benchmarks);
     }
 
 
@@ -128,7 +137,7 @@ public class Controller {
             processJobSetGroups(originalJobs, plateForArea, currentGroupsArea, sortTypeArea, plateId, nextGroupsArea);
             processJobSetGroups(originalJobs, plateForEdge, currentGroupsEdge, sortTypeEdge, plateId, nextGroupsEdge);
 
-            // new value set in processJobSetGroups
+            // new value is set in processJobSetGroups with List<JobSetGroup> nextGroups
             currentGroupsArea = nextGroupsArea;
             currentGroupsEdge = nextGroupsEdge;
             plateId++;  // set new plateId
@@ -138,62 +147,60 @@ public class Controller {
 
     /*
      * Processes job-set groups with the specified sorting type
+     * groups: List of job-set groups to process
+     * nextGroups: List to fill with unplaced job-set groups for the next plate. Also contains the rootSetId and parentSetId (the current group's job IDs).
      */
-    private static void processJobSetGroups(List<Job> originalJobs, Plate currentPlate, List<JobSetGroup> groups, String sortType, int plateId, List<JobSetGroup> nextGroups) {
+    private static void processJobSetGroups(
+        List<Job> originalJobs, Plate currentPlate, List<JobSetGroup> groups, String sortType, int plateId, List<JobSetGroup> nextGroups) {
 
         // Go through all job-set groups
         for (JobSetGroup group : groups) {
 
             // Run algorithm with the specified sorting type only
-            JobSetRunResult result = placeLeftoverJobs(originalJobs, currentPlate, group);
+            JobSetRunResult result = placeLeftoverJobs(originalJobs, currentPlate, group, nextGroups);
 
-            String setLabel = group.jobIds.toString();
-            
             // Set labels for benchmarks
             for (BenchmarkVisualizer.BenchmarkResult benchmarkResult : result.benchmarks) {
                 benchmarkResult.isSubRow = false;
-                benchmarkResult.sortLabel = "Set " + setLabel;
-                benchmarkResult.jobSetLabel = setLabel;
+                benchmarkResult.currentJobSet = group.jobIds.toString();
                 benchmarkResult.sortedBy = sortType;
                 benchmarkResult.rootSetId = group.rootSetId;
-
-                if (benchmarkResult.perPlateSetLabels == null) benchmarkResult.perPlateSetLabels = new ArrayList<>();
-                while (benchmarkResult.perPlateSetLabels.size() < plateId + 1) benchmarkResult.perPlateSetLabels.add("-");
-                benchmarkResult.perPlateSetLabels.set(0, group.rootSetId == null ? "-" : group.rootSetId);
-                benchmarkResult.perPlateSetLabels.set(plateId, setLabel);
+                benchmarkResult.parentSetId = group.parentSetId;
             }
 
-            // Show benchmark window for this sorting type
-            BenchmarkVisualizer.showBenchmarkResults(result.benchmarks, 
-                "Plate " + (plateId + 1) + " ___ Sorting: " + sortType + " ___ Job-Set: " + group.jobIds.toString() + " ___ Root-Set: " + group.rootSetId);
+            // Removed: BenchmarkVisualizer.showBenchmarkResults(result.benchmarks, ...)
 
-            // If we are on Plate 2 (index 1), remember the best result for this job-set for later summary sublines
-            if (plateId == 1) {
+            // TODO: Auslagern
+            // For all plates with index >= 1 (>= Plate 2), remember the best result for this job-set for later summary sublines
+            if (plateId >= 1) {
                 BenchmarkVisualizer.BenchmarkResult bestP2 = null;
-                for (BenchmarkVisualizer.BenchmarkResult br : result.benchmarks) {
-                    if (br == null) continue;
-                    if (bestP2 == null || br.coverageRate > bestP2.coverageRate) bestP2 = br;
+                // iterate over all benchmarks to find the best one and print each iteration
+                System.out.println("\n");
+                for (BenchmarkVisualizer.BenchmarkResult benchmarkResult : result.benchmarks) {
+                    if (bestP2 == null || benchmarkResult.coverageRate > bestP2.coverageRate) bestP2 = benchmarkResult;
                 }
                 if (bestP2 != null) {
-                    // store a shallow copy with adjusted labeling to indicate Plate 2
+                    // store a shallow copy with adjusted labeling to indicate Plate 2+
                     BenchmarkVisualizer.BenchmarkResult copy = cloneBenchmarkResult(bestP2);
-                    copy.sortLabel = "Platte 2";
-                    if (copy.jobSetLabel == null || "-".equals(copy.jobSetLabel)) copy.jobSetLabel = group.jobIds.toString();
+                    if (copy.currentJobSet == null || "-".equals(copy.currentJobSet)) copy.currentJobSet = group.jobIds.toString();
                     BEST_PLATE2_BY_JOBSET.put(group.jobIds.toString(), copy);
                 }
             }
 
-            // Sammle Gruppen für nächste Platte
+
+
+            // Build the job-set groups for unplaced jobs
             List<PlatePath> pathsForNext = result.paths;
-            List<JobSetGroup> subGroups = buildUnplacedJobGroups(pathsForNext, group.jobIds);
+            List<JobSetGroup> unplacedJobSetGroups = buildUnplacedJobGroups(pathsForNext, group.jobIds);
             
-                for (JobSetGroup sg : subGroups) {
-                    if (sg.jobIds.isEmpty()) continue;
-                
-                // Übernehme rootSetId vom Eltern-Set
-                if (sg.rootSetId == null) sg.rootSetId = group.rootSetId;
-                
-                nextGroups.add(sg);
+            // Set rootSetIds and parentSetId for this group
+            for (JobSetGroup jobSetGroup : unplacedJobSetGroups) {
+                if (jobSetGroup.jobIds.isEmpty()) continue;  // Important: Skip empty sets
+                jobSetGroup.rootSetId = group.rootSetId;
+                // Save the parent set id (the current group's job IDs) so the next iteration knows its origin. Useful for the summary view.
+                jobSetGroup.parentSetId = group.jobIds.toString();
+                // nextGroups was provided as an empty parameter and is filled here with the unplaced job-sets for the next iteration (next plate).
+                nextGroups.add(jobSetGroup);
             }
         }
     }
@@ -205,12 +212,20 @@ public class Controller {
      * DO NOT generates job-set groups for unplaced jobs.
      * Provide results for benchmark building.
      */
-    private static JobSetRunResult placeLeftoverJobs(List<Job> originalJobs, Plate currentPlate, JobSetGroup group) {
-        List<Job> subset = getJobsSubsetForIds(originalJobs, group.jobIds);
+    private static JobSetRunResult placeLeftoverJobs(List<Job> originalJobs, Plate currentPlate, JobSetGroup group, List<JobSetGroup> nextGroups) {
+        // Convert JobSetGroup group to Job-objects for Algorithm.placeJob
+        Map<Integer, Job> byId = new HashMap<>();
+        for (Job j : originalJobs) byId.put(j.id, j);
+        List<Job> jobs = new ArrayList<>();
+        for (Integer id : group.jobIds) {
+            Job o = byId.get(id);
+            jobs.add(new Job(o.id, o.width, o.height));
+        }
 
-        // Algorithm-class call
+        // Algorithm.placeJob call
         Algorithm algo = new Algorithm(Arrays.asList(currentPlate));
-        for (Job j : subset) {
+        // Place actual Job objects from subset (not the integer ids)
+        for (Job j : jobs) {
             algo.placeJob(j, currentPlate.plateId);
         }
 
@@ -218,8 +233,14 @@ public class Controller {
         List<PlatePath> paths = algo.getPathsAndFailedJobsOverviewData();
         // #endregion
 
-        // Build the benchmark results
-        List<BenchmarkVisualizer.BenchmarkResult> benchmarks = buildBenchmarkResults(paths, subset, Arrays.asList(currentPlate));
+        // Build and show the benchmark results
+        List<BenchmarkVisualizer.BenchmarkResult> benchmarks = buildBenchmarkResults(paths, jobs, Arrays.asList(currentPlate), "Moin", "Hallo");
+        BenchmarkVisualizer.showBenchmarkResults(benchmarks, "Benchmarks for current plate");
+
+        /*
+        BenchmarkVisualizer.showBenchmarkResults(benchmarks,
+            "Plate " + (plateId + 1) + " ___ Sorting: " + sortType + " ___ Job-Set: " + group.jobIds.toString() + " ___ Root-Set: " + group.rootSetId);
+        */
 
         return new JobSetRunResult(paths, benchmarks);
     }
@@ -240,14 +261,14 @@ public class Controller {
         for (JobSetGroup g : groups) {
             List<Integer> idsSorted = new ArrayList<>(g.jobIds);
             Collections.sort(idsSorted);
-            String setLabel = idsSorted.toString();
+            String currentJobSet = idsSorted.toString();
             
             List<BenchmarkVisualizer.BenchmarkResult> jobSetResults = new ArrayList<>();
             for (BenchmarkVisualizer.BenchmarkResult br : benchmarks) {
-                if (br.jobSetLabel == null || "-".equals(br.jobSetLabel)) {
-                    br.jobSetLabel = setLabel;
+                if (br.currentJobSet == null || "-".equals(br.currentJobSet)) {
+                    br.currentJobSet = currentJobSet;
                 }
-                if (setLabel.equals(br.jobSetLabel)) {
+                if (currentJobSet.equals(br.currentJobSet)) {
                     jobSetResults.add(br);
                 }
             }
@@ -279,83 +300,59 @@ public class Controller {
 
 
     /*
-     * Hilfsmethode: Filtert von originalJobs nur die mit den angegebenen IDs heraus
+     * Prepare benchmark results for the BenchmarkVisualizer. The BenchmarkVisualizer is called with BenchmarkVisualizer.showBenchmarkResults.
      */
-    private static List<Job> getJobsSubsetForIds(List<Job> originalJobs, Set<Integer> ids) {
-        Map<Integer, Job> byId = new HashMap<>(); for (Job j : originalJobs) byId.put(j.id, j);
-        List<Job> out = new ArrayList<>();
-        for (Integer id : ids) {
-            Job o = byId.get(id);
-            if (o != null) out.add(new Job(o.id, o.width, o.height));
-        }
-        return out;
-    }
-
-
-
-    /*
-     * Build benchmark results
-     */
-    private static java.util.List<BenchmarkVisualizer.BenchmarkResult> buildBenchmarkResults(List<PlatePath> allPaths, List<Job> originalJobs, List<Plate> plateInfos) {
-        java.util.List<BenchmarkVisualizer.BenchmarkResult> results = new java.util.ArrayList<>();
-        java.util.Map<String, PlatePath> byId = new java.util.HashMap<>();
-        for (PlatePath p : allPaths) byId.put(p.pathId, p);
-        int totalJobs = originalJobs == null ? 0 : originalJobs.size();
-        java.util.Set<String> parentIds = new java.util.HashSet<>();
-        for (PlatePath p : allPaths) {
-            if (p == null || p.pathId == null) continue;
-            int dot = p.pathId.lastIndexOf('.');
-            if (dot > 0) parentIds.add(p.pathId.substring(0, dot));
-        }
-        for (PlatePath p : allPaths) {
-            if (p == null || p.plate == null) continue;
-            if (parentIds.contains(p.pathId)) continue;
-            java.util.List<PlatePath> chain = new java.util.ArrayList<>();
-            String id = p.pathId; String[] parts = id.split("\\."); StringBuilder acc = new StringBuilder();
-            for (int i = 0; i < parts.length; i++) {
-                if (i > 0) acc.append('.');
-                acc.append(parts[i]);
-                PlatePath node = byId.get(acc.toString());
-                if (node != null && node.plate != null) chain.add(node);
-            }
-            if (chain.isEmpty()) continue;
-            double usedSum = 0.0, totalSum = 0.0; int placedSum = 0;
-            for (PlatePath node : chain) {
-                double used = 0.0; for (Job j : node.plate.jobs) used += (j.width * j.height);
-                double total = node.plate.width * node.plate.height;
-                usedSum += used; totalSum += total; placedSum += node.plate.jobs.size();
-            }
-            double covAgg = totalSum > 0 ? (usedSum / totalSum) * 100.0 : 0.0;
-            String algoName = "Pfad " + p.pathId;
-            BenchmarkVisualizer.BenchmarkResult row = new BenchmarkVisualizer.BenchmarkResult(algoName, p.plate, null, placedSum, covAgg, totalJobs);
+    private static List<BenchmarkVisualizer.BenchmarkResult> buildBenchmarkResults(
+        List<PlatePath> allPaths, List<Job> originalJobs, List<Plate> plateInfos, String rootSetId, String parentSetId) {
             
-            if (p.failedJobs != null) {
-                List<Integer> failed = new ArrayList<>(p.failedJobs);
-                Collections.sort(failed);
-                row.jobSetLabel = failed.toString();
-            } else {
-                row.jobSetLabel = "-";
-            }
+        List<BenchmarkVisualizer.BenchmarkResult> results = new ArrayList<>();
+        int totalJobs = originalJobs.size();
 
-            row.platesRefs = new java.util.ArrayList<>(); row.platesNames = new java.util.ArrayList<>(); row.platesCoverages = new java.util.ArrayList<>(); row.platesFreeRects = new java.util.ArrayList<>();
-            for (PlatePath node : chain) {
-                row.platesRefs.add(node.plate);
-                row.platesNames.add(node.plate.name);
-                double u = 0.0; for (Job j : node.plate.jobs) u += (j.width * j.height);
-                double t = node.plate.width * node.plate.height;
-                row.platesCoverages.add(t>0?(u/t)*100.0:0.0);
-                row.platesFreeRects.add(node.freeRects);
-            }
+        for (PlatePath p : allPaths) {
+            int placed = p.plate.jobs.size();
+            double used = 0.0;
+            for (Job j : p.plate.jobs) used += (j.width * j.height);
+            double totalArea = p.plate.width * p.plate.height;
+            double coverage = (used / totalArea) * 100.0;
+
+            String algoName = "Pfad " + p.pathId;
+            BenchmarkVisualizer.BenchmarkResult row = new BenchmarkVisualizer.BenchmarkResult(
+                    algoName,
+                    p.plate,
+                    null,
+                    placed,
+                    coverage,
+                    totalJobs
+            );
+
+            List<Integer> failed = new ArrayList<>(p.failedJobs);
+            Collections.sort(failed);
+            row.currentJobSet = failed.toString();
+
+            row.platesRefs = new ArrayList<>();
+            row.platesRefs.add(p.plate);
+            row.platesNames = new ArrayList<>();
+            row.platesNames.add(p.plate.name);
+            row.platesCoverages = new ArrayList<>();
+            row.platesCoverages.add(coverage);
+            row.platesFreeRects = new ArrayList<>();
+            row.platesFreeRects.add(p.freeRects);
+            row.currentPlateIndex = 0;
+            row.rootSetId = rootSetId;
+            row.parentSetId = parentSetId;
+
             results.add(row);
         }
-        results.sort((a,b) -> Double.compare(b.coverageRate, a.coverageRate));
+
+        results.sort((a, b) -> Double.compare(b.coverageRate, a.coverageRate));
         return results;
     }
+
 
     /*
      * PlateVisualizer ruft CutLineCalculator auf und bekommt die Schnittkoordianten zurück
      */
-    public static java.util.List<CutLineCalculator.CutLine> computeCutLinesForPlate(Plate plate) {
+    public static List<CutLineCalculator.CutLine> computeCutLinesForPlate(Plate plate) {
         return CutLineCalculator.calculateCutLinesForPlate(plate);
     }
 
@@ -366,14 +363,14 @@ public class Controller {
      * Sortiert nach Bedeckungsrate, zeigt Job-Set, Coverage, Platzierungsanzahl, Strategie etc.
      */
     private static void showSummaryOfBestBenchmarks(List<List<BenchmarkVisualizer.BenchmarkResult>> allJobSetResults) {
-        // Map: JobSetLabel -> bestes Ergebnis
+        // Map: currentJobSet -> bestes Ergebnis
         Map<String, BenchmarkVisualizer.BenchmarkResult> bestByJobSet = new LinkedHashMap<>();
         for (List<BenchmarkVisualizer.BenchmarkResult> jobSetResults : allJobSetResults) {
-            for (BenchmarkVisualizer.BenchmarkResult res : jobSetResults) {
-                String key = res.jobSetLabel != null ? res.jobSetLabel : res.algorithmName;
+            for (BenchmarkVisualizer.BenchmarkResult benchmarkResult : jobSetResults) {
+                String key = benchmarkResult.currentJobSet != null ? benchmarkResult.currentJobSet : benchmarkResult.algorithmName;
                 BenchmarkVisualizer.BenchmarkResult old = bestByJobSet.get(key);
-                if (old == null || res.coverageRate > old.coverageRate) {
-                    bestByJobSet.put(key, res);
+                if (old == null || benchmarkResult.coverageRate > old.coverageRate) {
+                    bestByJobSet.put(key, benchmarkResult);
                 }
             }
         }
@@ -382,27 +379,25 @@ public class Controller {
         bestList.sort((a, b) -> Double.compare(b.coverageRate, a.coverageRate));
 
         // Füge ein Ranking hinzu und schreibe das Job-Set in die Zeile
-        int rank = 1;
-        for (BenchmarkVisualizer.BenchmarkResult res : bestList) {
-            res.sortLabel = "#" + rank++;
+        for (BenchmarkVisualizer.BenchmarkResult benchmarkResult : bestList) {
             // Schreibe das Job-Set in den Algorithmusnamen
-            if (res.jobSetLabel != null && !"-".equals(res.jobSetLabel)) {
-                res.algorithmName = res.algorithmName + "  [Job-Set: " + res.jobSetLabel + "]";
+            if (benchmarkResult.currentJobSet != null && !"-".equals(benchmarkResult.currentJobSet)) {
+                benchmarkResult.algorithmName = benchmarkResult.algorithmName + "  [Job-Set: " + benchmarkResult.currentJobSet + "]";
             }
             // Hauptzeile markieren
-            res.isSubRow = false;
+            benchmarkResult.isSubRow = false;
         }
 
         // Zeige das beste Ergebniss pro Job-Set von Platte 2 als Unterzeile an
         List<BenchmarkVisualizer.BenchmarkResult> withSubRows = new ArrayList<>();
-        for (BenchmarkVisualizer.BenchmarkResult res : bestList) {
-            withSubRows.add(res);
-            String key = res.jobSetLabel != null ? res.jobSetLabel : res.algorithmName;
+        for (BenchmarkVisualizer.BenchmarkResult benchmarkResult : bestList) {
+            withSubRows.add(benchmarkResult);
+            String key = benchmarkResult.currentJobSet != null ? benchmarkResult.currentJobSet : benchmarkResult.algorithmName;
             BenchmarkVisualizer.BenchmarkResult p2 = BEST_PLATE2_BY_JOBSET.get(key);
             if (p2 != null) {
                 BenchmarkVisualizer.BenchmarkResult sub = cloneBenchmarkResult(p2);
                 sub.algorithmName = "       Platte 2: " + sub.algorithmName;
-                   sub.sortedBy = res.sortedBy;
+                   sub.sortedBy = benchmarkResult.sortedBy;
                 sub.isSubRow = true;
                 withSubRows.add(sub);
             }
@@ -423,7 +418,6 @@ public class Controller {
 
 
 
-    //#region Benchmark building
     private static BenchmarkVisualizer.BenchmarkResult cloneBenchmarkResult(BenchmarkVisualizer.BenchmarkResult src) {
         BenchmarkVisualizer.BenchmarkResult dst = new BenchmarkVisualizer.BenchmarkResult(
                 src.algorithmName,
@@ -438,15 +432,14 @@ public class Controller {
         dst.platesNames = src.platesNames == null ? null : new ArrayList<>(src.platesNames);
         dst.platesCoverages = src.platesCoverages == null ? null : new ArrayList<>(src.platesCoverages);
         dst.platesFreeRects = src.platesFreeRects == null ? null : new ArrayList<>(src.platesFreeRects);
-        dst.sortLabel = src.sortLabel;
         dst.rootSetId = src.rootSetId;
+        dst.parentSetId = src.parentSetId;
         dst.sortedBy = src.sortedBy;
-        dst.jobSetLabel = src.jobSetLabel;
-        dst.perPlateSetLabels = src.perPlateSetLabels == null ? null : new ArrayList<>(src.perPlateSetLabels);
+        dst.currentJobSet = src.currentJobSet;
+        dst.currentPlateIndex = src.currentPlateIndex;
         dst.isSubRow = src.isSubRow;
         return dst;
     }
-    //#endregion
 
 
     //#region small helper-classes
@@ -463,6 +456,7 @@ public class Controller {
         final Set<Integer> jobIds; 
         final List<String> pathIds = new ArrayList<>();
         String rootSetId;
+        String parentSetId;
         JobSetGroup(Set<Integer> jobIds) { 
             this.jobIds = jobIds; 
         }
@@ -626,8 +620,8 @@ public class Controller {
     public static void printCutsAndIntersections(Plate plate, boolean force) {
         if (plate == null) return;
         // Vollständige Schnittliste und Restplatten berechnen
-        java.util.List<CutLineCalculator.CutLine> cuts = CutLineCalculator.calculateAllFullCuts(plate);
-        java.util.List<CutLineCalculator.ResidualPlate> residuals = CutLineCalculator.calculateResidualPlates(plate);
+        List<CutLineCalculator.CutLine> cuts = CutLineCalculator.calculateAllFullCuts(plate);
+        List<CutLineCalculator.ResidualPlate> residuals = CutLineCalculator.calculateResidualPlates(plate);
 
         // Ausgabe aktiv: immer drucken (Anforderung: alle relevanten Daten in Konsole)
         System.out.println("=== Schnitte und Restplatten für Ursprung '" + plate.name + "' (" + plate.width + " x " + plate.height + ") ===");
@@ -666,7 +660,7 @@ public class Controller {
     private static void printPrecomputedCutsForBenchmarkRow(BenchmarkVisualizer.BenchmarkResult res) {
         if (res == null) return;
         String header = (res.isSubRow ? "(Sub) " : "") + (res.algorithmName == null ? "(ohne Name)" : res.algorithmName);
-        String setInfo = (res.jobSetLabel == null || "-".equals(res.jobSetLabel)) ? "" : (" | Job-Set: " + res.jobSetLabel);
+    String setInfo = (res.currentJobSet == null || "-".equals(res.currentJobSet)) ? "" : (" | Job-Set: " + res.currentJobSet);
         System.out.println("\n=== Vorab: " + header + setInfo + " ===");
 
         if (res.platesRefs != null && !res.platesRefs.isEmpty()) {
@@ -699,7 +693,7 @@ public class Controller {
 
     private static void printFreeRectanglesForIndex(BenchmarkVisualizer.BenchmarkResult res, int index) {
         if (res == null || res.platesFreeRects == null || index < 0 || index >= res.platesFreeRects.size()) return;
-        java.util.List<?> list = res.platesFreeRects.get(index);
+        List<?> list = res.platesFreeRects.get(index);
         if (list == null || list.isEmpty()) return;
         System.out.println("-- Freie Rechtecke (" + list.size() + "): ");
         for (Object o : list) {
