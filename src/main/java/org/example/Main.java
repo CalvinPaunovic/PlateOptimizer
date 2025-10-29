@@ -16,8 +16,8 @@ public class Main {
     // 'System.getProperty("user.dir")' containsPath up to project folder "PlateOptimizer"
     public static final Path BASE_DIRECTORY = Path.of(System.getProperty("user.dir"));
 
-    public static final Path IO_DIRECTORY = BASE_DIRECTORY.resolve("IOFiles");
-    public static final Path IMAGES_DIRECTORY = BASE_DIRECTORY.resolve("IOFiles/Images");
+    public static final Path IO_DIRECTORY = BASE_DIRECTORY.resolve("Frontend_and_Server/IOFiles");
+    public static final Path IMAGES_DIRECTORY = BASE_DIRECTORY.resolve("Frontend_and_Server/IOFiles/Images");
 
     public static final Path OUTPUT_FILE = IO_DIRECTORY.resolve("output.json");
     public static final Path INPUT_FILE = IO_DIRECTORY.resolve("input.json");

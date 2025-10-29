@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Bilderanzeige</title>
+  <style>
+    body { font-family: sans-serif; margin: 16px; }
+    #gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+    }
+    figure {
+      background: #fafafa;
+      border-radius: 6px;
+      padding: 8px;
+      border: 1px solid #ddd;
+    }
+    img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    img { width: 100%; height: auto; display: block; }
+    figure { border: 1px solid #ddd; padding: 8px; border-radius: 6px; background: #fafafa; margin: 0; }
+    img { max-width: 100%; height: auto; display: block; }
+    figcaption { font-size: 12px; color: #555; margin-top: 6px; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <h1>Bilder aus Frontend_and_Server/IOFiles/images</h1>
+  <div id="gallery">Lade Bilder…</div>
+
+  <script>
+    (async function () {
+      const gallery = document.getElementById('gallery');
+      const imageDir = '../IOFiles/images/';
+
+      try {
+        const res = await fetch('/images.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const files = await res.json();
+
+        if (!files.length) {
+          gallery.textContent = 'Keine Bilder gefunden.';
+          return;
+        }
+
+        gallery.textContent = '';
+        for (const file of files) {
+          const url = imageDir + file;
+          const fig = document.createElement('figure');
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = file;
+          img.loading = 'lazy';
+          const cap = document.createElement('figcaption');
+          cap.textContent = file;
+          fig.appendChild(img);
+          fig.appendChild(cap);
+          gallery.appendChild(fig);
+        }
+      } catch (e) {
+        gallery.textContent = 'Fehler: ' + e.message;
+      }
+    })();
+  </script>
+</body>
+</html>
