@@ -22,12 +22,6 @@ public class Algorithm {
 
     public Algorithm() { }
 
-    public Algorithm(List<Plate> plateInfos, String pathIdPrefix) {
-        if (plateInfos != null) this.plateSequence.addAll(plateInfos);
-        this.pathIdPrefix = pathIdPrefix == null ? "" : pathIdPrefix;
-        this.paths = new ArrayList<>();
-        if (!plateSequence.isEmpty()) initializePathsForPlate(plateSequence.get(0));
-    }
 
     public Algorithm(List<Plate> plateInfos) {
         if (plateInfos != null) {
@@ -81,7 +75,6 @@ public class Algorithm {
             }
         }
     }
-
     // Versucht, ein Job auf der aktuellen Platte zu platzieren (inkl. Erzeugung alternativer Pfade)
     private boolean attemptPlaceOnCurrentPlate(Job originalJob, String plateId) {
         List<PlatePath> newBranchPaths = new ArrayList<>();

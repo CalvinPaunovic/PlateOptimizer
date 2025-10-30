@@ -15,7 +15,7 @@ public class Main {
 
 
     // Datatype 'Path' to get the platform-independent file paths
-    // 'System.getProperty("user.dir")' containsPath up to project folder "PlateOptimizer"
+    // 'System.getProperty("user.dir")' contains the Path up to project folder "PlateOptimizer"
     public static final Path BASE_DIRECTORY = Path.of(System.getProperty("user.dir"));
 
     public static final Path IO_DIRECTORY = BASE_DIRECTORY.resolve("Frontend_and_Server/IOFiles");
@@ -25,28 +25,26 @@ public class Main {
     public static final Path INPUT_FILE = IO_DIRECTORY.resolve("input.json");
     public static final Path OUTPUT_SQLITE_FILE = IO_DIRECTORY.resolve("leftover_plates.sqlite");
 
+    public record SortedJobsVariant(String label, List<Job> jobs) {}
+
 
     public static void main(String[] args) throws IOException {
-
-        List<Job> originalJobs;
-        Plate originalPlate;
-
-        // With JSONInputReader
+        
+        // Read input data from JSON
         JsonInputReader.InputData inputData = JsonInputReader.readFromJson(Main.INPUT_FILE.toString());
-        originalJobs = inputData.jobs;
-        originalPlate = inputData.plate;
+        List <Job> originalJobs = inputData.jobs;
+        Plate originalPlate = inputData.plate;
 
-        System.out.println(originalJobs);
 
         // Sort Jobs by Area and Largest Edge, store in List<List<Job>>
-        List<List<Job>> sortedJobsList = new ArrayList<>();
-        sortedJobsList.add(JobsSetup.sortJobsBySizeDescending(originalJobs));
-        sortedJobsList.add(JobsSetup.sortJobsByLargestEdgeDescending(originalJobs));
+        List<SortedJobsVariant> sortedJobsList = new ArrayList<>();
+        sortedJobsList.add(new SortedJobsVariant("area", JobsSetup.sortJobsBySizeDescending(originalJobs)));
+        sortedJobsList.add(new SortedJobsVariant("edge", JobsSetup.sortJobsByLargestEdgeDescending(originalJobs)));
+        // ... More sorting strategies can be added here, if implemented in JobsSetup-class
 
-        System.out.println(sortedJobsList);
 
         // Execute Algorithm
-        Controller.runAlgorithm(originalJobs, originalPlate, sortedJobsList);
+        Controller.runAlgorithm(sortedJobsList, originalPlate);
     }
 
 }
