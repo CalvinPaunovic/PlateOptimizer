@@ -13,12 +13,7 @@ public class Plate {
     public List<Job> jobs = new ArrayList<>();
     public Integer parentPathIndex = null;
 
-    /*
-    public Plate(String name, double width, double height) {
-        this(name, width, height, null);
-    }
-    */
-
+    
     public Plate(String name, double width, double height, String plateId) {
         this.name = name;
         this.width = width;

@@ -8,9 +8,11 @@ import org.example.Algorithm.Controller;
 import org.example.DataClasses.Job;
 import org.example.DataClasses.Plate;
 import org.example.IOClasses.JsonInputReader;
+import org.example.HelperClasses.JobsSetup;
 
 
 public class Main {
+
 
     // Datatype 'Path' to get the platform-independent file paths
     // 'System.getProperty("user.dir")' containsPath up to project folder "PlateOptimizer"
@@ -26,17 +28,25 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
 
-
         List<Job> originalJobs;
-        Plate originPlate;
-        
+        Plate originalPlate;
+
         // With JSONInputReader
         JsonInputReader.InputData inputData = JsonInputReader.readFromJson(Main.INPUT_FILE.toString());
         originalJobs = inputData.jobs;
-        originPlate = inputData.plate;
+        originalPlate = inputData.plate;
+
+        System.out.println(originalJobs);
+
+        // Sort Jobs by Area and Largest Edge, store in List<List<Job>>
+        List<List<Job>> sortedJobsList = new ArrayList<>();
+        sortedJobsList.add(JobsSetup.sortJobsBySizeDescending(originalJobs));
+        sortedJobsList.add(JobsSetup.sortJobsByLargestEdgeDescending(originalJobs));
+
+        System.out.println(sortedJobsList);
 
         // Execute Algorithm
-        Controller.runAlgorithm(originalJobs, originPlate);
+        Controller.runAlgorithm(originalJobs, originalPlate, sortedJobsList);
     }
 
 }

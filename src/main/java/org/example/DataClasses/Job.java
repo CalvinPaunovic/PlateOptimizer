@@ -17,12 +17,14 @@ public class Job {
     int numberOfCuts = 0;
 
 
+    // For unplaced jobs
     public Job(int id, double width, double height) {
         this.id = id;
         this.width = width;
         this.height = height;
     }
 
+    // For placed jobs
     public Job(int id, double x, double y, double width, double height) {
         this.id = id;
         this.x = x;
@@ -31,14 +33,13 @@ public class Job {
         this.height = height;
     }
 
+    // Only used to print a Job on the console
     @Override
     public String toString() {
         if (placedOn != null) {
-            String splittingInfo = splittingMethod != null ? ", Splitting: " + splittingMethod : "";
-            return String.format("Job %d: %.2fmm x %.2fmm -> Platte: %s, Position: (%.2f, %.2f)%s",
-                    id, width, height, placedOn.name, x, y, splittingInfo);
+            return String.format("Job %d: %.2fx%.2fmm auf %s bei (%.2f, %.2f)", id, width, height, placedOn.name, x, y);
         } else {
-            return String.format("Job %d: %.2fmm x %.2fmm -> nicht platziert", id, width, height);
+            return String.format("Job %d: %.2fx%.2fmm nicht platziert", id, width, height);
         }
     }
 }

@@ -36,23 +36,10 @@ public class BenchmarkVisualizer extends JFrame {
         public int currentPlateIndex = -1;
         public boolean isSubRow = false;
 
-        public BenchmarkResult(String algorithmName, Plate plate, int placedJobs, double coverageRate, int totalJobs) {
-            this(algorithmName, plate, null, placedJobs, coverageRate, totalJobs, null, false);
-        }
-
-        public BenchmarkResult(String algorithmName, Plate plate, int placedJobs, double coverageRate, int totalJobs, List<PlatePath.FreeRectangle> specificFreeRects) {
-            this(algorithmName, plate, null, placedJobs, coverageRate, totalJobs, specificFreeRects, false);
-        }
-
-        public BenchmarkResult(String algorithmName, Plate plate, Object algorithm, int placedJobs, double coverageRate, int totalJobs) {
-            this(algorithmName, plate, algorithm, placedJobs, coverageRate, totalJobs, null, false);
-        }
-
-        public BenchmarkResult(String algorithmName, Plate plate, Object algorithm, int placedJobs, double coverageRate, int totalJobs, List<PlatePath.FreeRectangle> specificFreeRects) {
-            this(algorithmName, plate, algorithm, placedJobs, coverageRate, totalJobs, specificFreeRects, false);
-        }
-
-        public BenchmarkResult(String algorithmName, Plate plate, Object algorithm, int placedJobs, double coverageRate, int totalJobs, List<PlatePath.FreeRectangle> specificFreeRects, boolean isSubRow) {
+        // Constructor
+        public BenchmarkResult(
+            String algorithmName, Plate plate, Object algorithm, int placedJobs, double coverageRate, int totalJobs, List<PlatePath.FreeRectangle> specificFreeRects, 
+            boolean isSubRow, String rootSetId, String parentSetId) {
             this.algorithmName = algorithmName;
             this.plate = plate;
             this.algorithm = algorithm;
@@ -61,6 +48,8 @@ public class BenchmarkVisualizer extends JFrame {
             this.totalJobs = totalJobs;
             this.specificFreeRects = specificFreeRects;
             this.isSubRow = isSubRow;
+            this.rootSetId = rootSetId;
+            this.parentSetId = parentSetId;
         }
     }
 
@@ -68,8 +57,6 @@ public class BenchmarkVisualizer extends JFrame {
     private JTable table;
     private JLabel statisticsLabel;
     private final String jobListInfo;
-
-    public BenchmarkVisualizer(List<BenchmarkResult> results) { this(results, ""); }
 
     public BenchmarkVisualizer(List<BenchmarkResult> results, String jobListInfo) {
         this.results = results;
@@ -113,9 +100,7 @@ public class BenchmarkVisualizer extends JFrame {
         DefaultTableModel model = new DefaultTableModel(columns,0){
             @Override public boolean isCellEditable(int r,int c){return false;}
             @Override public Class<?> getColumnClass(int col){
-                // Rang, Platzierte Jobs, Gesamt Jobs = Integer
                 if(col==0||col==6||col==7) return Integer.class;
-                // Erfolgsrate, Deckungsrate = Double
                 if(col==8||col==9) return Double.class;
                 return String.class;
             }
@@ -127,46 +112,44 @@ public class BenchmarkVisualizer extends JFrame {
             if (r != null && r.isSubRow) { hasSubRows = true; break; }
         }
 
-        int rankCounter = 0; // rank only main rows
+        int rankCounter = 0;
         for(int i=0;i<results.size();i++){
             BenchmarkResult r=results.get(i);
             double success = r.totalJobs==0?0.0:(double)r.placedJobs/r.totalJobs*100.0;
-            String jobSet = (r.currentJobSet != null && !"-".equals(r.currentJobSet)) ? r.currentJobSet : "-";
-            String rootSet = (r.rootSetId != null && !"-".equals(r.rootSetId) && !"null".equals(r.rootSetId)) ? r.rootSetId : "-";
-            String parentSet = (r.parentSetId != null && !"-".equals(r.parentSetId) && !"null".equals(r.parentSetId)) ? r.parentSetId : "-";
-            Integer rankVal = r.isSubRow ? null : (++rankCounter);
-            model.addRow(new Object[]{rankVal,r.algorithmName,r.sortedBy,jobSet,rootSet,parentSet,r.placedJobs,r.totalJobs,success,r.coverageRate});
+            model.addRow(new Object[]{
+                r.isSubRow ? null : (++rankCounter),
+                r.algorithmName,
+                r.sortedBy,
+                r.currentJobSet,
+                r.rootSetId,
+                r.parentSetId,
+                r.placedJobs,
+                r.totalJobs,
+                success,
+                r.coverageRate
+            });
         }
 
         table = new JTable(model);
-        // Preserve insertion order if we detect grouped job-set subrows or the title signals a job-set summary view
         boolean preserveOrder = hasSubRows || (jobListInfo != null && jobListInfo.toLowerCase().contains("job-set"));
         if (!preserveOrder) {
             javax.swing.table.TableRowSorter<DefaultTableModel> sorter = new javax.swing.table.TableRowSorter<>(model);
             table.setRowSorter(sorter);
-            sorter.toggleSortOrder(8); // sort by Erfolgsrate (column index 8)
+            sorter.toggleSortOrder(8);
         }
         customizeTable();
 
-        // Verhindere Auswahl von Unterzeilen: wenn eine Unterzeile angeklickt wird, springe auf die Hauptzeile
         table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override public void valueChanged(ListSelectionEvent e) {
                 if (e.getValueIsAdjusting()) return;
                 int viewRow = table.getSelectedRow();
-                if (viewRow < 0) return;
                 int modelRow = table.getRowSorter()==null ? viewRow : table.convertRowIndexToModel(viewRow);
-                if (modelRow < 0 || modelRow >= results.size()) return;
                 BenchmarkResult r = results.get(modelRow);
                 if (r != null && r.isSubRow) {
-                    // finde vorherige Hauptzeile
                     int prev = modelRow - 1;
                     while (prev >= 0 && results.get(prev) != null && results.get(prev).isSubRow) prev--;
-                    if (prev >= 0) {
-                        int viewPrev = table.getRowSorter()==null ? prev : table.convertRowIndexToView(prev);
-                        table.getSelectionModel().setSelectionInterval(viewPrev, viewPrev);
-                    } else {
-                        table.clearSelection();
-                    }
+                    int viewPrev = table.getRowSorter()==null ? prev : table.convertRowIndexToView(prev);
+                    table.getSelectionModel().setSelectionInterval(viewPrev, viewPrev);
                 }
             }
         });
@@ -477,20 +460,7 @@ public class BenchmarkVisualizer extends JFrame {
     }
 
     public static void showBenchmarkResults(List<BenchmarkResult> results, String benchmarkTitle) {
-        // Print each BenchmarkVisualizer.BenchmarkResult in benchmarks
-        System.out.println("Benchmarks for current plate:");
-        for (BenchmarkVisualizer.BenchmarkResult br : results) {
-            System.out.println(
-                "Algorithm: " + br.algorithmName +
-                ", Coverage: " + br.coverageRate +
-                ", PlacedJobs: " + br.placedJobs +
-                ", TotalJobs: " + br.totalJobs +
-                ", JobSet: " + br.currentJobSet +
-                ", SortedBy: " + br.sortedBy +
-                ", rootSetId: " + br.rootSetId +
-                ", parentSetId: " + br.parentSetId
-            );
-        }
+        // Constructor call
         SwingUtilities.invokeLater(()->{
             BenchmarkVisualizer v = new BenchmarkVisualizer(results, benchmarkTitle);
             v.setVisible(true);

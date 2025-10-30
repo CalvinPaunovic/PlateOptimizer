@@ -6,13 +6,16 @@ import org.example.DataClasses.Job;
 
 public class JobsSetup {
 
-    public static void sortJobsBySizeDescending(List<Job> jobs) {
-        jobs.sort((j1, j2) -> Double.compare(j2.width * j2.height, j1.width * j1.height));
-
+    public static List<Job> sortJobsBySizeDescending(List<Job> jobs) {
+        List<Job> copies = createJobCopies(jobs);
+        copies.sort((j1, j2) -> Double.compare(j2.width * j2.height, j1.width * j1.height));
+        return copies;
     }
 
-    public static void sortJobsByLargestEdgeDescending(List<Job> jobs) {
-        jobs.sort((j1, j2) -> Double.compare(Math.max(j2.width, j2.height), Math.max(j1.width, j1.height)));
+    public static List<Job> sortJobsByLargestEdgeDescending(List<Job> jobs) {
+        List<Job> copies = createJobCopies(jobs);
+        copies.sort((j1, j2) -> Double.compare(Math.max(j2.width, j2.height), Math.max(j1.width, j1.height)));
+        return copies;
     }
 
     public static List<Job> createJobCopies(List<Job> originalJobs) {
