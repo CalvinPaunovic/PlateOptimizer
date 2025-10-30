@@ -1,0 +1,13 @@
+
+{
+  "jobs": [
+    { "width": 200, "height": 400, "quantity": 4 },
+    { "width": 100, "height": 170, "quantity": 9 }
+  ],
+  "plate": {
+    "name": "A1 xyz123",
+    "width": 841,
+    "height": 594
+  }
+}
+

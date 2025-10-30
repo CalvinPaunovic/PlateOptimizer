@@ -217,7 +217,7 @@ public class Controller {
 
         // Build and show the benchmark results
         List<BenchmarkVisualizer.BenchmarkResult> benchmarks = buildBenchmarkResults(paths, jobs, Arrays.asList(currentPlate), "Moin", "Hallo");
-        BenchmarkVisualizer.showBenchmarkResults(benchmarks, "Benchmarks for current plate");
+        //BenchmarkVisualizer.showBenchmarkResults(benchmarks, "Benchmarks for current plate");
 
         // For compatibility, return a PlateRunResult (sortedJobs, paths, groups=null, benchmarks)
         return new PlateRunResult(jobs, paths, null, benchmarks);

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Exposure suggestions</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --bg-panel: #1e1e1e;
+      --accent: #3fa9f5;
+      --text: #e0e0e0;
+      --text-muted: #aaa;
+      --border: #2a2a2a;
+    }
+
+    body {
+      font-family: "Inter", system-ui, sans-serif;
+      margin: 20px;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 24px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+    }
+
+    #viewer {
+      position: relative;
+      margin-bottom: 24px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      display: none;
+      flex-direction: column; /* Caption above image */
+      align-items: center;
+      justify-content: center;
+      height: 80vh;
+      text-align: center;
+      padding-top: 10px;
+    }
+
+    /* Caption above the image */
+    #viewer figcaption {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      text-align: center;
+      width: 100%;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+      background: transparent;
+    }
+
+    /* Image display */
+    #viewer img {
+      max-width: 100%;
+      max-height: calc(80vh - 60px); /* Leave space for caption and buttons */
+      object-fit: contain;
+      display: block;
+      transition: opacity 0.2s ease-in-out;
+    }
+
+    /* Navigation arrows */
+    #viewer .nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text);
+      font-size: 42px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s, color 0.2s;
+      z-index: 10;
+    }
+
+    #viewer .nav:hover {
+      background: rgba(63, 169, 245, 0.3);
+      color: var(--accent);
+    }
+
+    #prev { left: 14px; }
+    #next { right: 14px; }
+
+    /* Close button */
+    #close {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-size: 28px;
+      color: var(--text-muted);
+      background: rgba(0,0,0,0.4);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      padding: 4px 10px;
+      line-height: 1;
+      user-select: none;
+      transition: background 0.2s, color 0.2s;
+      z-index: 10;
+    }
+
+    #close:hover {
+      color: var(--accent);
+      background: rgba(63,169,245,0.25);
+    }
+
+    /* Gallery layout */
+    #gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+    }
+
+    figure {
+      margin: 0;
+      border-radius: 10px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+    /* Hover only active when viewer is closed */
+    body:not(.viewer-open) figure:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+      border-color: var(--accent);
+    }
+
+    figure img {
+      width: 100%;
+      height: auto;
+      display: block;
+      filter: brightness(0.9) contrast(1.05);
+      transition: filter 0.2s ease;
+    }
+
+    figure:hover img {
+      filter: brightness(1) contrast(1.1);
+    }
+
+    figure figcaption {
+      padding: 8px 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      border-top: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      word-break: break-all;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
+</head>
+<body>
+  <h1>Exposure suggestions</h1>
+
+  <figure id="viewer">
+    <button id="close" title="Close">×</button>
+    <figcaption></figcaption>
+    <img src="" alt="">
+    <span class="nav" id="prev">‹</span>
+    <span class="nav" id="next">›</span>
+  </figure>
+
+  <div id="gallery">Loading images…</div>
+
+  <script>
+    (async function () {
+      const gallery = document.getElementById('gallery');
+      const viewer = document.getElementById('viewer');
+      const viewerImg = viewer.querySelector('img');
+      const caption = viewer.querySelector('figcaption');
+      const prevBtn = document.getElementById('prev');
+      const nextBtn = document.getElementById('next');
+      const closeBtn = document.getElementById('close');
+
+      const imageDir = '../IOFiles/images/';
+      let files = [];
+      let current = -1;
+
+      try {
+        const res = await fetch('/images.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        files = await res.json();
+
+        if (!files.length) {
+          gallery.textContent = 'No images found.';
+          return;
+        }
+
+        gallery.textContent = '';
+        for (const [i, file] of files.entries()) {
+          const fig = document.createElement('figure');
+          const img = document.createElement('img');
+          img.src = imageDir + file;
+          img.alt = file;
+          img.loading = 'lazy';
+          img.dataset.index = i;
+          const cap = document.createElement('figcaption');
+          cap.textContent = file;
+          fig.appendChild(img);
+          fig.appendChild(cap);
+          gallery.appendChild(fig);
+        }
+
+        gallery.addEventListener('click', e => {
+          const img = e.target.closest('img');
+          if (!img) return;
+          current = +img.dataset.index;
+          showImage();
+        });
+
+        prevBtn.addEventListener('click', () => navigate(-1));
+        nextBtn.addEventListener('click', () => navigate(1));
+        closeBtn.addEventListener('click', closeViewer);
+
+        document.addEventListener('keydown', e => {
+          if (viewer.style.display === 'none') return;
+          if (e.key === 'ArrowLeft') navigate(-1);
+          if (e.key === 'ArrowRight') navigate(1);
+          if (e.key === 'Escape') closeViewer();
+        });
+
+        function showImage() {
+          const file = files[current];
+          viewerImg.style.opacity = 0;
+          viewer.style.display = 'flex';
+          document.body.classList.add('viewer-open');
+          setTimeout(() => {
+            viewerImg.src = imageDir + file;
+            caption.textContent = file;
+            viewerImg.onload = () => (viewerImg.style.opacity = 1);
+          }, 100);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function closeViewer() {
+          viewer.style.display = 'none';
+          document.body.classList.remove('viewer-open');
+        }
+
+        function navigate(dir) {
+          current = (current + dir + files.length) % files.length;
+          showImage();
+        }
+      } catch (e) {
+        gallery.textContent = 'Error: ' + e.message;
+      }
+    })();
+  </script>
+</body>
+</html>
