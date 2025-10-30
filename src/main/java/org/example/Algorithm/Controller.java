@@ -41,11 +41,11 @@ public class Controller {
         // #region Strategy-Code-Matrix-output
         List<Integer> orderArea = new ArrayList<>();
         for (Job j : resultArea.sortedJobs) orderArea.add(j.id);
-        printStrategyCodeMatrix(resultArea.paths, "Platte 1 - Strategie-Matrix (Fläche)", orderArea);
+        //printStrategyCodeMatrix(resultArea.paths, "Platte 1 - Strategie-Matrix (Fläche)", orderArea);
         
         List<Integer> orderEdge = new ArrayList<>();
         for (Job j : resultEdge.sortedJobs) orderEdge.add(j.id);
-        printStrategyCodeMatrix(resultEdge.paths, "Platte 1 - Strategie-Matrix (Kante)", orderEdge);
+        //printStrategyCodeMatrix(resultEdge.paths, "Platte 1 - Strategie-Matrix (Kante)", orderEdge);
         // #endregion
 
         // Build the first benchmark window (Plate 1)
@@ -56,7 +56,7 @@ public class Controller {
         // Set all rows in Plate 1 as main rows
         for (BenchmarkVisualizer.BenchmarkResult br : plateOneBenchmark) if (br != null) br.isSubRow = false;
         // Show benchmark results for Plate 1
-        BenchmarkVisualizer.showBenchmarkResults(plateOneBenchmark, "Plate 1 __ First run");
+        //BenchmarkVisualizer.showBenchmarkResults(plateOneBenchmark, "Plate 1 __ First run");
 
         // Process follow-up plates
         generateFollowUpPlates(originalJobs, originalPlate, resultArea.groups, resultEdge.groups);
@@ -235,7 +235,7 @@ public class Controller {
 
         // Build and show the benchmark results
         List<BenchmarkVisualizer.BenchmarkResult> benchmarks = buildBenchmarkResults(paths, jobs, Arrays.asList(currentPlate), "Moin", "Hallo");
-        BenchmarkVisualizer.showBenchmarkResults(benchmarks, "Benchmarks for current plate");
+        //BenchmarkVisualizer.showBenchmarkResults(benchmarks, "Benchmarks for current plate");
 
         /*
         BenchmarkVisualizer.showBenchmarkResults(benchmarks,
